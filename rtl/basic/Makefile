@@ -59,6 +59,6 @@ load: blinky.bin
 	icoprog -p < blinky.bin # Needs sudo
 
 clean:
-	rm *.blif *.asc *.bin
+	rm -f *.blif *.asc *.bin
 	# rm -rf obj_dir
 

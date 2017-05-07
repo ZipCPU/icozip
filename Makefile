@@ -61,8 +61,8 @@ datestamp:
 archive:
 	tar --transform s,^,$(YYMMDD)-ico/, -chjf $(YYMMDD)-ico.tjz $(BENCH) $(SW) $(RTL) $(NOTES) $(PROJ) $(BIN) $(CONSTRAINTS)
 
-# .PHONY: autodata
-# autodata:
+.PHONY: autodata
+autodata:
 	# $(MAKE) --no-print-directory --directory=auto-data
 	# $(call copyif-changed,auto-data/toplevel.v,rtl/icozip/toplevel.v)
 	# $(call copyif-changed,auto-data/main.v,rtl/icozip/main.v)

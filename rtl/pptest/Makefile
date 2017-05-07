@@ -36,24 +36,28 @@
 ################################################################################
 ##
 ##
-all: helloworld speechfifo
+all: hellopp speechpp
 
 # GNU Make automatic variables (since I can never remember these ...)
 # $@	- name of the target
 # $<	- Name of the first prerequisite
 # $^	- Names of all the prerequisites
 %.blif: %.v
-	yosys -p 'synth_ice40 -blif $@' $<
+	yosys -p 'synth_ice40 -blif $@' $^
 %.asc: %.blif %.pcf
 	arachne-pnr -d 8k -p $*.pcf -o $@ $<
 %.bin: %.asc
 	icetime -d hx8k -c 100 $<
 	icepack $< $@
 
-.PHONY: helloworld speechfifo
-helloworld: helloworld.bin
-speechfifo: speechfifo.bin
+.PHONY: hellopp speechpp
+hellopp: hellopp.bin
+speechpp: speechpp.bin
 
+speechpp.blif: speechpp.v pport.v ufifo.v wbpport.v
+hellopp.blif:  hellopp.v  pport.v
+
+.PHONY: clean
 clean:
 	rm -f *.blif *.asc *.bin
 	rm -rf obj_dir
