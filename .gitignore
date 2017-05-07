@@ -22,3 +22,5 @@ design.h
 *.bin
 *.blif
 *.asc
+201*-ico.tjz
+201*-build.v
