@@ -1,0 +1,48 @@
+set_io i_clk R9			# 25MHz clock ?
+set_io o_ledg[0] C8
+set_io o_ledg[1] F7
+set_io o_ledr K9
+set_io i_btn[1] K11
+set_io i_btn[0] P13
+
+set_io o_pm1top[3] D8		# 207(B7), 213(A5) --- but these are P2 ports
+set_io o_pm1top[2] B9		# 208(B6), 218(A2) --- top is second
+set_io o_pm1top[1] B10		# 223(B3), 227(C3)
+set_io o_pm1top[0] B11		# 214(B5), 216(B4)
+
+set_io o_pm1bot[3] B8		#
+set_io o_pm1bot[2] A9		#
+set_io o_pm1bot[1] A10		#
+set_io o_pm1bot[0] A11		#
+
+set_io o_pm2top[3] A5		# 203( B8), 200 (D8) ---- These appear to be P2
+set_io o_pm2top[2] A2		# 194( A9), 199 (B9)	-- ports, as per
+set_io o_pm2top[1] C3		# 186(A10), 183 (B10)	-- schematic
+set_io o_pm2top[0] B4		# 187(A11), 184 (B11)
+
+set_io o_pm2bot[3] B7		#
+set_io o_pm2bot[2] B6		#
+set_io o_pm2bot[1] B3		#
+set_io o_pm2bot[0] B5		#
+
+set_io o_pm3top[3] L9		# 78(N9), 74(L9)
+set_io o_pm3top[2] G5		# 83(P9), 5A(G5)
+set_io o_pm3top[1] L7		# 68(M8), 21A(L7)
+set_io o_pm3top[0] N6		# 66(N7), 52(N6)	-- Top pin is bad??
+
+set_io o_pm3bot[3] N9		# 78(N9), 74(L9)
+set_io o_pm3bot[2] P9		# 83(P9), 5A(G5)
+set_io o_pm3bot[1] M8		# 68(M8), 21A(L7)
+set_io o_pm3bot[0] N7		# 66(N7), 52(N6)	-- Top pin is bad??
+
+# P4 DOES NOT MATCH DRAWING (T9,T15,T14,T11), but matches schematic
+set_io o_pm4top[3] T15		# 109(R14), 91(T15)	-- This matches nothing
+set_io o_pm4top[2] T14		#  94(T13), 92(T14)
+set_io o_pm4top[1] T11		#  88(T10), 89(T11)
+set_io o_pm4top[0] R10		#  79( T9), 84(R10)	-- Top pin is bad??
+
+set_io o_pm4bot[3] R14		# 109(R14), 91(T15)	-- This matches nothing
+set_io o_pm4bot[2] T13		#  94(T13), 92(T14)
+set_io o_pm4bot[1] T10		#  88(T10), 89(T11)
+set_io o_pm4bot[0] T9		#  79( T9), 84(R10)	-- Top pin is bad??
+

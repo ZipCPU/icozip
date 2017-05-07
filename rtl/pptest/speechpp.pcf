@@ -1,0 +1,16 @@
+set_io i_clk     R9			# 100 MHz clock
+set_io o_ledg[0] C8
+set_io o_ledg[1] F7
+set_io o_ledr    K9
+
+set_io  i_pp_dir     C9
+set_io  i_pp_clk     C10
+set_io io_pp_data[0] D9
+set_io io_pp_data[1] D7
+set_io io_pp_data[2] D4
+set_io io_pp_data[3] A7
+set_io io_pp_data[4] A6
+set_io io_pp_data[5] C7
+set_io io_pp_data[6] C6
+set_io io_pp_data[7] D6
+# set_io io_pp_data[8] D5

@@ -1,0 +1,4 @@
+set_io i_clk R9			# 25MHz clock ?
+set_io o_ledg[0] C8
+set_io o_ledg[1] F7
+set_io o_ledr K9
