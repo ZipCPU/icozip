@@ -1,0 +1,41 @@
+set_io i_clk R9			# 100 MHz clock
+
+set_io o_led[7] D8
+set_io o_led[6] B9
+set_io o_led[5] B10
+set_io o_led[4] B11
+set_io o_led[3] B8
+set_io o_led[2] A9
+set_io o_led[1] A10
+set_io o_led[0] A11
+
+## PMod #2
+# set_io o_led[7] A5
+# set_io o_led[6] A2
+# set_io o_led[5] C3
+# set_io o_led[4] B4
+# set_io o_led[3] B7
+# set_io o_led[2] B6
+# set_io o_led[1] B3
+# set_io o_led[0] B5
+
+## PMod #3
+# set_io o_led[3] L9
+# set_io o_led[2] G5
+# set_io o_led[1] L7
+# set_io o_led[0] N6
+# set_io o_led[3] N9
+# set_io o_led[2] P9
+# set_io o_led[1] M8
+# set_io o_led[0] N7
+
+## PMod #4
+# set_io o_led[7] T15
+# set_io o_led[6] T14
+# set_io o_led[5] T11
+# set_io o_led[4] R10
+# set_io o_led[3] R14
+# set_io o_led[2] T13
+# set_io o_led[1] T10
+# set_io o_led[0] T9
+

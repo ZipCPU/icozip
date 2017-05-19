@@ -1,10 +1,12 @@
 ################################################################################
 ## 
-## Filename: 	rtl/basic/Makefile
+## Filename: 	rtl/pmodleds/Makefile
 ##
 ## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##
-## Purpose:	To direct the build of the files in the rtl/basic directory!
+## Purpose:	To direct the build of the files in the rtl/pmodleds directory.
+##		The files in this directory assume that the user has a Digilent
+##	PMod LED8 connected to their ICO board.
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
@@ -35,7 +37,7 @@
 ################################################################################
 ##
 ##
-all: blinky pmodtest clktest dimmer
+all: ledbouncer	ledwalker
 
 # GNU Make automatic variables (since I can never remember these ...)
 # $@	- name of the target
@@ -49,15 +51,15 @@ all: blinky pmodtest clktest dimmer
 	icetime -d hx8k -c 100 $<
 	icepack $< $@
 
-.PHONY: blinky pmodtest clktest
-blinky:     blinky.bin
-clktest:    clktest.bin
-pmodtest:   pmodtest.bin
-dimmer:     dimmer.bin
+.PHONY: bouncer walker ledbouncer ledwalker
+walker:     ledwalker.bin
+ledwalker:  ledwalker.bin
+bouncer:    ledbouncer.bin
+ledbouncer: ledbouncer.bin
 
 .PHONY: load
-load: blinky.bin
-	icoprog -p < blinky.bin # Needs sudo
+load: ledwalker.bin
+	echo "Type/run sudo icoprog -p < ledwalker.bin" # Needs sudo
 
 clean:
 	rm -f *.blif *.asc *.bin
