@@ -43,6 +43,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
+`default_nettype	none
+//
 module	pport(i_clk,
 		o_rx_stb, o_rx_data,
 		i_tx_wr, i_tx_data, o_tx_busy,
@@ -61,57 +63,79 @@ module	pport(i_clk,
 	input	wire	[7:0]	i_pp_data;
 	output	reg	[7:0]	o_pp_data;
 
+	//
+	//
 	// Synchronize our inputs
+	//
+	//
 
+	// First, sycnrhonize the clock and generate a clock strobe
 	wire		ck_pp_clk;
-	reg		pp_stb;
+	wire		ck_rd_dir, ck_wr_dir;
+	reg		pp_stb, pp_dbl_clk;
 	reg	[2:0]	pp_clk_transfer;
+	initial	pp_clk_transfer = 3'h0;
 	always @(posedge i_clk)
 		pp_clk_transfer <= { pp_clk_transfer[1:0], i_pp_clk };
 	always @(posedge i_clk)
-		pp_stb <= (!pp_clk_transfer[2])&&(pp_clk_transfer[1]);
+		pp_stb <= (pp_clk_transfer[2:1]== 2'b01);
 	assign	ck_pp_clk = pp_clk_transfer[1];
 
+	// Next, synchronize the incoming data
+	//	Not really necessary, though, since ... these should
+	//	be stable once we notice the clock is high
+	/*
 	reg	[7:0]	q_pp_data, ck_pp_data;
 	always @(posedge i_clk)
 		q_pp_data  <= i_pp_data;
 	always @(posedge i_clk)
 		ck_pp_data <= q_pp_data;
+	*/
+	reg	[7:0]	ck_pp_data;
+	always @(posedge i_clk)
+		ck_pp_data <= i_pp_data;
 
+	// ... and the incoming direction
+	//	which should also be stable, due to waiting on the clock
+	/*
 	reg		q_pp_dir, ck_pp_dir;
 	always @(posedge i_clk)
 		q_pp_dir  <= i_pp_dir;
 	always @(posedge i_clk)
 		ck_pp_dir <= q_pp_dir;
+	*/
+	reg	ck_pp_dir;
+	always @(posedge i_clk)
+		ck_pp_dir <= i_pp_dir;
+
+	assign	ck_rd_dir =  ck_pp_dir; // Read from the PI
+	assign	ck_wr_dir = !ck_rd_dir; // Write to the PI
 
 	always @(posedge i_clk)
-		o_rx_stb <= (pp_stb)&&(ck_pp_dir);
+		o_rx_stb <= (pp_stb)&&(ck_rd_dir);
 	always @(posedge i_clk)
 		if (pp_stb)
 			o_rx_data <= ck_pp_data;
 
 	reg	loaded;
 	always @(posedge i_clk)
-		if ((pp_stb)&&(!ck_pp_dir))
-			loaded <= 1'b0;
-		else if ((i_tx_wr)&&(!o_tx_busy))
+		if ((i_tx_wr)&&(!o_tx_busy))
 			loaded <= 1'b1;
+		else if ((pp_stb)&&(ck_wr_dir))
+			loaded <= 1'b0;
 
 	always @(posedge i_clk)
-		if ((i_tx_wr)&&(!o_tx_busy))
-			o_pp_data <= i_tx_data;
-		else if ((!loaded)&&((!ck_pp_clk)||(!ck_pp_dir)))
-			o_pp_data <= 8'hff;
+		o_tx_busy <= (loaded)
+			||((i_tx_wr)&&(!o_tx_busy))
+			||((ck_pp_clk)&&(ck_wr_dir));
 
 	always @(posedge i_clk)
-		o_tx_busy <= ((!ck_pp_clk)||(!ck_pp_dir))
-				&&(!loaded)&&((!i_tx_wr)||(!o_tx_busy));
-
-	always @(posedge i_clk)
-		if ((i_tx_wr)&&(!o_tx_busy))
-			o_pp_data <= i_tx_data;
-		else if ((!loaded)&&((!ck_pp_clk)||(!ck_pp_dir)))
-			o_pp_data <= 8'hff;
-
+		if (!o_tx_busy)
+		begin
+			if (i_tx_wr)
+				o_pp_data <= { 1'b0, i_tx_data[6:0] };
+			else
+				o_pp_data <= 8'hff;
+		end
 
 endmodule

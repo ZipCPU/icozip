@@ -1,5 +1,6 @@
 set_io i_clk R9			# 100 MHz clock
 
+## PMod #1
 set_io o_led[7] D8
 set_io o_led[6] B9
 set_io o_led[5] B10
@@ -20,10 +21,10 @@ set_io o_led[0] A11
 # set_io o_led[0] B5
 
 ## PMod #3
-# set_io o_led[3] L9
-# set_io o_led[2] G5
-# set_io o_led[1] L7
-# set_io o_led[0] N6
+# set_io o_led[7] L9
+# set_io o_led[6] G5
+# set_io o_led[5] L7
+# set_io o_led[4] N6
 # set_io o_led[3] N9
 # set_io o_led[2] P9
 # set_io o_led[1] M8

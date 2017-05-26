@@ -1,18 +1,20 @@
+#!/bin/bash
 ################################################################################
 ##
-## Filename: 	Makefile
+## Filename:	arch.sh
 ##
 ## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##
-## Purpose:	To coordinate the build of a series of UART testing programs
-##		for the icoboard.
+## Purpose:	To return "pc" or "arm" depending on which type of machine
+##		this is being run from.  If run from a PC, "pc" should be
+##	returned.  If from an ARM, such as a RPi, "arm" should be returned.
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2017, Gisselquist Technology, LLC
+## Copyright (C) 2017, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -36,34 +38,10 @@
 ################################################################################
 ##
 ##
-all: hellopp speechpp linepp # pppintest
-
-# GNU Make automatic variables (since I can never remember these ...)
-# $@	- name of the target
-# $<	- Name of the first prerequisite
-# $^	- Names of all the prerequisites
-%.blif: %.v
-	yosys -p 'synth_ice40 -blif $@' $^
-%.asc: %.blif %.pcf
-	arachne-pnr -d 8k -p $*.pcf -o $@ $<
-
-%.bin: %.asc
-	icetime -d hx8k -c 75 $<
-	icepack $< $@
-
-.PHONY: hellopp speechpp pppintest linepp
-hellopp:   hellopp.bin
-speechpp:  speechpp.bin
-linepp:    linepp.bin
-pppintest: pppintest.bin
-
-speechpp.blif:   speechpp.v pport.v ufifo.v wbpport.v
-hellopp.blif:    hellopp.v  pport.v ppio.v
-linepp.blif:     linepp.v   pport.v ppio.v
-pppintest.blif:  pppintest.v
-
-.PHONY: clean
-clean:
-	rm -f *.blif *.asc *.bin
-	rm -rf obj_dir
-
+uname -a | grep x86_64 > /dev/null
+if [[ $? != 0 ]];
+then
+  echo arm
+else
+  echo pc
+fi

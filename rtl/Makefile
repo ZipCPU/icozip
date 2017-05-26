@@ -40,31 +40,40 @@
 .PHONY: all
 all:	basic uart pptest # icozip
 # all:	verilated sw bench bit
+SUBMAKE := $(MAKE) --no-print-directory -C
 #
 .PHONY: basic
 basic:
-	$(MAKE) --no-print-directory --directory=basic
+	$(SUBMAKE) basic
 
 .PHONY: uart
 uart:
-	$(MAKE) --no-print-directory --directory=uart
+	$(SUBMAKE) uart
+
+.PHONY: pmodleds
+pmodleds:
+	$(SUBMAKE) pmodleds
 
 .PHONY: pptest
 pptest:
-	$(MAKE) --no-print-directory --directory=pptest
+	$(SUBMAKE) pptest
 
 
 .PHONY: clean
-clean:	clean-basic clean-uart clean-pptest
+clean:	clean-basic clean-uart clean-pptest clean-pmodleds
 
 .PHONY: clean-basic
 clean-basic:
-	$(MAKE) --no-print-directory --directory=basic clean
+	$(SUBMAKE) basic clean
 
 .PHONY: clean-uart
 clean-uart:
-	$(MAKE) --no-print-directory --directory=uart clean
+	$(SUBMAKE) uart clean
 
 .PHONY: clean-pptest
 clean-pptest:
-	$(MAKE) --no-print-directory --directory=pptest clean
+	$(SUBMAKE) pptest clean
+
+.PHONY: clean-pmodleds
+clean-pmodleds:
+	$(SUBMAKE) pmodleds clean

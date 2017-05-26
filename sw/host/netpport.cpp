@@ -89,6 +89,10 @@ bool verbose = false;
 #  define RASPI_DIR 28 // PIN 38, GPIO.28, IO191,       C9
 #  define RASPI_CLK 29 // PIN 40, GPIO.29, IO185,       C10
 
+#define	READ_FROM_ICO	0
+#define	WRITE_TO_ICO	1
+
+/*
 unsigned	pp_xfer(unsigned nbytes, char *data) {
 	unsigned	nr = 0;
 
@@ -156,8 +160,10 @@ unsigned	pp_xfer(unsigned nbytes, char *data) {
 
 	return nr;
 }
+*/
 
 void	pp_write(unsigned nbytes, char *data) {
+printf("Calling pp_write, %d bytes\n", nbytes);
 	digitalWrite(RASPI_DIR, OUTPUT);
 	pinMode(RASPI_D7, OUTPUT);
 	pinMode(RASPI_D6, OUTPUT);
@@ -187,7 +193,9 @@ void	pp_write(unsigned nbytes, char *data) {
 
 unsigned	pp_read(unsigned nbytes, char *data) {
 	unsigned	nr = 0;
+	const	unsigned	DELAY = 100;
 
+	digitalWrite(RASPI_CLK, 0);
 	pinMode(RASPI_D7, INPUT);
 	pinMode(RASPI_D6, INPUT);
 	pinMode(RASPI_D5, INPUT);
@@ -197,13 +205,12 @@ unsigned	pp_read(unsigned nbytes, char *data) {
 	pinMode(RASPI_D1, INPUT);
 	pinMode(RASPI_D0, INPUT);
 	digitalWrite(RASPI_DIR, INPUT);
-	digitalWrite(RASPI_CLK, 0);
+	assert(usleep(DELAY) == 0);
 
 	for(unsigned i=0; i<nbytes; i++) {
 		char	datab = 0;
 
 		digitalWrite(RASPI_CLK, 1);
-		digitalWrite(RASPI_D7, (datab & 0x80) ? 1:0);
 
 		if (digitalRead(RASPI_D7))	datab |= 0x80;
 		if (digitalRead(RASPI_D6))	datab |= 0x40;
@@ -215,9 +222,16 @@ unsigned	pp_read(unsigned nbytes, char *data) {
 		if (digitalRead(RASPI_D0))	datab |= 0x01;
 
 		digitalWrite(RASPI_CLK, 0);
+		usleep(DELAY);
 
 		if (datab == 0x0ff)
 			break;
+/*
+#warning "A zero here breaks protocol"
+		if (datab == 0x0)
+			break;
+*/
+		// printf("PP_READ(%3d): %02x\n", nr+1, datab);
 		data[nr++] = datab;
 	}
 
@@ -296,7 +310,10 @@ public:
 	}
 
 	int	read(void) {
-		return ::read(m_fd, m_buf, sizeof(m_buf));
+		if (!m_connected)
+			return 0;
+		else
+			return ::read(m_fd, m_buf, sizeof(m_buf));
 	}
 
 	void	accept(const int skt) {
@@ -313,7 +330,8 @@ public:
 				m_buf[i] |= mask;
 		}
 
-		::pp_write((unsigned)ln, m_buf);
+		if (ln > 0)
+			::pp_write((unsigned)ln, m_buf);
 	}
 
 	int	write(int fd, int ln, int mask = 0) {
@@ -352,6 +370,7 @@ public:
 		assert(ln > 0);
 		for(int i=0; i<ln; i++) {
 			m_iline[m_ilen++] = m_buf[i];
+			// printf("CH[%02x] = %c\n", m_buf[i], isgraph(m_buf[i])?m_buf[i]:'.');
 			bool	nl, fullline;
 			nl = (m_iline[m_ilen-1] == '\n');
 			nl=(nl)||(m_iline[m_ilen-1] == '\r');
@@ -359,13 +378,11 @@ public:
 			fullline = ((unsigned)m_ilen >= sizeof(m_iline)-1);
 
 			if ((nl)||(fullline)) {
-				if ((unsigned)m_ilen >= sizeof(m_iline)-1)
-					m_iline[m_ilen] = '\0';
-				else
-					m_iline[m_ilen-1] = '\0';
-				if (m_ilen > 1)
-					fprintf(fp, "%s%s\n",
-						(prefix)?prefix:"", m_iline);
+				m_iline[m_ilen] = '\0';
+				/*
+				fprintf(fp, "%s%s%s", // i, m_ilen,
+					(prefix)?prefix:"", m_iline, (!nl)?"\n":"");
+				*/
 				m_ilen = 0;
 			}
 		}
@@ -407,6 +424,9 @@ int main(int argc, char **argv)
 
 	// Comms take place over 8 bidirectional data bits, a clock,
 	// and a direction bit
+
+	wiringPiSetup();
+
 	pinMode(RASPI_CLK, OUTPUT);
 	pinMode(RASPI_DIR, OUTPUT);
 
@@ -473,7 +493,7 @@ int main(int argc, char **argv)
 		//
 		//
 
-		// Start by flusing everything on the TTY channel
+		// Start by flushing everything on the TTY channel
 		unsigned	nr;
 		char	rawbuf[256];
 		nr = pp_read(sizeof(rawbuf), rawbuf);
@@ -482,12 +502,18 @@ int main(int argc, char **argv)
 			last_busy  = (nr == sizeof(rawbuf));
 			while(nr > 0) {
 				int	ncmd = 0, ncon = 0;
-				for(int i=0; i<nr; i++) {
+				for(unsigned i=0; i<nr; i++) {
 					if (rawbuf[i] & 0x80)
 						lbcmd.m_buf[ncmd++] = rawbuf[i] & 0x07f;
 					else
 						lbcon.m_buf[ncon++] = rawbuf[i];
 				}
+
+				/* printf("NR = %3d, NCMD = %3d, NCON = %3d", nr, ncmd, ncon);
+				printf(": %02x:%02x:%02x...\n",
+					lbcon.m_buf[0], lbcon.m_buf[1],
+					lbcon.m_buf[2]);
+				*/
 				if ((lbcmd.m_fd >= 0)&&(ncmd>0)) {
 					int	nw;
 					nw = lbcmd.write(lbcmd.m_fd, ncmd);
@@ -516,19 +542,23 @@ int main(int argc, char **argv)
 					lbcmd.print_in(stdout, ncmd, (lbcmd.m_fd>=0)?"> ":"# ");
 				if (ncon > 0)
 					lbcon.print_in(stdout, ncon);
+
 				nr = pp_read(sizeof(rawbuf), rawbuf);
 			}
-		}
+		} // else printf("z");
 
-		if (p[1].revents & POLLIN) {
-			if (p[1].fd == skt) {
+		if (p[0].revents & POLLIN) {
+			if (p[0].fd == skt) {
 				lbcmd.accept(skt);
-			} else { // p[1].fd == lbcmd.m_fd
+				if (lbcmd.m_connected)
+					printf("Command port is now connected\n");
+			} else { // p[0].fd == lbcmd.m_fd
 				int nr = lbcmd.read();
 				if (nr == 0) {
 					lbcmd.flush_out(stdout, "< ");
 					// printf("Disconnect\n");
 					lbcmd.close();
+					printf("Command port disconnect\n");
 				} else if (nr > 0) {
 					// printf("%d read from SKT\n", nr);
 					lbcmd.pp_write(nr, 0x80);
@@ -537,15 +567,17 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (p[2].revents & POLLIN) {
-			if (p[2].fd == console) {
+		if (p[1].revents & POLLIN) {
+			if (p[1].fd == console) {
 				lbcon.accept(console);
-				printf("Accepted a console connection\n");
+				if (lbcmd.m_connected)
+					printf("Console port is now connected\n");
 			} else { // p[1].fd == lbcon.m_fd
 				int nr = lbcon.read();
 				if (nr == 0) {
 					lbcon.flush_out(stdout);
 					lbcon.close();
+					printf("Console port closed\n");
 				} else if (nr > 0) {
 					lbcon.pp_write(nr, 0x0);
 					lbcon.print_out(stdout, nr);

@@ -1,6 +1,6 @@
 ################################################################################
 ##
-## Filename:	Makefile
+## Filename:	sw/host/Makefile
 ##
 ## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##
@@ -39,9 +39,14 @@
 .PHONY: all
 all:
 CROSS ?=
-ARCH  ?= pc
+ARCH  ?= $(shell bash ./arch.sh)
 #
+ifeq ($(ARCH), arm)
 PROGRAMS   := wbregs netpport
+else
+PROGRAMS   := wbregs # netpport
+endif
+
 PREFXPPGMS := $(addprefix $(ARCH)-,$(PROGRAMS))
 SCOPES :=
 all: $(PROGRAMS) $(SCOPES)
@@ -76,12 +81,17 @@ $(OBJDIR)/%.o: %.c
 
 .PHONY: clean
 clean:
-	rm -rf $(OBJDIR)/ $(PROGRAMS) a.out
+	rm -rf $(OBJDIR)/ $(PREFXPPGMS) a.out
 
 $(OBJDIR)/scopecls.o: scopecls.cpp scopecls.h
 
 ifeq ($(ARCH), arm)
-netpport: $(OBJDIR)/netpport.o
+.PHONY: netpport pptest
+netpport: $(ARCH)-netpport
+$(ARCH)-netpport: $(OBJDIR)/netpport.o
+	$(CXX) $(CFLAGS) $^ -lwiringPi -o $@
+pptest: $(ARCH)-pptest
+$(ARCH)-pptest: $(OBJDIR)/pptest.o
 	$(CXX) $(CFLAGS) $^ -lwiringPi -o $@
 endif
 #
@@ -89,10 +99,8 @@ endif
 # and little more. 
 #manping: $(OBJDIR)/manping.o $(BUSOBJS)
 #	$(CXX) $(CFLAGS) $^ -o $@
-$(ARCH)-zipstate: $(OBJDIR)/zipstate.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ $(LIBS) -o $@
-$(ARCH)-netsetup: $(OBJDIR)/netsetup.o $(BUSOBJS)
-	$(CXX) $(CFLAGS) $^ $(LIBS) -o $@
+.PHONY: wbregs
+wbregs: $(ARCH)-wbregs
 $(ARCH)-wbregs: $(OBJDIR)/wbregs.o $(BUSOBJS)
 	$(CXX) $(CFLAGS) $^ $(LIBS) -o $@
 

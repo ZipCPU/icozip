@@ -43,17 +43,47 @@
 //
 module	hellopp(i_clk,
 		o_ledg, o_ledr,
+		o_pled,
 		i_pp_dir, i_pp_clk, io_pp_data);
 	//
-	input		i_clk;
+	input			i_clk;
 	output	wire	[1:0]	o_ledg;
 	output	wire		o_ledr;
+	output	wire	[7:0]	o_pled;
 	//
 	input	wire		i_pp_dir, i_pp_clk;
 	inout	wire	[7:0]	io_pp_data;
 
 	reg	[7:0]	message	[0:15];
-	
+
+	wire	s_clk;
+
+`ifdef	VERILATOR
+	assign	s_clk = i_clk;
+`else
+	wire	clk_66mhz, pll_locked;
+	SB_PLL40_PAD #(
+		.FEEDBACK_PATH("SIMPLE"),
+		.DELAY_ADJUSTMENT_MODE_FEEDBACK("FIXED"),
+		.DELAY_ADJUSTMENT_MODE_RELATIVE("FIXED"),
+		.PLLOUT_SELECT("GENCLK"),
+		.FDA_FEEDBACK(4'b1111),
+		.FDA_RELATIVE(4'b1111),
+		.DIVR(4'd1),		// Divide by (DIVR+1)
+		.DIVQ(3'd1),		// Divide by 2^(DIVQ)
+		.DIVF(7'd1),		// Multiply by (DIVF+1)
+		.FILTER_RANGE(3'b111)
+	) plli (
+		.PACKAGEPIN     (i_clk        ),
+		.PLLOUTCORE     (clk_66mhz    ),
+		.LOCK           (pll_locked  ),
+		.BYPASS         (1'b0         ),
+		.RESETB         (1'b1         )
+	);
+
+	assign	s_clk = clk_66mhz;
+`endif
+
 	initial begin
 		message[ 0] = "H";
 		message[ 1] = "e";
@@ -75,7 +105,7 @@ module	hellopp(i_clk,
 
 	reg	[27:0]	counter;
 	initial	counter = 28'hffffff0;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		counter <= counter + 1'b1;
 
 	wire		tx_busy;
@@ -84,14 +114,18 @@ module	hellopp(i_clk,
 	reg	[7:0]	tx_data;
 
 	initial	tx_index = 4'h0;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		if ((tx_stb)&&(!tx_busy))
 			tx_index <= tx_index + 1'b1;
-	always @(posedge i_clk)
-		tx_data <= message[tx_index];
+	always @(posedge s_clk)
+		// if ((tx_stb)&&(!tx_busy))
+		if (rx_stb)
+			tx_data <= rx_data;
+		else
+			tx_data <= message[tx_index];
 
 	initial	tx_stb = 1'b0;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		if (&counter)
 			tx_stb <= 1'b1;
 		else if ((tx_stb)&&(!tx_busy)&&(tx_index==4'hf))
@@ -100,21 +134,50 @@ module	hellopp(i_clk,
 	wire		rx_stb;
 	wire	[7:0]	rx_data;
 
-	wire	[7:0]	w_pp_data;
-	pport	pporti(i_clk, rx_stb, rx_data,
+	wire	[7:0]	w_pp_data, i_pp_data;
+
+	pport	pporti(s_clk, rx_stb, rx_data,
 			tx_stb, tx_data, tx_busy,
-			i_pp_dir, i_pp_clk, io_pp_data, w_pp_data);
-	assign	io_pp_data = (i_pp_dir) ? 8'bzzzz_zzzz : w_pp_data;
+			i_pp_dir, i_pp_clk, i_pp_data, w_pp_data);
+
+`ifdef	VERILATOR
+	assign	o_pp_data = w_pp_data;
+	// assign	io_pp_data = (i_pp_dir) ? 8'bzzzz_zzzz : w_pp_data;
+`else
+	ppio	theppio(i_pp_dir, io_pp_data, w_pp_data, i_pp_data);
+`endif
 
 
 	reg	[24:0]	ledctr;
 	initial	ledctr = 0;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		if ((!tx_busy)&&(tx_stb))
 			ledctr <= 0;
-		else if (ledctr != {(25){1'b1}})
+		else if (!ledctr[24])
 			ledctr <= ledctr + 1'b1;
 	assign	o_ledg[0] = !ledctr[24];
 
+	reg	[24:0]	onectr;
+	initial	onectr = 0;
+	always @(posedge s_clk)
+		if (tx_index == 4'h3)
+			onectr <= 0;
+		else if (!onectr[24])
+			onectr <= onectr + 1'b1;
+	assign	o_ledg[1] = !onectr[24];
+
+	reg	[24:0]	errdet;
+	always @(posedge s_clk)
+		if (rx_stb)
+			errdet <= 0;
+		else if (!errdet[24])
+			errdet <= errdet + 1'b1;
+	assign	o_ledr = !errdet[24];
+
+	assign	o_pled[0] = tx_busy;
+	assign	o_pled[1] = tx_stb;
+	assign	o_pled[2] = i_pp_dir;
+	assign	o_pled[3] = i_pp_clk;
+	assign	o_pled[7:4] = 4'h0; // io_pp_data[7:4];
 
 endmodule

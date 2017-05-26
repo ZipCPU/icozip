@@ -4,7 +4,14 @@
 //
 // Project:	wbuart32, a full featured UART with simulator
 //
-// Purpose:	
+// Purpose:	A synchronous data FIFO, designed for supporting the Wishbone
+//		UART.  Particular features include the ability to read and
+//	write on the same clock, while maintaining the correct output FIFO
+//	parameters.  Two versions of the FIFO exist within this file, separated
+//	by the RXFIFO parameter's value.  One, where RXFIFO = 1, produces status
+//	values appropriate for reading and checking a read FIFO from logic, whereas
+//	the RXFIFO = 0 applies to writing to the FIFO from bus logic and reading
+//	it automatically any time the transmit UART is idle.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -183,9 +190,6 @@ module ufifo(i_clk, i_rst, i_wr, i_data, o_empty_n, i_rd, o_data, o_status, o_er
 			default: begin end
 		endcase
 
-	wire	w_full_n;
-	assign	w_full_n = will_overflow;
-
 	//
 	// If this is a receive FIFO, the FIFO count that matters is the number
 	// of values yet to be read.  If instead this is a transmit FIFO, then 
@@ -222,6 +226,10 @@ module ufifo(i_clk, i_rst, i_wr, i_data, o_empty_n, i_rd, o_data, o_status, o_er
 			endcase
 		end
 
+	reg	r_full_n;
+	always @(posedge i_clk)
+		r_full_n <= (&r_fill[(LGFLEN-1):2]);
+
 	// We don't report underflow errors.  These
 	assign o_err = (r_ovfl); //  || (r_unfl);
 
@@ -253,7 +261,7 @@ module ufifo(i_clk, i_rst, i_wr, i_data, o_empty_n, i_rd, o_data, o_status, o_er
 		(RXFIFO!=0)?w_half_full:w_half_full,
 		// A '1' here means the FIFO can be read from (if it is a
 		// receive FIFO), or be written to (if it isn't).
-		(RXFIFO!=0)?r_empty_n:w_full_n
+		(RXFIFO!=0)?r_empty_n:r_full_n
 	};
 
 	assign	o_empty_n = r_empty_n;

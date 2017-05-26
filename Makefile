@@ -38,7 +38,7 @@
 ##
 ##
 .PHONY: all
-all:	archive datestamp rtl sw # autodata sim
+all:	archive datestamp autodata rtl sw # autodata sim
 # all:	verilated sw bench bit
 #
 # Could also depend upon load, if desired, but not necessary
@@ -49,13 +49,16 @@ SW    := `find sw -name "*.cpp"` `find sw -name "*.c"`	\
 	`find sw -name "*.h"`	`find sw -name "*.sh"`	\
 	`find sw -name "*.py"`	`find sw -name "*.pl"`	\
 	`find sw -name "*.png"`	`find sw -name Makefile`
+DEVSW := `find sw/board -name "*.cpp"` `find sw-board -name "*.h"` \
+	`find sw/board -name Makefile`
+PROJ  :=
 BIN  := `find rtl -name "*.bin"`
 YYMMDD:=`date +%Y%m%d`
-
+SUBMAKE:= $(MAKE) --no-print-directory -C
 .PHONY: datestamp
 datestamp:
 	@bash -c 'if [ ! -e $(YYMMDD)-build.v ]; then rm -f 20??????-build.v; perl mkdatev.pl > $(YYMMDD)-build.v; rm -f rtl/builddate.v; fi'
-	@bash -c 'if [ ! -e rtl/builddate.v ]; then cp $(YYMMDD)-build.v rtl/icozip/builddate.v; fi'
+	@bash -c 'if [ ! -e rtl/icozip/builddate.v ]; then cp $(YYMMDD)-build.v rtl/icozip/builddate.v; fi'
 
 .PHONY: archive
 archive:
@@ -63,39 +66,39 @@ archive:
 
 .PHONY: autodata
 autodata:
-	# $(MAKE) --no-print-directory --directory=auto-data
-	# $(call copyif-changed,auto-data/toplevel.v,rtl/icozip/toplevel.v)
-	# $(call copyif-changed,auto-data/main.v,rtl/icozip/main.v)
-	# $(call copyif-changed,auto-data/regdefs.h,sw/host/regdefs.h)
-	# $(call copyif-changed,auto-data/regdefs.cpp,sw/host/regdefs.cpp)
-	# $(call copyif-changed,auto-data/board.h,sw/board/board.h)
-	# $(call copyif-changed,auto-data/board.ld,sw/board/board.ld)
+	$(MAKE) --no-print-directory --directory=auto-data
+	$(call copyif-changed,auto-data/toplevel.v,rtl/icozip/toplevel.v)
+	$(call copyif-changed,auto-data/main.v,rtl/icozip/main.v)
+	$(call copyif-changed,auto-data/regdefs.h,sw/host/regdefs.h)
+	$(call copyif-changed,auto-data/regdefs.cpp,sw/host/regdefs.cpp)
+	$(call copyif-changed,auto-data/board.h,sw/board/board.h)
+	$(call copyif-changed,auto-data/board.ld,sw/board/board.ld)
 
 .PHONY: doc
 doc:
-	$(MAKE) --no-print-directory --directory=doc
+	$(SUBMAKE) doc
 
 .PHONY: verilated
 verilated: rtl
 
 .PHONY: rtl
 rtl: datestamp autodata
-	$(MAKE) --no-print-directory --directory=rtl
+	$(SUBMAKE) rtl
 
 # .PHONY: sim
 # sim: rtl
-#	$(MAKE) --no-print-directory --directory=sim/verilated
+#	$(SUBMAKE) sim/verilated
 
-# .PHONY: sw
-# sw: sw-host sw-board
+.PHONY: sw
+sw: sw-host # sw-board
 
-# .PHONY: sw-host
-# sw-host: autodata rtl
-	# $(MAKE) --no-print-directory --directory=sw/host
+.PHONY: sw-host
+sw-host: autodata rtl
+	$(SUBMAKE) sw/host
 
 # .PHONY: sw-board
 # sw-board: autodata rtl
-	# $(MAKE) --no-print-directory --directory=sw/board
+	# $(SUBMAKE) sw/board
 
 define	copyif-changed
 	@bash -c 'cmp $(1) $(2); if [[ $$? != 0 ]]; then echo "Copying $(1) to $(2)"; cp $(1) $(2); fi'
@@ -103,7 +106,7 @@ endef
 
 .PHONY: clean
 clean:
-	$(MAKE) --no-print-directory --directory=rtl clean
-	$(MAKE) --no-print-directory --directory=doc clean
-	$(MAKE) --no-print-directory --directory=sw/host clean
-	
+	$(SUBMAKE) rtl clean
+	$(SUBMAKE) doc clean
+	$(SUBMAKE) sw/host clean
+

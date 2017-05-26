@@ -47,7 +47,8 @@
 `default_nettype none
 //
 module	speechpp(i_clk, o_ledg, o_ledr,
-		i_pp_dir, i_pp_clk, io_pp_data);
+		i_pp_dir, i_pp_clk, io_pp_data,
+		i_debug);
 	//
 	input	wire		i_clk;
 	//
@@ -56,11 +57,41 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	//
 	input	wire		i_pp_dir, i_pp_clk;
 	inout	wire	[7:0]	io_pp_data;
+	//
+	input	wire		i_debug;
 
 	reg		restart;
 	reg		wb_stb;
 	reg	[1:0]	wb_addr;
 	reg	[31:0]	wb_data;
+
+
+	wire		s_clk;
+`ifdef	VERILATOR
+	assign	s_clk = i_clk;
+`else
+	wire	clk_66mhz, pll_locked;
+	SB_PLL40_PAD #(
+		.FEEDBACK_PATH("SIMPLE"),
+		.DELAY_ADJUSTMENT_MODE_FEEDBACK("FIXED"),
+		.DELAY_ADJUSTMENT_MODE_RELATIVE("FIXED"),
+		.PLLOUT_SELECT("GENCLK"),
+		.FDA_FEEDBACK(4'b1111),
+		.FDA_RELATIVE(4'b1111),
+		.DIVR(4'd1),		// Divide by (DIVR+1)
+		.DIVQ(3'd1),		// Divide by 2^(DIVQ)
+		.DIVF(7'd1),		// Multiply by (DIVF+1)
+		.FILTER_RANGE(3'b111)
+	) plli (
+		.PACKAGEPIN     (i_clk        ),
+		.PLLOUTCORE     (clk_66mhz    ),
+		.LOCK           (pll_locked  ),
+		.BYPASS         (1'b0         ),
+		.RESETB         (1'b1         )
+	);
+
+	assign	s_clk = clk_66mhz;
+`endif
 
 	wire		pport_stall, pport_ack;
 	wire	[31:0]	pport_data;
@@ -72,7 +103,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	// signal.
 	reg	pwr_reset;
 	initial	pwr_reset = 1'b1;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		pwr_reset <= 1'b0;
 
 
@@ -98,7 +129,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	// up, we'll set the reset counter just a couple clocks shy of a roll
 	// over.
 	initial	restart_counter = -31'd16;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		restart_counter <= restart_counter+1'b1;
 
 	// Ok, now that we have a counter that tells us when to start over,
@@ -106,7 +137,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	// again.  This will be the restart signal.  On this signal, we just
 	// restart everything.
 	initial	restart = 0;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		restart <= (restart_counter == 0);
 
 	// Our message index.  This is the address of the character we wish to
@@ -115,7 +146,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	// restart[0] to zero.
 	reg	[10:0]	msg_index;
 	initial	msg_index = 11'd2040;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 	begin
 		if (restart)
 			msg_index <= 0;
@@ -135,7 +166,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	end
 
 	// What data will we be sending to the port?
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		if ((wb_stb)&&(!pport_stall))
 			// Then, if the last thing was received over the bus,
 			// we move to the next data item.
@@ -144,7 +175,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	// We send our first value to the SETUP address (all zeros), all other
 	// values we send to the transmitters address.  We should really be
 	// double checking that stall remains low, but its not required here.
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		if (restart)
 			wb_addr <= 2'b00;
 		else // if (!pport_stall)??
@@ -158,13 +189,13 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	// again.
 	reg	end_of_message;
 	initial	end_of_message = 1'b1;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		if (restart)
 			end_of_message <= 1'b0;
 		else
 			end_of_message <= (msg_index >= 1481);
 	initial	wb_stb = 1'b0;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		if (restart)
 			wb_stb <= 1'b1;
 		else if (end_of_message)
@@ -183,7 +214,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	// to run/test it.
 	wire	pp_rx_stb, pp_tx_stb, pp_tx_busy;
 	wire	[7:0]	pp_rx_data, pp_tx_data;
-	wbpport	wbpporti(i_clk, pwr_reset,
+	wbpport	wbpporti(s_clk, pwr_reset,
 			wb_stb, wb_stb, 1'b1, wb_addr, wb_data,
 			pport_ack, pport_stall, pport_data,
 			pp_rx_stb, pp_rx_data[6:0],
@@ -193,7 +224,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	assign	pp_tx_data[7] = 1'b0;
 
 	wire	[7:0]	w_pp_data;
-	pport	pporti(i_clk,
+	pport	pporti(s_clk,
 			pp_rx_stb, pp_rx_data,
 			pp_tx_stb, pp_tx_data, pp_tx_busy,
 			i_pp_dir, i_pp_clk, io_pp_data, w_pp_data);
@@ -202,7 +233,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 
 	reg	[23:0]	evctr;
 	initial	evctr = 0;
-	always @(posedge i_clk)
+	always @(posedge s_clk)
 		if ((pp_rx_stb)||(pp_tx_stb))
 			evctr <= 0;
 		else if (!evctr[23])

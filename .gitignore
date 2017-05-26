@@ -2,6 +2,7 @@ legal.txt
 .svn
 xilinx
 obj_dir
+obj-arm
 obj-pc
 obj-zip
 *.o

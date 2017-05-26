@@ -14,13 +14,3 @@ set_io io_pp_data[5] C7
 set_io io_pp_data[6] C6
 set_io io_pp_data[7] D6
 # set_io io_pp_data[8] D5
-
-## PMod #1
-set_io o_pled[7] D8
-set_io o_pled[6] B9
-set_io o_pled[5] B10
-set_io o_pled[4] B11
-set_io o_pled[3] B8
-set_io o_pled[2] A9
-set_io o_pled[1] A10
-set_io o_pled[0] A11
