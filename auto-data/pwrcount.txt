@@ -1,18 +1,17 @@
 ################################################################################
 ##
-## Filename: 	Makefile
+## Filename: 	pwrcount.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
 ##
-## Purpose:	To coordinate the build of a series of UART testing programs
-##		for the icoboard.
+## Purpose:	
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2017, Gisselquist Technology, LLC
+## Copyright (C) 2017, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -36,34 +35,18 @@
 ################################################################################
 ##
 ##
-all: hellopp speechpp linepp # pppintest
-
-# GNU Make automatic variables (since I can never remember these ...)
-# $@	- name of the target
-# $<	- Name of the first prerequisite
-# $^	- Names of all the prerequisites
-%.blif: %.v
-	yosys -p 'synth_ice40 -blif $@' $^
-%.asc: %.blif %.pcf
-	arachne-pnr -d 8k -p $*.pcf -o $@ $<
-
-%.bin: %.asc
-	icetime -d hx8k -c 75 $<
-	icepack $< $@
-
-.PHONY: hellopp speechpp pppintest linepp
-hellopp:   hellopp.bin
-speechpp:  speechpp.bin
-linepp:    linepp.bin
-pppintest: pppintest.bin
-
-speechpp.blif:   speechpp.v $(addprefix ../pport/,pport.v ppio.v ufifo.v wbpport.v)
-hellopp.blif:    hellopp.v  ../pport/pport.v ../pport/ppio.v
-linepp.blif:     linepp.v   ../pport/pport.v ../pport/ppio.v
-pppintest.blif:  pppintest.v
-
-.PHONY: clean
-clean:
-	rm -f *.blif *.asc *.bin
-	rm -rf obj_dir
-
+@PREFIX=pwrcount
+@NADDR=1
+@PTYPE=SINGLE
+@MAIN.DEFNS=
+	reg	[31:0]	r_pwrcount_data;
+@MAIN.INSERT=
+	initial	r_pwrcount_data = 32'h0;
+	always @(posedge i_clk)
+	if (r_pwrcount_data[31])
+		r_pwrcount_data[30:0] <= r_pwrcount_data[30:0] + 1'b1;
+	else
+		r_pwrcount_data[31:0] <= r_pwrcount_data[31:0] + 1'b1;
+	assign	pwrcount_data = r_pwrcount_data;
+@REGS.N=1
+@REGS.0= 0 PWCOUNT PWRCOUNT

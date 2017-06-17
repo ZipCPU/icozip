@@ -45,10 +45,11 @@ module	linepp(i_clk, o_ledg, o_ledr,
 		i_pp_dir, i_pp_clk,
 `ifdef	VERILATOR
 		i_pp_data,
-		o_pp_data
+		o_pp_data,
 `else
-		io_pp_data
+		io_pp_data,
 `endif
+		o_pp_clkfb
 		);
 	input	wire		i_clk;
 	//
@@ -63,6 +64,7 @@ module	linepp(i_clk, o_ledg, o_ledr,
 	inout	wire	[7:0]	io_pp_data;
 `endif
 	//
+	output	wire		o_pp_clkfb;
 
 	wire		s_clk;
 `ifdef	VERILATOR
@@ -207,12 +209,12 @@ module	linepp(i_clk, o_ledg, o_ledr,
 	pport pporti(s_clk,
 		rx_stb, rx_data,		// Receive interface  (from Pi)
 		tx_stb, tx_data, tx_busy,	// Transmit interface (to   Pi)
-		i_pp_dir, i_pp_clk, i_pp_data, w_pp_data);
+		i_pp_dir, i_pp_clk, i_pp_data, w_pp_data,
+		o_pp_clkfb);
+
 
 `ifdef	VERILATOR
-	// assign	io_pp_data = (i_pp_dir) ? 8'bzzzz_zzzz : w_pp_data;
-	// assign	i_pp_data = io_pp_data;
-	assign	o_pp_data = w_pp_data;
+	assign	io_pp_data = (i_pp_dir) ? 8'bzzzz_zzzz : w_pp_data;
 `else
 	ppio	theppio(i_pp_dir, io_pp_data, w_pp_data, i_pp_data);
 `endif

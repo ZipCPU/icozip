@@ -1,18 +1,17 @@
 ################################################################################
 ##
-## Filename: 	Makefile
+## Filename: 	clock.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
 ##
-## Purpose:	To coordinate the build of a series of UART testing programs
-##		for the icoboard.
+## Purpose:	
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2017, Gisselquist Technology, LLC
+## Copyright (C) 2017, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -36,34 +35,41 @@
 ################################################################################
 ##
 ##
-all: hellopp speechpp linepp # pppintest
+@$CLKFREQHZ=100000000 /
+@PREFIX=clk
+@TOP.DEFNS=
+	wire		s_clk, s_reset;
+@TOP.INSERT=
+	assign	s_reset = 1'b0; // This design requires local, not global resets
 
-# GNU Make automatic variables (since I can never remember these ...)
-# $@	- name of the target
-# $<	- Name of the first prerequisite
-# $^	- Names of all the prerequisites
-%.blif: %.v
-	yosys -p 'synth_ice40 -blif $@' $^
-%.asc: %.blif %.pcf
-	arachne-pnr -d 8k -p $*.pcf -o $@ $<
+	wire		s_clk;
+`ifdef	VERILATOR
+	assign	s_clk = i_clk;
+`else
+	wire	clk_33mhz, pll_locked;
+	SB_PLL40_PAD #(
+		.FEEDBACK_PATH("SIMPLE"),
+		.DELAY_ADJUSTMENT_MODE_FEEDBACK("FIXED"),
+		.DELAY_ADJUSTMENT_MODE_RELATIVE("FIXED"),
+		.PLLOUT_SELECT("GENCLK"),
+		.FDA_FEEDBACK(4'b1111),
+		.FDA_RELATIVE(4'b1111),
+		.DIVR(4'd2),		// Divide by (DIVR+1)  = 3
+		.DIVQ(3'd0),		// Divide by 2^(DIVQ)  = 1
+		.DIVF(7'd0),		// Multiply by (DIVF+1)= 1
+		.FILTER_RANGE(3'b111)
+	) plli (
+		.PACKAGEPIN     (i_clk        ),
+		.PLLOUTCORE     (clk_75mhz    ),
+		.LOCK           (pll_locked  ),
+		.BYPASS         (1'b0         ),
+		.RESETB         (1'b1         )
+	);
 
-%.bin: %.asc
-	icetime -d hx8k -c 75 $<
-	icepack $< $@
+	assign	s_clk = clk_33mhz;
+`endif
 
-.PHONY: hellopp speechpp pppintest linepp
-hellopp:   hellopp.bin
-speechpp:  speechpp.bin
-linepp:    linepp.bin
-pppintest: pppintest.bin
-
-speechpp.blif:   speechpp.v $(addprefix ../pport/,pport.v ppio.v ufifo.v wbpport.v)
-hellopp.blif:    hellopp.v  ../pport/pport.v ../pport/ppio.v
-linepp.blif:     linepp.v   ../pport/pport.v ../pport/ppio.v
-pppintest.blif:  pppintest.v
-
-.PHONY: clean
-clean:
-	rm -f *.blif *.asc *.bin
-	rm -rf obj_dir
-
+@REGDEFS.H.DEFNS=
+#define	CLKFREQHZ	@$CLKFREQHZ
+@BDEF.DEFN=
+#define	CLKFREQHZ	@$CLKFREQHZ

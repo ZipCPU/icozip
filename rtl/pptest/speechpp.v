@@ -48,7 +48,7 @@
 //
 module	speechpp(i_clk, o_ledg, o_ledr,
 		i_pp_dir, i_pp_clk, io_pp_data,
-		i_debug);
+		o_pp_clkfb);
 	//
 	input	wire		i_clk;
 	//
@@ -57,9 +57,9 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	//
 	input	wire		i_pp_dir, i_pp_clk;
 	inout	wire	[7:0]	io_pp_data;
-	//
-	input	wire		i_debug;
+	output	wire		o_pp_clkfb;
 
+	wire	[7:0]	i_pp_data;
 	reg		restart;
 	reg		wb_stb;
 	reg	[1:0]	wb_addr;
@@ -227,8 +227,13 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	pport	pporti(s_clk,
 			pp_rx_stb, pp_rx_data,
 			pp_tx_stb, pp_tx_data, pp_tx_busy,
-			i_pp_dir, i_pp_clk, io_pp_data, w_pp_data);
+			i_pp_dir, i_pp_clk, i_pp_data, w_pp_data,
+			o_pp_clkfb);
+`ifdef	VERILATOR
 	assign	io_pp_data = (i_pp_dir) ? 8'bzzzz_zzzz : w_pp_data;
+`else
+	ppio	theppio(i_pp_dir, io_pp_data, w_pp_data, i_pp_data);
+`endif
 
 
 	reg	[23:0]	evctr;

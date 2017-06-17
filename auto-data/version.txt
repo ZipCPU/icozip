@@ -1,18 +1,17 @@
 ################################################################################
 ##
-## Filename: 	Makefile
+## Filename: 	version.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
 ##
-## Purpose:	To coordinate the build of a series of UART testing programs
-##		for the icoboard.
+## Purpose:	
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2017, Gisselquist Technology, LLC
+## Copyright (C) 2017, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -36,34 +35,19 @@
 ################################################################################
 ##
 ##
-all: hellopp speechpp linepp # pppintest
-
-# GNU Make automatic variables (since I can never remember these ...)
-# $@	- name of the target
-# $<	- Name of the first prerequisite
-# $^	- Names of all the prerequisites
-%.blif: %.v
-	yosys -p 'synth_ice40 -blif $@' $^
-%.asc: %.blif %.pcf
-	arachne-pnr -d 8k -p $*.pcf -o $@ $<
-
-%.bin: %.asc
-	icetime -d hx8k -c 75 $<
-	icepack $< $@
-
-.PHONY: hellopp speechpp pppintest linepp
-hellopp:   hellopp.bin
-speechpp:  speechpp.bin
-linepp:    linepp.bin
-pppintest: pppintest.bin
-
-speechpp.blif:   speechpp.v $(addprefix ../pport/,pport.v ppio.v ufifo.v wbpport.v)
-hellopp.blif:    hellopp.v  ../pport/pport.v ../pport/ppio.v
-linepp.blif:     linepp.v   ../pport/pport.v ../pport/ppio.v
-pppintest.blif:  pppintest.v
-
-.PHONY: clean
-clean:
-	rm -f *.blif *.asc *.bin
-	rm -rf obj_dir
-
+@PREFIX=version
+@DEVID=VERSION
+@NADDR=1
+@PTYPE=SINGLE
+@MAIN.DEFNS=
+`include "builddate.v"
+@MAIN.INSERT=
+	assign	@$(PREFIX)_data = `DATESTAMP;
+	assign	@$(PREFIX)_ack = 1'b0;
+	assign	@$(PREFIX)_stall = 1'b0;
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=unsigned
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.IOTYPE=static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = &((@$.BDEF.IOTYPE *)@$.BASE);

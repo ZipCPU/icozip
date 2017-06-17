@@ -43,16 +43,15 @@
 //
 module	hellopp(i_clk,
 		o_ledg, o_ledr,
-		o_pled,
-		i_pp_dir, i_pp_clk, io_pp_data);
+		i_pp_dir, i_pp_clk, io_pp_data, o_pp_clkfb);
 	//
 	input			i_clk;
 	output	wire	[1:0]	o_ledg;
 	output	wire		o_ledr;
-	output	wire	[7:0]	o_pled;
 	//
 	input	wire		i_pp_dir, i_pp_clk;
 	inout	wire	[7:0]	io_pp_data;
+	output	wire		o_pp_clkfb;
 
 	reg	[7:0]	message	[0:15];
 
@@ -138,7 +137,7 @@ module	hellopp(i_clk,
 
 	pport	pporti(s_clk, rx_stb, rx_data,
 			tx_stb, tx_data, tx_busy,
-			i_pp_dir, i_pp_clk, i_pp_data, w_pp_data);
+			i_pp_dir, i_pp_clk, i_pp_data, w_pp_data, o_pp_clkfb);
 
 `ifdef	VERILATOR
 	assign	o_pp_data = w_pp_data;
@@ -165,19 +164,5 @@ module	hellopp(i_clk,
 		else if (!onectr[24])
 			onectr <= onectr + 1'b1;
 	assign	o_ledg[1] = !onectr[24];
-
-	reg	[24:0]	errdet;
-	always @(posedge s_clk)
-		if (rx_stb)
-			errdet <= 0;
-		else if (!errdet[24])
-			errdet <= errdet + 1'b1;
-	assign	o_ledr = !errdet[24];
-
-	assign	o_pled[0] = tx_busy;
-	assign	o_pled[1] = tx_stb;
-	assign	o_pled[2] = i_pp_dir;
-	assign	o_pled[3] = i_pp_clk;
-	assign	o_pled[7:4] = 4'h0; // io_pp_data[7:4];
 
 endmodule

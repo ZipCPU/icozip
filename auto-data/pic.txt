@@ -1,18 +1,17 @@
 ################################################################################
 ##
-## Filename: 	Makefile
+## Filename: 	pic.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
 ##
-## Purpose:	To coordinate the build of a series of UART testing programs
-##		for the icoboard.
+## Purpose:	
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2017, Gisselquist Technology, LLC
+## Copyright (C) 2017, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -36,34 +35,28 @@
 ################################################################################
 ##
 ##
-all: hellopp speechpp linepp # pppintest
-
-# GNU Make automatic variables (since I can never remember these ...)
-# $@	- name of the target
-# $<	- Name of the first prerequisite
-# $^	- Names of all the prerequisites
-%.blif: %.v
-	yosys -p 'synth_ice40 -blif $@' $^
-%.asc: %.blif %.pcf
-	arachne-pnr -d 8k -p $*.pcf -o $@ $<
-
-%.bin: %.asc
-	icetime -d hx8k -c 75 $<
-	icepack $< $@
-
-.PHONY: hellopp speechpp pppintest linepp
-hellopp:   hellopp.bin
-speechpp:  speechpp.bin
-linepp:    linepp.bin
-pppintest: pppintest.bin
-
-speechpp.blif:   speechpp.v $(addprefix ../pport/,pport.v ppio.v ufifo.v wbpport.v)
-hellopp.blif:    hellopp.v  ../pport/pport.v ../pport/ppio.v
-linepp.blif:     linepp.v   ../pport/pport.v ../pport/ppio.v
-pppintest.blif:  pppintest.v
-
-.PHONY: clean
-clean:
-	rm -f *.blif *.asc *.bin
-	rm -rf obj_dir
-
+@PREFIX=buspic
+@DEVID=BUSPIC
+@NADDR=1
+@ACCESS=BUSPIC_ACCESS
+@PTYPE=SINGLE
+@PIC.BUS= bus_int_vector
+@PIC.MAX= 15
+@INT.BUS.WIRE= w_bus_int
+@INT.BUS.PIC=
+@MAIN.INSERT=
+	//
+	// The BUS Interrupt controller
+	//
+	icontrol #(15)	buspic(i_clk, 1'b0, (wb_stb)&&(@$(PREFIX)_sel),
+			wb_data, @$(PREFIX)_data, bus_int_vector, w_bus_int);
+@MAIN.ALT=
+@REGS.N=1
+@REGS.0= 0 R_PIC PIC
+@BDEF.IONAME= _@$(PREFIX)
+@BDEF.IOTYPE= unsigned
+@BDEF.OSDEF= _BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL= static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$BASE);
+@RTL.MAKE.FILES=icontrol.v
+@RTL.MAKE.SUBD=cpu
+@RTL.MAKE.GROUP=PIC

@@ -1,0 +1,113 @@
+################################################################################
+##
+## Filename: 	dlyarbiter.txt
+##
+## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
+##
+## Purpose:	
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+##
+## Copyright (C) 2017, Gisselquist Technology, LLC
+##
+## This program is free software (firmware): you can redistribute it and/or
+## modify it under the terms of  the GNU General Public License as published
+## by the Free Software Foundation, either version 3 of the License, or (at
+## your option) any later version.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+##
+## License:	GPL, v3, as defined and found on www.gnu.org,
+##		http://www.gnu.org/licenses/gpl.html
+##
+##
+################################################################################
+##
+##
+@PREFIX=dwb
+@MAIN.DEFNS=
+	// Bus arbiter's lines
+	wire		@$(PREFIX)_cyc, @$(PREFIX)_stb, @$(PREFIX)_we, @$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_err;
+	wire	[(@$BUS_ADDRESS_WIDTH-1):0]	@$(PREFIX)_addr;
+	wire	[31:0]	@$(PREFIX)_odata, @$(PREFIX)_idata;
+	wire	[3:0]	@$(PREFIX)_sel;
+@MAIN.INSERT=
+`ifdef	INCLUDE_ZIPCPU
+	//
+	//
+	// And an arbiter to decide who gets access to the bus
+	//
+	//
+	wbpriarbiter #(32,@$BUS_ADDRESS_WIDTH)	bus_arbiter(i_clk,
+		// The Zip CPU bus master --- gets the priority slot
+		zip_cyc, zip_stb, zip_we, zip_addr, zip_data, zip_sel,
+			zip_ack, zip_stall, zip_err,
+		// The UART interface master
+		(wbu_cyc)&&(!wbu_zip_sel), (wbu_stb)&&(!wbu_zip_sel), wbu_we,
+			wbu_addr[(@$BUS_ADDRESS_WIDTH-1):0], wbu_data, wbu_sel,
+			wbu_ack, wbu_stall, wbu_err,
+		// Common bus returns
+		@$(PREFIX)_cyc, @$(PREFIX)_stb, @$(PREFIX)_we, @$(PREFIX)_addr, @$(PREFIX)_odata, @$(PREFIX)_sel,
+			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_err);
+
+	// And because the ZipCPU and the Arbiter can create an unacceptable
+	// delay, we often fail timing.  So, we add in a delay cycle
+`else
+	// If no ZipCPU, no delay arbiter is needed
+	assign	@$(PREFIX)_cyc  = wbu_cyc;
+	assign	@$(PREFIX)_stb  = wbu_stb;
+	assign	@$(PREFIX)_we   = wbu_we;
+	assign	@$(PREFIX)_addr = wbu_addr;
+	assign	@$(PREFIX)_odata = wbu_data;
+	assign	@$(PREFIX)_sel  = wbu_sel;
+	assign	wbu_ack   = @$(PREFIX)_ack;
+	assign	wbu_stall = @$(PREFIX)_stall;
+	assign	wbu_err   = @$(PREFIX)_err;
+	// assign wbu_idata = @$(PREFIX)_idata;
+`endif	// INCLUDE_ZIPCPU
+
+`ifdef	WBUBUS_MASTER
+`ifdef	INCLUDE_ZIPCPU
+`define	BUS_DELAY_NEEDED
+`endif
+`endif
+`ifdef	BUS_DELAY_NEEDED
+	busdelay #(@$BUS_ADDRESS_WIDTH)	@$(PREFIX)_delay(i_clk,
+		@$(PREFIX)_cyc, @$(PREFIX)_stb, @$(PREFIX)_we, @$(PREFIX)_addr, @$(PREFIX)_odata, @$(PREFIX)_sel,
+			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_idata, @$(PREFIX)_err,
+		wb_cyc, wb_stb, wb_we, wb_addr, wb_data, wb_sel,
+			wb_ack, wb_stall, wb_idata, wb_err);
+`else
+	// If one of the two, the ZipCPU or the WBUBUS, isn't here, then we
+	// don't need the bus delay, and we can go directly from the bus driver
+	// to the bus itself
+	//
+	assign	wb_cyc    = @$(PREFIX)_cyc;
+	assign	wb_stb    = @$(PREFIX)_stb;
+	assign	wb_we     = @$(PREFIX)_we;
+	assign	wb_addr   = @$(PREFIX)_addr;
+	assign	wb_data   = @$(PREFIX)_odata;
+	assign	wb_sel    = @$(PREFIX)_sel;
+	assign	@$(PREFIX)_ack   = wb_ack;
+	assign	@$(PREFIX)_stall = wb_stall;
+	assign	@$(PREFIX)_err   = wb_err;
+	assign	@$(PREFIX)_idata = wb_idata;
+`endif
+	assign	wbu_idata = @$(PREFIX)_idata;
+`ifdef	INCLUDE_ZIPCPU
+	assign	zip_idata = @$(PREFIX)_idata;
+`endif
+@RTL.MAKE.GROUP= BUSDLY
+@RTL.MAKE.FILES= busdelay.v wbpriarbiter.v
+@RTL.MAKE.SUBD= cpu

@@ -1,0 +1,119 @@
+################################################################################
+##
+## Filename: 	icozip.pcf
+##
+## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+##
+## Purpose:	This is the file that maps toplevel.v I/O ports to actual FPGA
+##		pins.
+##
+##
+## Comments:
+##	PMod connector pins don't match between schematic and picture
+##	Pin names offer very little insight as to the designers intention
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+##
+## Copyright (C) 2015-2016, Gisselquist Technology, LLC
+##
+## This program is free software (firmware): you can redistribute it and/or
+## modify it under the terms of  the GNU General Public License as published
+## by the Free Software Foundation, either version 3 of the License, or (at
+## your option) any later version.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory, run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+##
+## License:	GPL, v3, as defined and found on www.gnu.org,
+##		http://www.gnu.org/licenses/gpl.html
+##
+##
+################################################################################
+##
+##
+set_io i_clk     R9			# 100 MHz clock
+#
+# LED's
+set_io o_ledg[0] C8
+set_io o_ledg[1] F7
+set_io o_ledr    K9
+#
+# Buttons
+set_io i_btn[0]		P13	# IO104 // Also used to select boot options(?)
+set_io i_btn[1]		K11	# IO103 // Also used to select boot options(?)
+#
+# Give us access to the RPi PPort connector
+set_io  i_pp_dir     C9
+set_io  i_pp_clk     C10
+set_io io_pp_data[0] D9
+set_io io_pp_data[1] D7
+set_io io_pp_data[2] D4
+set_io io_pp_data[3] A7
+set_io io_pp_data[4] A6
+set_io io_pp_data[5] C7
+set_io io_pp_data[6] C6
+set_io io_pp_data[7] D6
+set_io o_pp_clkfb    D5   # set_io io_pp_data[8] D5
+
+#
+# SPI Flash, also controlled by RPI_ICE_x through MachXO2
+# set_io o_spi_cs_n	R12
+# set_io o_spi_sck	R11
+# set_io o_spi_mosi	P11
+# set_io i_spi_miso	P12
+#
+#
+# RPI SPI interface
+# set_io i_spi_sck	h11	# RPI SPI lines, no dedicated CS_N line
+# set_io i_spi_mosi	A6	# But this is a pport data line ... ??
+# set_io o_spi_miso	A7	# But this is a pport data line ... ??
+#
+# SRAM
+# o_ram_ce_n	M7	# IO64
+# o_ram_we_n	T7	# IO75
+# o_ram_oe_n	L5	# IO23A
+# o_ram_addr[0]	N2	# IO21B
+# o_ram_addr[1]	K5	# IO20A
+# o_ram_addr[2]	J5	# IO13A
+# o_ram_addr[3]	M5	# IO25B
+# o_ram_addr[4]	P4	# IO54
+# o_ram_addr[5]	N5	# IO56
+# o_ram_addr[6]	P5	# IO58
+# o_ram_addr[7]	P7	# IO77
+# o_ram_addr[8]	M6	# IO22A
+# o_ram_addr[9]	P6	# IO67
+# o_ram_addr[10]	T8	# IO76
+# o_ram_addr[11]	T1	# IO53
+# o_ram_addr[12]	P2	# IO25A
+# o_ram_addr[13]	R1	# IO26A
+# o_ram_addr[14]	N3	# IO23B
+# o_ram_addr[15]	M5	# IO24A
+# io_ram_data[0]	T2	# IO57
+# io_ram_data[1]	R3	# IO59
+# io_ram_data[2]	T3	# IO61
+# io_ram_data[3]	R4	# IO63
+# io_ram_data[4]	R5	# IO60
+# io_ram_data[5]	T5	# IO69
+# io_ram_data[6]	R6	# IO71
+# io_ram_data[7]	T6	# IO73
+# io_ram_data[8]	N4	# IO26B
+# io_ram_data[9]	M4	# IO24B
+# io_ram_data[10]	L6	# IO19A
+# io_ram_data[11]	M3	# IO22B
+# io_ram_data[12]	L4	# IO17A
+# io_ram_data[13]	L3	# IO19B
+# io_ram_data[14]	K4	# IO18A
+# io_ram_data[15]	K3	# IO16B
+# o_ram_lb	J4	# IO12A
+# o_ram_ub	J3	# IO14A
+#

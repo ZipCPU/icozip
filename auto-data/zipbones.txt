@@ -1,0 +1,129 @@
+################################################################################
+##
+## Filename: 	zipbones.txt
+##
+## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+##
+## Purpose:	To describe what needs to be done to make the ZipCPU a part
+##		of a main .v file.  This Wishbone Master description
+##	illustrates how some of how a wishbone bus master might be integrated
+##	into the automatic FPGA designer.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+##
+## Copyright (C) 2017, Gisselquist Technology, LLC
+##
+## This program is free software (firmware): you can redistribute it and/or
+## modify it under the terms of  the GNU General Public License as published
+## by the Free Software Foundation, either version 3 of the License, or (at
+## your option) any later version.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+##
+## License:	GPL, v3, as defined and found on www.gnu.org,
+##		http://www.gnu.org/licenses/gpl.html
+##
+##
+################################################################################
+##
+##
+@PREFIX=zip
+@ACCESS=INCLUDE_ZIPCPU
+@MTYPE=CPU
+@SCOPE.TRIGGER=zip_trigger
+@SCOPE.DATA=zip_debug
+@INT.ZIP.WIRE=zip_cpu_int
+@INT.ZIP.BUS=
+@MAIN.PARAM=
+	//
+	//
+	// Variables/definitions needed by the ZipCPU BUS master
+	//
+	//
+	// A 32-bit address indicating where teh ZipCPU should start running
+	// from
+	localparam	RESET_ADDRESS = @$RESET_ADDRESS;
+	//
+	// The number of valid bits on the bus
+	localparam	ZIP_ADDRESS_WIDTH = 30;	// Zip-CPU address width
+	//
+	// Number of ZipCPU interrupts
+	localparam	ZIP_INTS = 16;
+	//
+	// ZIP_START_HALTED
+	//
+	// A boolean, indicating whether or not the ZipCPU be halted on startup?
+	localparam	ZIP_START_HALTED=1'b1;
+	//
+	// ZIP_LGCACHE_SZ
+	//
+	// The cache, if present, will hold 2^ZIP_LGCACHE_SZ values
+	localparam	ZIP_LGCACHE_SZ=8;
+@MAIN.DEFNS=
+	// ZipSystem/ZipCPU connection definitions
+	// All we define here is a set of scope wires
+	wire	[31:0]	zip_debug;
+	wire		zip_trigger, cpu_reset;
+	wire		zip_dbg_ack, zip_dbg_stall;
+	wire	[31:0]	zip_dbg_data;
+@MAIN.INSERT=
+	//
+	//
+	// The ZipCPU/ZipSystem BUS master
+	//
+	//
+`ifndef	WBUBUS_MASTER
+	wire	wbu_zip_sel;
+	assign	wbu_zip_sel = 1'b0;
+`endif
+	// assign	cpu_reset = i_btn[0];
+	assign	cpu_reset = i_gpio[0];
+	zipbones #(RESET_ADDRESS,ZIP_ADDRESS_WIDTH,ZIP_LGCACHE_SZ,
+			ZIP_START_HALTED)
+		swic(i_clk, cpu_reset,
+			// Zippys wishbone interface
+			zip_cyc, zip_stb, zip_we, zip_addr, zip_data, zip_sel,
+					zip_ack, zip_stall, zip_idata, zip_err,
+			w_bus_int, zip_cpu_int,
+			// Debug wishbone interface
+			((wbu_cyc)&&(wbu_zip_sel)),
+			((wbu_stb)&&(wbu_zip_sel)),wbu_we, wbu_addr[0],
+			wbu_data, zip_dbg_ack, zip_dbg_stall, zip_dbg_data,
+			zip_debug);
+	assign	zip_trigger = zip_debug[0];
+@BDEF.INCLUDE=
+#include <design.h>
+#include <cpudefs.h>
+@REGDEFS.H.INSERT=
+
+#define	CPU_GO		0x0000
+#define	CPU_RESET	0x0040
+#define	CPU_INT		0x0080
+#define	CPU_STEP	0x0100
+#define	CPU_STALL	0x0200
+#define	CPU_HALT	0x0400
+#define	CPU_CLRCACHE	0x0800
+#define	CPU_sR0		0x0000
+#define	CPU_sSP		0x000d
+#define	CPU_sCC		0x000e
+#define	CPU_sPC		0x000f
+#define	CPU_uR0		0x0010
+#define	CPU_uSP		0x001d
+#define	CPU_uCC		0x001e
+#define	CPU_uPC		0x001f
+
+#
+@RTL.MAKE.FILES=cpuops.v dblfetch.v div.v icontrol.v idecode.v memops.v wbdblpriarb.v zipcpu.v zipbones.v
+@RTL.MAKE.GROUP=ZIPCPU
+@RTL.MAKE.SUBD=cpu

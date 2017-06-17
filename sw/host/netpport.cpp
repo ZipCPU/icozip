@@ -39,27 +39,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <string.h>
 #include <unistd.h>
 #include <termios.h>
 #include <assert.h>
 #include <vector>
+#include <string.h>
+#include <ctype.h>
+#include <errno.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <termios.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <string.h>
 #include <poll.h>
 #include <signal.h>
-#include <ctype.h>
-#include <assert.h>
-#include <errno.h>
+
+#include <sched.h>
 
 
 bool verbose = false;
@@ -93,75 +89,6 @@ bool verbose = false;
 #define	WRITE_TO_ICO	1
 
 /*
-unsigned	pp_xfer(unsigned nbytes, char *data) {
-	unsigned	nr = 0;
-
-
-	// digitalWrite(RASPI_CLK, OUTPUT);
-	// digitalWrite(RASPI_DIR, OUTPUT);
-	// digitalWrite(RASPI_CLK, 0);
-
-	for(unsigned i=0; i<nbytes; i++) {
-		char	datab = data[i];
-
-		// digitalWrite(RASPI_D8, (v & 0x100) ? 1:0);
-		pinMode(RASPI_D7, OUTPUT);
-		pinMode(RASPI_D6, OUTPUT);
-		pinMode(RASPI_D5, OUTPUT);
-		pinMode(RASPI_D4, OUTPUT);
-		pinMode(RASPI_D3, OUTPUT);
-		pinMode(RASPI_D2, OUTPUT);
-		pinMode(RASPI_D1, OUTPUT);
-		pinMode(RASPI_D0, OUTPUT);
-
-		digitalWrite(RASPI_D7, (datab & 0x80) ? 1:0);
-		digitalWrite(RASPI_D6, (datab & 0x40) ? 1:0);
-		digitalWrite(RASPI_D5, (datab & 0x20) ? 1:0);
-		digitalWrite(RASPI_D4, (datab & 0x10) ? 1:0);
-		digitalWrite(RASPI_D3, (datab & 0x08) ? 1:0);
-		digitalWrite(RASPI_D2, (datab & 0x04) ? 1:0);
-		digitalWrite(RASPI_D1, (datab & 0x02) ? 1:0);
-		digitalWrite(RASPI_D0, (datab & 0x01) ? 1:0);
-
-		digitalWrite(RASPI_CLK, 1);
-		digitalWrite(RASPI_CLK, 0);
-
-		pinMode(RASPI_D7, INPUT);
-		pinMode(RASPI_D6, INPUT);
-		pinMode(RASPI_D5, INPUT);
-		pinMode(RASPI_D4, INPUT);
-		pinMode(RASPI_D3, INPUT);
-		pinMode(RASPI_D2, INPUT);
-		pinMode(RASPI_D1, INPUT);
-		pinMode(RASPI_D0, INPUT);
-
-		digitalWrite(RASPI_DIR, INPUT);
-
-		digitalWrite(RASPI_CLK, 1);
-
-		datab = 0;
-		if (digitalRead(RASPI_D7))	datab |= 0x80;
-		if (digitalRead(RASPI_D6))	datab |= 0x40;
-		if (digitalRead(RASPI_D5))	datab |= 0x20;
-		if (digitalRead(RASPI_D4))	datab |= 0x10;
-		if (digitalRead(RASPI_D3))	datab |= 0x08;
-		if (digitalRead(RASPI_D2))	datab |= 0x04;
-		if (digitalRead(RASPI_D1))	datab |= 0x02;
-		if (digitalRead(RASPI_D0))	datab |= 0x01;
-
-		if (datab != 0x0ff)
-			data[nr++] = datab;
-
-		digitalWrite(RASPI_CLK, 0);
-	}
-
-	// digitalWrite(RPI_DIR, 1);
-	// digitalWrite(RPI_DIR,  1);
-
-	return nr;
-}
-*/
-
 void	pp_write(unsigned nbytes, char *data) {
 printf("Calling pp_write, %d bytes\n", nbytes);
 	digitalWrite(RASPI_DIR, OUTPUT);
@@ -190,53 +117,190 @@ printf("Calling pp_write, %d bytes\n", nbytes);
 		digitalWrite(RASPI_CLK, 0);
 	}
 }
+*/
 
-unsigned	pp_read(unsigned nbytes, char *data) {
-	unsigned	nr = 0;
-	const	unsigned	DELAY = 100;
+class	MUXDCOMMS {
+private:
+	char		*m_rd_buf;
+	unsigned	m_rd_pos;
+	unsigned	m_rd_fill;
+	unsigned	m_rd_size;
 
-	digitalWrite(RASPI_CLK, 0);
-	pinMode(RASPI_D7, INPUT);
-	pinMode(RASPI_D6, INPUT);
-	pinMode(RASPI_D5, INPUT);
-	pinMode(RASPI_D4, INPUT);
-	pinMode(RASPI_D3, INPUT);
-	pinMode(RASPI_D2, INPUT);
-	pinMode(RASPI_D1, INPUT);
-	pinMode(RASPI_D0, INPUT);
-	digitalWrite(RASPI_DIR, INPUT);
-	assert(usleep(DELAY) == 0);
-
-	for(unsigned i=0; i<nbytes; i++) {
-		char	datab = 0;
-
-		digitalWrite(RASPI_CLK, 1);
-
-		if (digitalRead(RASPI_D7))	datab |= 0x80;
-		if (digitalRead(RASPI_D6))	datab |= 0x40;
-		if (digitalRead(RASPI_D5))	datab |= 0x20;
-		if (digitalRead(RASPI_D4))	datab |= 0x10;
-		if (digitalRead(RASPI_D3))	datab |= 0x08;
-		if (digitalRead(RASPI_D2))	datab |= 0x04;
-		if (digitalRead(RASPI_D1))	datab |= 0x02;
-		if (digitalRead(RASPI_D0))	datab |= 0x01;
+#define	PAUSE	sched_yield()
+	unsigned	pp_xfer(unsigned nbytes, const char *data, char *rdbuf){
+		unsigned	nr = 0;
 
 		digitalWrite(RASPI_CLK, 0);
-		usleep(DELAY);
+		for(unsigned i=0; i<nbytes; i++) {
+			char	datab = data[i];
 
-		if (datab == 0x0ff)
-			break;
-/*
-#warning "A zero here breaks protocol"
-		if (datab == 0x0)
-			break;
-*/
-		// printf("PP_READ(%3d): %02x\n", nr+1, datab);
-		data[nr++] = datab;
+			while(digitalRead(RASPI_D8) != 0)
+				PAUSE;
+			digitalWrite(RASPI_DIR, OUTPUT);
+			pinMode(RASPI_D7, OUTPUT);
+			pinMode(RASPI_D6, OUTPUT);
+			pinMode(RASPI_D5, OUTPUT);
+			pinMode(RASPI_D4, OUTPUT);
+			pinMode(RASPI_D3, OUTPUT);
+			pinMode(RASPI_D2, OUTPUT);
+			pinMode(RASPI_D1, OUTPUT);
+			pinMode(RASPI_D0, OUTPUT);
+
+			digitalWrite(RASPI_D7, (datab & 0x80) ? 1:0);
+			digitalWrite(RASPI_D6, (datab & 0x40) ? 1:0);
+			digitalWrite(RASPI_D5, (datab & 0x20) ? 1:0);
+			digitalWrite(RASPI_D4, (datab & 0x10) ? 1:0);
+			digitalWrite(RASPI_D3, (datab & 0x08) ? 1:0);
+			digitalWrite(RASPI_D2, (datab & 0x04) ? 1:0);
+			digitalWrite(RASPI_D1, (datab & 0x02) ? 1:0);
+			digitalWrite(RASPI_D0, (datab & 0x01) ? 1:0);
+
+			digitalWrite(RASPI_CLK, 1);
+			while(digitalRead(RASPI_D8) == 0)
+				PAUSE;
+			digitalWrite(RASPI_CLK, 0);
+
+			pinMode(RASPI_D7, INPUT);
+			pinMode(RASPI_D6, INPUT);
+			pinMode(RASPI_D5, INPUT);
+			pinMode(RASPI_D4, INPUT);
+			pinMode(RASPI_D3, INPUT);
+			pinMode(RASPI_D2, INPUT);
+			pinMode(RASPI_D1, INPUT);
+			pinMode(RASPI_D0, INPUT);
+
+			digitalWrite(RASPI_DIR, INPUT);
+			while(digitalRead(RASPI_D8) != 0)
+				PAUSE;
+			digitalWrite(RASPI_CLK, 1);
+			while(digitalRead(RASPI_D8) != 1)
+				PAUSE;
+
+			datab = 0;
+			if (digitalRead(RASPI_D7))	datab |= 0x80;
+			if (digitalRead(RASPI_D6))	datab |= 0x40;
+			if (digitalRead(RASPI_D5))	datab |= 0x20;
+			if (digitalRead(RASPI_D4))	datab |= 0x10;
+			if (digitalRead(RASPI_D3))	datab |= 0x08;
+			if (digitalRead(RASPI_D2))	datab |= 0x04;
+			if (digitalRead(RASPI_D1))	datab |= 0x02;
+			if (digitalRead(RASPI_D0))	datab |= 0x01;
+
+			if (datab != 0x0ff)
+				rdbuf[nr++] = datab;
+
+			digitalWrite(RASPI_CLK, 0);
+		}
+
+		return nr;
 	}
 
-	return nr;
-}
+
+	unsigned	pp_read(unsigned nbytes, char *data) {
+		unsigned	nr = 0;
+
+		digitalWrite(RASPI_CLK, 0);
+		pinMode(RASPI_D7, INPUT);
+		pinMode(RASPI_D6, INPUT);
+		pinMode(RASPI_D5, INPUT);
+		pinMode(RASPI_D4, INPUT);
+		pinMode(RASPI_D3, INPUT);
+		pinMode(RASPI_D2, INPUT);
+		pinMode(RASPI_D1, INPUT);
+		pinMode(RASPI_D0, INPUT);
+		digitalWrite(RASPI_DIR, INPUT);
+
+		for(unsigned i=0; i<nbytes; i++) {
+			char	datab = 0;
+
+			while(digitalRead(RASPI_D8) != 0)
+				PAUSE;
+			digitalWrite(RASPI_CLK, 1);
+			while(digitalRead(RASPI_D8) == 0)
+				PAUSE;
+
+			if (digitalRead(RASPI_D7))	datab |= 0x80;
+			if (digitalRead(RASPI_D6))	datab |= 0x40;
+			if (digitalRead(RASPI_D5))	datab |= 0x20;
+			if (digitalRead(RASPI_D4))	datab |= 0x10;
+			if (digitalRead(RASPI_D3))	datab |= 0x08;
+			if (digitalRead(RASPI_D2))	datab |= 0x04;
+			if (digitalRead(RASPI_D1))	datab |= 0x02;
+			if (digitalRead(RASPI_D0))	datab |= 0x01;
+
+			digitalWrite(RASPI_CLK, 0);
+
+			if (datab == 0x0ff)
+				break;
+			data[nr++] = datab;
+		}
+
+		return nr;
+	}
+
+
+public:
+	MUXDCOMMS(void) {
+		m_rd_size = 8192;
+		m_rd_buf = new char[m_rd_size];
+		m_rd_fill = 0;
+		m_rd_pos  = 0;
+	}
+
+	unsigned	read(unsigned nreq, char *buf) {
+		unsigned	nr = 0;
+
+		if (m_rd_fill > 0) {
+			unsigned ln = nreq;
+			printf("READ-REQ for %4d, %4d@%4d/%4d in the buffer\n", nreq, m_rd_fill, m_rd_pos, m_rd_size);
+			if (ln > m_rd_fill)
+				ln = m_rd_fill;
+			memcpy(&buf[nr], &m_rd_buf[m_rd_pos], ln);
+			m_rd_pos  += ln;
+			m_rd_fill -= ln;
+			if (m_rd_fill == 0)
+				m_rd_pos = 0;
+			nr += ln;
+		}
+
+		if (nr < nreq)
+			nr += pp_read(nreq - nr, &buf[nr]);
+
+		if (nr > 0)
+			printf("%4d read, %4d@%4d/%4d in buffer\n", nr, m_rd_fill, m_rd_pos, m_rd_size);
+		return nr;
+	}
+
+	void	write(unsigned nreq, char *buf) {
+		unsigned	nr;
+
+printf("WRITE-REQ for %4d, %4d/%4d in the buffer\n", nreq, m_rd_fill, m_rd_size);
+		if (nreq > m_rd_size - m_rd_fill - m_rd_pos) {
+			if (m_rd_pos > 0) {
+printf("\tZEROing buffer\n");
+				memmove(m_rd_buf, &m_rd_buf[m_rd_pos], m_rd_fill);
+				m_rd_pos = 0;
+			}
+			if (nreq > m_rd_size - m_rd_fill) {
+				unsigned	newsz;
+				char		*alt;
+
+printf("\tAllocating new buffer\n");
+				newsz = m_rd_size;
+				while(newsz < m_rd_fill + nreq)
+					newsz <<= 1;
+
+				alt = new char[newsz];
+				memcpy(alt, m_rd_buf, m_rd_fill);
+				delete m_rd_buf;
+				m_rd_buf = alt;
+			}
+		}
+
+		nr = pp_xfer(nreq, buf, &m_rd_buf[m_rd_pos]);
+		m_rd_fill += nr;
+	}
+};
 
 #include "port.h"
 #define	NO_WAITING	0
@@ -291,9 +355,11 @@ public:
 	int	m_ilen, m_olen;
 	int	m_fd;
 	bool	m_connected;
+	MUXDCOMMS	*m_pport;
 
-	LINBUFS(void) {
+	LINBUFS(MUXDCOMMS *pport) {
 		m_ilen = 0; m_olen = 0; m_connected = false; m_fd = -1;
+		m_pport = pport;
 	}
 
 	void	close(void) {
@@ -331,7 +397,7 @@ public:
 		}
 
 		if (ln > 0)
-			::pp_write((unsigned)ln, m_buf);
+			m_pport->write((unsigned)ln, m_buf);
 	}
 
 	int	write(int fd, int ln, int mask = 0) {
@@ -379,10 +445,8 @@ public:
 
 			if ((nl)||(fullline)) {
 				m_iline[m_ilen] = '\0';
-				/*
 				fprintf(fp, "%s%s%s", // i, m_ilen,
 					(prefix)?prefix:"", m_iline, (!nl)?"\n":"");
-				*/
 				m_ilen = 0;
 			}
 		}
@@ -429,9 +493,12 @@ int main(int argc, char **argv)
 
 	pinMode(RASPI_CLK, OUTPUT);
 	pinMode(RASPI_DIR, OUTPUT);
+	pinMode(RASPI_D8,  INPUT);
 
 	digitalWrite(RASPI_DIR, OUTPUT);
 	digitalWrite(RASPI_CLK, 0);
+	while(digitalRead(RASPI_D8)!=0)
+		;
 
 	// First, set ourselves up to listen on a variety of network ports
 	int	skt = setup_listener(FPGAPORT),
@@ -439,7 +506,9 @@ int main(int argc, char **argv)
 		// configuration socket = setup_listener(FPGAPORT+2); ??
 	bool	done = false;
 
-	LINBUFS	lbcmd, lbcon;
+	MUXDCOMMS	*pport = new MUXDCOMMS();
+
+	LINBUFS	lbcmd(pport), lbcon(pport);
 	while(!done) {
 		struct	pollfd	p[4];
 		int	pv, nfds;
@@ -496,7 +565,7 @@ int main(int argc, char **argv)
 		// Start by flushing everything on the TTY channel
 		unsigned	nr;
 		char	rawbuf[256];
-		nr = pp_read(sizeof(rawbuf), rawbuf);
+		nr = pport->read(sizeof(rawbuf), rawbuf);
 		if (nr > 0) {
 			last_empty = false;
 			last_busy  = (nr == sizeof(rawbuf));
@@ -541,11 +610,11 @@ int main(int argc, char **argv)
 				if (ncmd > 0)
 					lbcmd.print_in(stdout, ncmd, (lbcmd.m_fd>=0)?"> ":"# ");
 				if (ncon > 0)
-					lbcon.print_in(stdout, ncon);
+					lbcon.print_in(stdout, ncon, (lbcon.m_fd >= 0)?") ":". ");
 
-				nr = pp_read(sizeof(rawbuf), rawbuf);
+				nr = pport->read(sizeof(rawbuf), rawbuf);
 			}
-		} // else printf("z");
+		}
 
 		if (p[0].revents & POLLIN) {
 			if (p[0].fd == skt) {
@@ -580,7 +649,7 @@ int main(int argc, char **argv)
 					printf("Console port closed\n");
 				} else if (nr > 0) {
 					lbcon.pp_write(nr, 0x0);
-					lbcon.print_out(stdout, nr);
+					lbcon.print_out(stdout, nr, "( ");
 				}
 			}
 		}

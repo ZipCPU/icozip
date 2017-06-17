@@ -153,6 +153,7 @@ public:
 	virtual	void	tick(void) {
 		struct	pollfd	pb[2];
 		int	npb = 0, r;
+		bool	stalled;
 
 		{
 			// Check if we need to accept any connections
@@ -198,12 +199,31 @@ public:
 			// End of trying to accept more connections
 		}
 
-#define	MAX_PP_PHASE	16
-		m_pp_phase++;
-		if (m_pp_phase >= MAX_PP_PHASE)
-			m_pp_phase = 0;
 
-		if (m_pp_phase == 0) {
+		// The way are comms work is that
+		// 1. i_pp_clk = 0 is an idle condition
+		// 2. i_pp_clk = 1 is an active condition.  The board is reading
+		//    from the pins here, or holding the pins constant so we
+		//    can read them.
+		// We need to hold the clock in either condition until the board
+		// responds that it has seen our clock.  Until then, our
+		// interface must be "stalled".  I.e., any time the requested
+		// clock and the clock feedback are different ... we are
+		// stalled and have to wait.
+		stalled = false;
+
+#define	MAX_PP_PHASE	4
+		if ((TESTB<VA>::m_core->i_pp_clk)
+			==(TESTB<VA>::m_core->o_pp_clkfb)) {
+			m_pp_phase++;
+			if (m_pp_phase >= MAX_PP_PHASE)
+				m_pp_phase = 0;
+		} else
+			stalled = true;
+
+		if (stalled) {
+			// Give the core time to respond to our clock
+		} else if (m_pp_phase == 0) {
 			// First half ... transmit
 			if (m_ilen == 0) {
 				npb = 0;
@@ -263,7 +283,7 @@ printf("INTRANSIT-DATA: %02x\n", m_intransit_data);
 				m_pp_phase += (MAX_PP_PHASE/2);
 				m_intransit_data = 0x0ff;
 			}
-		} if ((m_pp_phase == MAX_PP_PHASE-1)
+		} else if ((m_pp_phase == MAX_PP_PHASE-1)
 			&&(TESTB<VA>::m_core->o_pp_data != 0x0ff)) {
 
 			// Second half ... is there anything to be read?
@@ -314,12 +334,16 @@ printf("INTRANSIT-DATA: %02x\n", m_intransit_data);
 				m_conpos = 0;
 			} // else { m_conbuf[m_conpos] = '\0'; printf("B: %s\n", m_conbuf); }
 		} // else TESTB<VA>::m_core->i_debug = 0;
-			
-		TESTB<VA>::m_core->i_pp_dir = ((m_pp_phase<<1)&(MAX_PP_PHASE))?0:1;
-		TESTB<VA>::m_core->i_pp_clk = ((m_pp_phase<<2)&(MAX_PP_PHASE))?1:0;
-		TESTB<VA>::m_core->o_pp_data = m_intransit_data;
-		if ((m_intransit_data&0x0ff) != 0x0ff)
-			printf("TICK:IN-TRANSIT: %02x\n", m_intransit_data);
+
+
+		// Now that we know what we want to do, let's set our I/O values
+		if (!stalled) {
+			TESTB<VA>::m_core->i_pp_dir = ((m_pp_phase<<1)&(MAX_PP_PHASE))?0:1;
+			TESTB<VA>::m_core->i_pp_clk = ((m_pp_phase<<2)&(MAX_PP_PHASE))?1:0;
+			TESTB<VA>::m_core->o_pp_data = m_intransit_data;
+			if ((m_intransit_data&0x0ff) != 0x0ff)
+				printf("TICK:IN-TRANSIT: %02x\n", m_intransit_data);
+		}
 		
 
 		TESTB<VA>::tick();

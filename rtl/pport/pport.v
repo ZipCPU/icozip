@@ -48,7 +48,8 @@
 module	pport(i_clk,
 		o_rx_stb, o_rx_data,
 		i_tx_wr, i_tx_data, o_tx_busy,
-		i_pp_dir, i_pp_clk, i_pp_data, o_pp_data);
+		i_pp_dir, i_pp_clk, i_pp_data, o_pp_data,
+			o_pp_clkfb);
 	input	wire	i_clk;
 	// Receive interface
 	output	reg		o_rx_stb;
@@ -62,6 +63,7 @@ module	pport(i_clk,
 	input	wire		i_pp_clk;
 	input	wire	[7:0]	i_pp_data;
 	output	reg	[7:0]	o_pp_data;
+	output	wire		o_pp_clkfb;
 
 	//
 	//
@@ -72,14 +74,15 @@ module	pport(i_clk,
 	// First, sycnrhonize the clock and generate a clock strobe
 	wire		ck_pp_clk;
 	wire		ck_rd_dir, ck_wr_dir;
-	reg		pp_stb, pp_dbl_clk;
+	wire		pp_stb;
+	reg		pp_dbl_clk;
 	reg	[2:0]	pp_clk_transfer;
 	initial	pp_clk_transfer = 3'h0;
 	always @(posedge i_clk)
 		pp_clk_transfer <= { pp_clk_transfer[1:0], i_pp_clk };
-	always @(posedge i_clk)
-		pp_stb <= (pp_clk_transfer[2:1]== 2'b01);
-	assign	ck_pp_clk = pp_clk_transfer[1];
+	assign	pp_stb = (pp_clk_transfer[2:1]== 2'b01);
+	assign	ck_pp_clk  = pp_clk_transfer[1];
+	assign	o_pp_clkfb = pp_clk_transfer[2];
 
 	// Next, synchronize the incoming data
 	//	Not really necessary, though, since ... these should
