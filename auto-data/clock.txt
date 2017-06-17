@@ -35,7 +35,7 @@
 ################################################################################
 ##
 ##
-@$CLKFREQHZ=100000000 /
+@$CLKFREQHZ=100000000 / 3
 @PREFIX=clk
 @TOP.DEFNS=
 	wire		s_clk, s_reset;
@@ -60,7 +60,7 @@
 		.FILTER_RANGE(3'b111)
 	) plli (
 		.PACKAGEPIN     (i_clk        ),
-		.PLLOUTCORE     (clk_75mhz    ),
+		.PLLOUTCORE     (clk_33mhz    ),
 		.LOCK           (pll_locked  ),
 		.BYPASS         (1'b0         ),
 		.RESETB         (1'b1         )

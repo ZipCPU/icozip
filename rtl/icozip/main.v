@@ -52,8 +52,8 @@
 // be listed here.
 //
 // First, the independent access fields for any bus masters
-`define	INCLUDE_ZIPCPU
 `define	WBUBUS_MASTER
+`define	INCLUDE_ZIPCPU
 // And then for the independent peripherals
 `define	BKRAM_ACCESS
 `define	BUSPIC_ACCESS
@@ -73,8 +73,7 @@
 //
 module	main(i_clk, i_reset,
 		// Command and Control port
-		i_host_rx_stb, i_host_rx_data,
-		o_host_tx_stb, o_host_tx_data, i_host_tx_busy,
+		i_pp_clk, i_pp_dir, i_pp_data, o_pp_data, o_pp_clkfb,
 		// GPIO ports
 		i_gpio, o_gpio);
 //
@@ -116,11 +115,10 @@ module	main(i_clk, i_reset,
 // @MAIN.IODECL keys.
 //
 	input	wire		i_clk, i_reset;
-	input	wire		i_host_rx_stb;
-	input	wire	[7:0]	i_host_rx_data;
-	output	wire		o_host_tx_stb;
-	output	wire	[7:0]	o_host_tx_data;
-	input	wire		i_host_tx_busy;
+	input	wire		i_pp_clk, i_pp_dir;
+	input	wire	[7:0]	i_pp_data;
+	output	wire	[7:0]	o_pp_data;
+	output	wire		o_pp_clkfb;
 
 
 	//
@@ -161,21 +159,23 @@ module	main(i_clk, i_reset,
 	// given under the @MAIN.DEFNS key, for those components with
 	// an MTYPE flag.
 	//
+	// Definitions for the WB-UART converter.  We really only need one
+	// (more) non-bus wire--one to use to select if we are interacting
+	// with the ZipCPU or not.
+	wire		wbu_zip_sel;
+	wire	[0:0]	wbubus_dbg;
+	wire		pp_rx_stb,  pp_tx_stb,  pp_tx_busy;
+	wire	[7:0]	pp_rx_data, pp_tx_data;
+`ifndef	INCLUDE_ZIPCPU
+	wire		zip_dbg_ack, zip_dbg_stall;
+	wire	[31:0]	zip_dbg_data;
+`endif
 	// ZipSystem/ZipCPU connection definitions
 	// All we define here is a set of scope wires
 	wire	[31:0]	zip_debug;
 	wire		zip_trigger, cpu_reset;
 	wire		zip_dbg_ack, zip_dbg_stall;
 	wire	[31:0]	zip_dbg_data;
-	// Definitions for the WB-UART converter.  We really only need one
-	// (more) non-bus wire--one to use to select if we are interacting
-	// with the ZipCPU or not.
-	wire		wbu_zip_sel;
-	wire	[0:0]	wbubus_dbg;
-`ifndef	INCLUDE_ZIPCPU
-	wire		zip_dbg_ack, zip_dbg_stall;
-	wire	[31:0]	zip_dbg_data;
-`endif
 
 
 	//
@@ -232,15 +232,15 @@ module	main(i_clk, i_reset,
 	// tag, and the names are prefixed by whatever is in the @PREFIX tag.
 	//
 
-	wire		zip_cyc, zip_stb, zip_we, zip_ack, zip_stall, zip_err;
-	wire	[(30-1):0]	zip_addr;
-	wire	[31:0]	zip_data, zip_idata;
-	wire	[3:0]	zip_sel;
-
 	wire		wbu_cyc, wbu_stb, wbu_we, wbu_ack, wbu_stall, wbu_err;
 	wire	[(30-1):0]	wbu_addr;
 	wire	[31:0]	wbu_data, wbu_idata;
 	wire	[3:0]	wbu_sel;
+
+	wire		zip_cyc, zip_stb, zip_we, zip_ack, zip_stall, zip_err;
+	wire	[(30-1):0]	zip_addr;
+	wire	[31:0]	zip_data, zip_idata;
+	wire	[3:0]	zip_sel;
 
 
 	//
@@ -486,6 +486,52 @@ module	main(i_clk, i_reset,
 	else
 		r_pwrcount_data[31:0] <= r_pwrcount_data[31:0] + 1'b1;
 	assign	pwrcount_data = r_pwrcount_data;
+`ifdef	WBUBUS_MASTER
+	// Parallel port logic
+	pport	wbui_pp(i_clk,
+			pp_rx_stb, pp_rx_data,
+			pp_tx_stb, pp_tx_data, pp_tx_busy,
+			i_pp_dir, i_pp_clk, i_pp_data, o_pp_data,
+				o_pp_clkfb);
+`ifdef	INCLUDE_ZIPCPU
+	assign	wbu_zip_sel   = wbu_addr[29];
+`else
+	assign	wbu_zip_sel   = 1'b0;
+	assign	zip_dbg_ack   = 1'b0;
+	assign	zip_dbg_stall = 1'b0;
+	assign	zip_dbg_data  = 0;
+`endif
+`ifndef	BUSPIC_ACCESS
+	wire	w_bus_int;
+	assign	w_bus_int = 1'b0;
+`endif
+	wire	[31:0]	wbu_tmp_addr;
+	wbuconsole genbus(i_clk, pp_rx_stb, pp_rx_data,
+			wbu_cyc, wbu_stb, wbu_we, wbu_tmp_addr, wbu_data,
+			(wbu_zip_sel)?zip_dbg_ack:wbu_ack,
+			(wbu_zip_sel)?zip_dbg_stall:wbu_stall,
+				(wbu_zip_sel)?1'b0:wbu_err,
+				(wbu_zip_sel)?zip_dbg_data:wbu_idata,
+			w_bus_int,
+			pp_tx_stb, pp_tx_data, pp_tx_busy,
+			//
+			w_console_tx_stb, w_console_tx_data, w_console_busy,
+			w_console_rx_stb, w_console_rx_data,
+			//
+			wbubus_dbg[0]);
+	assign	wbu_sel = 4'hf;
+	assign	wbu_addr = wbu_tmp_addr[(30-1):0];
+`else	// WBUBUS_MASTER
+
+	assign	wbu_cyc = 1'b0;
+	assign	wbu_stb = 1'b0;
+	assign	wbu_we  = 1'b0;
+	assign	wbu_sel = 4'b0000;
+	assign	wbu_addr = 0;
+	assign	wbu_data = 0;
+
+`endif	// WBUBUS_MASTER
+
 `ifdef	BUSPIC_ACCESS
 	//
 	// The BUS Interrupt controller
@@ -634,46 +680,6 @@ module	main(i_clk, i_reset,
 	assign	uarttx_int = 1'b0;	// uart.INT.UARTTX.WIRE
 	assign	uartrx_int = 1'b0;	// uart.INT.UARTRX.WIRE
 `endif	// BUSCONSOLE_ACCESS
-
-`ifdef	WBUBUS_MASTER
-`ifdef	INCLUDE_ZIPCPU
-	assign	wbu_zip_sel   = wbu_addr[29];
-`else
-	assign	wbu_zip_sel   = 1'b0;
-	assign	zip_dbg_ack   = 1'b0;
-	assign	zip_dbg_stall = 1'b0;
-	assign	zip_dbg_data  = 0;
-`endif
-`ifndef	BUSPIC_ACCESS
-	wire	w_bus_int;
-	assign	w_bus_int = 1'b0;
-`endif
-	wire	[31:0]	wbu_tmp_addr;
-	wbuconsole genbus(i_clk, i_host_rx_stb, i_host_rx_data,
-			wbu_cyc, wbu_stb, wbu_we, wbu_tmp_addr, wbu_data,
-			(wbu_zip_sel)?zip_dbg_ack:wbu_ack,
-			(wbu_zip_sel)?zip_dbg_stall:wbu_stall,
-				(wbu_zip_sel)?1'b0:wbu_err,
-				(wbu_zip_sel)?zip_dbg_data:wbu_idata,
-			w_bus_int,
-			o_host_tx_stb, o_host_tx_data, i_host_tx_busy,
-			//
-			w_console_tx_stb, w_console_tx_data, w_console_busy,
-			w_console_rx_stb, w_console_rx_data,
-			//
-			wbubus_dbg[0]);
-	assign	wbu_sel = 4'hf;
-	assign	wbu_addr = wbu_tmp_addr[(30-1):0];
-`else	// WBUBUS_MASTER
-
-	assign	wbu_cyc = 1'b0;
-	assign	wbu_stb = 1'b0;
-	assign	wbu_we  = 1'b0;
-	assign	wbu_sel = 4'b0000;
-	assign	wbu_addr = 0;
-	assign	wbu_data = 0;
-
-`endif	// WBUBUS_MASTER
 
 `ifdef	GPIO_ACCESS
 	//

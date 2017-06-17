@@ -127,3 +127,6 @@
 @RTL.MAKE.FILES=cpuops.v dblfetch.v div.v icontrol.v idecode.v memops.v wbdblpriarb.v zipcpu.v zipbones.v
 @RTL.MAKE.GROUP=ZIPCPU
 @RTL.MAKE.SUBD=cpu
+@SIM.DEFNS=
+#define	cpu_ipc		@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__ipc
+#define	cpu_cmd_halt	@$(VERILATOR_PREFIX)__DOT__swic__DOT__cmd_halt

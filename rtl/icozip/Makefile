@@ -39,10 +39,10 @@
 .PHONY: all
 all: cpudefs.h design.h verilated bin
 CROSS ?=
-ARCH  ?= pc
+ARCH  ?= $(shell bash ../../sw/host/arch.sh)
 CXX   := $(CROSS)g++
 FBDIR := .
-VDIRFB:= $(FBDIR)/obj_dir
+VDIRFB:= $(FBDIR)/obj-$(ARCH)
 VOBJ := obj-$(ARCH)
 include auto.mk
 PCFFILE := icozip.pcf
@@ -60,15 +60,15 @@ ICOSRCS := toplevel.v main.v $(WBUBUS) $(PPBUS) $(PPORT) cpu/icontrol.v memdev.v
 .PHONY: verilated
 verilated: $(VDIRFB)/Vmain__ALL.a
 
-$(VDIRFB)/V%.cpp: $(VDIRFB)/V%.h
-$(VDIRFB)/V%.mk:  $(VDIRFB)/V%.h
-$(VDIRFB)/V%.h: $(FBDIR)/%.v
-	verilator -trace -cc $(AUTOVDIRS) $*.v
+# $(VDIRFB)/V%.cpp: $(VDIRFB)/V%.h
+# $(VDIRFB)/V%.mk:  $(VDIRFB)/V%.h
+# $(VDIRFB)/V%.h: $(FBDIR)/%.v
+#	verilator -O3 -Mdir $(VDIRFB) -trace -cc $(AUTOVDIRS) $*.v
 
 $(VDIRFB)/Vmain.cpp: $(VDIRFB)/Vmain.h
 $(VDIRFB)/Vmain.mk:  $(VDIRFB)/Vmain.h
 $(VDIRFB)/Vmain.h: main.v $(VFLIST)
-	verilator -trace -cc -y cpu -y wbubus $(AUTOVDIRS) main.v
+	verilator -O3 -Mdir $(VDIRFB) -trace -cc $(AUTOVDIRS) main.v
 
 cpudefs.h: cpu/cpudefs.v
 	@echo "Building cpudefs.h"
@@ -136,6 +136,7 @@ simple.bin: simple.asc
 .PHONY: clean
 clean:
 	rm -rf $(VOBJ) cpudefs.h design.h
+	rm -rf *.blif *.asc *.bin
 	rm -rf $(VDIRFB)/*.mk
 	rm -rf $(VDIRFB)/*.cpp
 	rm -rf $(VDIRFB)/*.h

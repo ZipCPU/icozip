@@ -46,12 +46,14 @@
 #include "byteswap.h"
 #include "dblpipecmdr.h"
 // Looking for string: SIM.DEFINES
-#define	block_ram	@$(VERILATOR_PREFIX)__DOT__bkrami__DOT__mem
+#define	block_ram	v__DOT__bkrami__DOT__mem
 #define	PARENT	DBLPIPECMDR<BASECLASS>
 class	MAINTB : public PARENT {
 public:
 	bool	m_done;
 // Looking for string: SIM.DEFNS
+#define	cpu_ipc		v__DOT__swic__DOT__thecpu__DOT__ipc
+#define	cpu_cmd_halt	v__DOT__swic__DOT__cmd_halt
 	MAINTB(void) {
 		m_done = false;
 	}

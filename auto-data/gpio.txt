@@ -84,7 +84,7 @@
 	//
 	localparam	INITIAL_@$(DEVID) = @$NUMOUTPUT'h0;
 	wbgpio	#(NGPI, NGPO, INITIAL_@$(DEVID))
-		gpioi(i_clk, 1'b1, (wb_stb)&&(@$(PREFIX)_sel), 1'b1,
+		@$(PREFIX)i(i_clk, 1'b1, (wb_stb)&&(@$(PREFIX)_sel), 1'b1,
 			wb_data, @$(PREFIX)_data, i_@$(PREFIX), o_@$(PREFIX),
 			@$(PREFIX)_int);
 @REGS.N=1

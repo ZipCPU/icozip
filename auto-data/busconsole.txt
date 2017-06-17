@@ -52,39 +52,32 @@
 	// Parallel port interface
 	//
 	//
-	wire	[7:0]	rx_data, tx_data, i_pp_data, w_pp_data;
-	wire		rx_stb, tx_stb, tx_busy;
+	wire	[7:0]	i_pp_data, w_pp_data;
 
 @TOP.INSERT=
-	// Parallel port logic
-	pport	@$(PREFIX)i_pp(s_clk,
-			rx_stb, rx_data,
-			tx_stb, tx_data, tx_busy,
-			i_pp_dir, i_pp_clk, i_pp_data, w_pp_data,
-				o_pp_clkfb);
 	//
 	// Parallel port I/O pin control
 	ppio	@$(PREFIX)i_io(i_pp_dir, io_pp_data, w_pp_data, i_pp_data);
 
 @TOP.MAIN=
 		// External USB-UART bus control
-		rx_stb, rx_data, tx_stb, tx_data, tx_busy
+		i_pp_clk, i_pp_dir, i_pp_data, w_pp_data, o_pp_clkfb
 @MAIN.PORTLIST=
 		// Command and Control port
-		i_host_rx_stb, i_host_rx_data,
-		o_host_tx_stb, o_host_tx_data, i_host_tx_busy
+		i_pp_clk, i_pp_dir, i_pp_data, o_pp_data, o_pp_clkfb
 @MAIN.IODECL=
-	input	wire		i_host_rx_stb;
-	input	wire	[7:0]	i_host_rx_data;
-	output	wire		o_host_tx_stb;
-	output	wire	[7:0]	o_host_tx_data;
-	input	wire		i_host_tx_busy;
+	input	wire		i_pp_clk, i_pp_dir;
+	input	wire	[7:0]	i_pp_data;
+	output	wire	[7:0]	o_pp_data;
+	output	wire		o_pp_clkfb;
 @MAIN.DEFNS=
 	// Definitions for the WB-UART converter.  We really only need one
 	// (more) non-bus wire--one to use to select if we are interacting
 	// with the ZipCPU or not.
 	wire		wbu_zip_sel;
 	wire	[0:0]	wbubus_dbg;
+	wire		pp_rx_stb,  pp_tx_stb,  pp_tx_busy;
+	wire	[7:0]	pp_rx_data, pp_tx_data;
 `ifndef	INCLUDE_ZIPCPU
 	wire		zip_dbg_ack, zip_dbg_stall;
 	wire	[31:0]	zip_dbg_data;
@@ -95,6 +88,12 @@
 @$ZIP_DBGDATA=4+@$.ZIP_ADDRESS
 @ZIP_DBGDATA.FORMAT= 0x%08x
 @MAIN.INSERT=
+	// Parallel port logic
+	pport	@$(PREFIX)i_pp(i_clk,
+			pp_rx_stb, pp_rx_data,
+			pp_tx_stb, pp_tx_data, pp_tx_busy,
+			i_pp_dir, i_pp_clk, i_pp_data, o_pp_data,
+				o_pp_clkfb);
 `ifdef	INCLUDE_ZIPCPU
 	assign	wbu_zip_sel   = wbu_addr[@$.ZIP_ADDRESS_BIT];
 `else
@@ -108,14 +107,14 @@
 	assign	w_bus_int = 1'b0;
 `endif
 	wire	[31:0]	wbu_tmp_addr;
-	wbuconsole genbus(i_clk, i_host_rx_stb, i_host_rx_data,
+	wbuconsole genbus(i_clk, pp_rx_stb, pp_rx_data,
 			wbu_cyc, wbu_stb, wbu_we, wbu_tmp_addr, wbu_data,
 			(wbu_zip_sel)?zip_dbg_ack:wbu_ack,
 			(wbu_zip_sel)?zip_dbg_stall:wbu_stall,
 				(wbu_zip_sel)?1'b0:wbu_err,
 				(wbu_zip_sel)?zip_dbg_data:wbu_idata,
 			w_bus_int,
-			o_host_tx_stb, o_host_tx_data, i_host_tx_busy,
+			pp_tx_stb, pp_tx_data, pp_tx_busy,
 			//
 			w_console_tx_stb, w_console_tx_data, w_console_busy,
 			w_console_rx_stb, w_console_rx_data,

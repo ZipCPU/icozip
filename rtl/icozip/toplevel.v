@@ -84,15 +84,14 @@ module	toplevel(i_clk,
 	// These declarations just copy data from the @TOP.DEFNS key
 	// within the component data files.
 	//
-	wire		s_clk, s_reset;
 	//
 	//
 	// Parallel port interface
 	//
 	//
-	wire	[7:0]	rx_data, tx_data, i_pp_data, w_pp_data;
-	wire		rx_stb, tx_stb, tx_busy;
+	wire	[7:0]	i_pp_data, w_pp_data;
 
+	wire		s_clk, s_reset;
 	// GPIO declarations.  The two wire busses are just virtual lists of
 	// input (or output) ports.
 	wire	[2 -1:0]	i_gpio;
@@ -116,7 +115,7 @@ module	toplevel(i_clk,
 
 	main	thedesign(s_clk, s_reset,
 		// External USB-UART bus control
-		rx_stb, rx_data, tx_stb, tx_data, tx_busy,
+		i_pp_clk, i_pp_dir, i_pp_data, w_pp_data, o_pp_clkfb,
 		// GPIO wires
 		i_gpio, o_gpio);
 
@@ -128,13 +127,18 @@ module	toplevel(i_clk,
 	//
 
 
+	//
+	// Parallel port I/O pin control
+	ppio	wbui_io(i_pp_dir, io_pp_data, w_pp_data, i_pp_data);
+
+
 	assign	s_reset = 1'b0; // This design requires local, not global resets
 
 	wire		s_clk;
 `ifdef	VERILATOR
 	assign	s_clk = i_clk;
 `else
-	wire	clk_75mhz, pll_locked;
+	wire	clk_33mhz, pll_locked;
 	SB_PLL40_PAD #(
 		.FEEDBACK_PATH("SIMPLE"),
 		.DELAY_ADJUSTMENT_MODE_FEEDBACK("FIXED"),
@@ -142,31 +146,20 @@ module	toplevel(i_clk,
 		.PLLOUT_SELECT("GENCLK"),
 		.FDA_FEEDBACK(4'b1111),
 		.FDA_RELATIVE(4'b1111),
-		.DIVR(4'd1),		// Divide by (DIVR+1)  = 2
-		.DIVQ(3'd1),		// Divide by 2^(DIVQ)  = 2
-		.DIVF(7'd2),		// Multiply by (DIVF+1)= 3
+		.DIVR(4'd2),		// Divide by (DIVR+1)  = 3
+		.DIVQ(3'd0),		// Divide by 2^(DIVQ)  = 1
+		.DIVF(7'd0),		// Multiply by (DIVF+1)= 1
 		.FILTER_RANGE(3'b111)
 	) plli (
 		.PACKAGEPIN     (i_clk        ),
-		.PLLOUTCORE     (clk_75mhz    ),
+		.PLLOUTCORE     (clk_33mhz    ),
 		.LOCK           (pll_locked  ),
 		.BYPASS         (1'b0         ),
 		.RESETB         (1'b1         )
 	);
 
-	assign	s_clk = clk_75mhz;
+	assign	s_clk = clk_33mhz;
 `endif
-
-
-	// Parallel port logic
-	pport	wbui_pp(s_clk,
-			rx_stb, rx_data,
-			tx_stb, tx_data, tx_busy,
-			i_pp_dir, i_pp_clk, i_pp_data, w_pp_data,
-				o_pp_clkfb);
-	//
-	// Parallel port I/O pin control
-	ppio	wbui_io(i_pp_dir, io_pp_data, w_pp_data, i_pp_data);
 
 
 	assign	i_gpio = { i_btn };

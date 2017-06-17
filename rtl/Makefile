@@ -38,7 +38,7 @@
 ##
 ##
 .PHONY: all
-all:	basic uart pptest # icozip
+all:	basic uart pptest icozip # icozip
 # all:	verilated sw bench bit
 SUBMAKE := $(MAKE) --no-print-directory -C
 #
@@ -57,6 +57,10 @@ pmodleds:
 .PHONY: pptest
 pptest:
 	$(SUBMAKE) pptest
+
+.PHONY: icozip
+icozip:
+	$(SUBMAKE) icozip
 
 
 .PHONY: clean
@@ -77,3 +81,7 @@ clean-pptest:
 .PHONY: clean-pmodleds
 clean-pmodleds:
 	$(SUBMAKE) pmodleds clean
+
+.PHONY: clean-icozip
+clean-icozip:
+	$(SUBMAKE) icozip clean

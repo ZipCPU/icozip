@@ -124,7 +124,7 @@ public:
 	bool	m_started_flag;
 	bool	m_copy;
 
-	DBLPIPECMDR(const int port, const bool copy_to_stdout=true)
+	DBLPIPECMDR(const int port = FPGAPORT, const bool copy_to_stdout=true)
 			: TESTB<VA>(), m_copy(copy_to_stdout) {
 		m_debug = true;
 		m_con = m_cmd = -1;
