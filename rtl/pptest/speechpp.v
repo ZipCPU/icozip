@@ -58,6 +58,9 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	input	wire		i_pp_dir, i_pp_clk;
 	inout	wire	[7:0]	io_pp_data;
 	output	wire		o_pp_clkfb;
+	// Let's set our message length, in case we ever wish to change it in
+	// the future
+	localparam	MSGLEN=2203;
 
 	wire	[7:0]	i_pp_data;
 	reg		restart;
@@ -114,11 +117,39 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	// element to a space so that if (for some reason) we broadcast past the
 	// end of our message, we'll at least be sending something useful.
 	integer	i;
-	reg	[7:0]	message [0:2047];
+	reg	[7:0]	message [0:4095];
 	initial begin
-		$readmemh("speech.hex",message);
-		for(i=1481; i<2048; i=i+1)
+		// xx Verilator needs this file to be in the directory the file
+		// is run from.  For that reason, the project builds, makes,
+		// and keeps speech.hex in bench/cpp.  
+		//
+		// Vivado, however, wants speech.hex to be in a project file
+		// directory, such as bench/verilog.  For that reason, the
+		// build function in bench/cpp also copies speech.hex to the
+		// bench/verilog directory.  You may need to make certain the
+		// file is both built, and copied into a directory where your
+		// synthesis tool can find it.
+		//
+		$readmemh("speech.hex", message);
+		for(i=MSGLEN; i<4095; i=i+1)
 			message[i] = 8'h20;
+
+		//
+		// The problem with the above approach is Xilinx's ISE program.
+		// It's broken.  It can't handle HEX files well (at all?) and
+		// has more problems with HEX's defining ROM's.  For that
+		// reason, the mkspeech program can be tuned to create an
+		// include file, speech.inc.  We include that program here.
+		// It is rather ugly, though, and not a very elegant solution,
+		// since it walks through every value in our speech, byte by
+		// byte, with an initial line for each byte declaring what it
+		// is to be.
+		//
+		// If you (need to) use this route, comment out both the 
+		// readmemh, the for loop, and the message[i] = 8'h20 lines
+		// above and uncomment the include line below.
+		//
+		// `include "speech.inc"
 	end
 
 	// Let's keep track of time, and send our message over and over again.
@@ -144,8 +175,8 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	// transmit next.  Note, there's a clock delay between setting this 
 	// index and when the wb_data is valid.  Hence, we set the index on
 	// restart[0] to zero.
-	reg	[10:0]	msg_index;
-	initial	msg_index = 11'd2040;
+	reg	[11:0]	msg_index;
+	initial	msg_index = 12'h000 - 12'h8;
 	always @(posedge s_clk)
 	begin
 		if (restart)
@@ -181,30 +212,47 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 		else // if (!pport_stall)??
 			wb_addr <= 2'b11;
 
-	// The wb_stb signal indicates that we wish to write, using the wishbone
-	// to our peripheral.  We have two separate types of writes.  First,
-	// we wish to write our setup.  Then we want to drop STB and write
-	// our data.  Once we've filled half of the FIFO, we wait for the FIFO
-	// to empty before issuing a STB again and then fill up half the FIFO
-	// again.
+	// Knowing when to stop sending the speech is important, but depends
+	// upon an 11 bit comparison.  Since FPGA logic is best measured by the
+	// number of inputs to an always block, we pull those 11-bits out of
+	// the always block for wb_stb, and place them here on the clock prior.
+	// If end_of_message is true, then we need to stop transmitting, and
+	// wait for the next (restart) to get us started again.  We set that
+	// flag hee.
 	reg	end_of_message;
 	initial	end_of_message = 1'b1;
 	always @(posedge s_clk)
 		if (restart)
 			end_of_message <= 1'b0;
 		else
-			end_of_message <= (msg_index >= 1481);
+			end_of_message <= (msg_index >= MSGLEN);
+
+	// The wb_stb signal indicates that we wish to write, using the wishbone
+	// to our peripheral.  We have two separate types of writes.  First,
+	// we wish to write our setup.  Then we want to drop STB and write
+	// our data.  Once we've filled half of the FIFO, we wait for the FIFO
+	// to empty before issuing a STB again and then fill up half the FIFO
+	// again.
 	initial	wb_stb = 1'b0;
 	always @(posedge s_clk)
 		if (restart)
+			// Start sending to the UART on a reset.  The first
+			// thing we'll send will be the configuration, but
+			// that's done elsewhere.  This just starts up the
+			// writes to the peripheral wbuart.
 			wb_stb <= 1'b1;
 		else if (end_of_message)
+			// Stop transmitting when we get to the end of our
+			// message.
 			wb_stb <= 1'b0;
 		else if (tx_int)
 			wb_stb <= 1'b1;
 		else if (txfifo_int)
-			wb_stb <= wb_stb;
+			// If the FIFO is less than half full, then write to
+			// it.
+			wb_stb <= 1'b1;
 		else
+			// But once the FIFO gets to half full, stop.
 			wb_stb <= 1'b0;
 
 	// We aren't using the receive interrupts, so we'll just mark them

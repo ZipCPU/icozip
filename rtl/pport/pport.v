@@ -75,7 +75,6 @@ module	pport(i_clk,
 	wire		ck_pp_clk;
 	wire		ck_rd_dir, ck_wr_dir;
 	wire		pp_stb;
-	reg		pp_dbl_clk;
 	reg	[2:0]	pp_clk_transfer;
 	initial	pp_clk_transfer = 3'h0;
 	always @(posedge i_clk)
@@ -136,7 +135,7 @@ module	pport(i_clk,
 		if (!o_tx_busy)
 		begin
 			if (i_tx_wr)
-				o_pp_data <= { 1'b0, i_tx_data[6:0] };
+				o_pp_data <= i_tx_data[7:0];
 			else
 				o_pp_data <= 8'hff;
 		end

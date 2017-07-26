@@ -1,20 +1,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	llcomms.h
+// Filename:	bregs.cpp
 //
 // Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
-// Purpose:	This is the C++ program on the command side that will interact
-//		with a UART on an FPGA, both sending and receiving characters.
-//	Any bus interaction will call routines from this lower level library to
-//	accomplish the actual connection to and transmission to/from the board.
+// Purpose:	
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2017, Gisselquist Technology, LLC
+// Copyright (C) 2017, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -38,37 +35,48 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-#ifndef	LLCOMMS_H
-#define	LLCOMMS_H
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <ctype.h>
+#include "bregs.h"
 
-class	LLCOMMSI {
-protected:
-	int	m_fdw, m_fdr;
-	LLCOMMSI(void);
-public:
-	unsigned long	m_total_nread, m_total_nwrit;
-
-	virtual	~LLCOMMSI(void) { close(); }
-	virtual	void	kill(void)  { this->close(); };
-	virtual	void	close(void);
-	virtual	void	write(char *buf, int len);
-	virtual int	read(char *buf, int len);
-	virtual	bool	poll(unsigned ms);
-
-	// Tests whether or not bytes are available to be read, returns a 
-	// count of the bytes that may be immediately read
-	virtual	int	available(void); // { return 0; };
+const	REGNAME	raw_bregs[] = {
+	{ R_VERSION       ,	"VERSION" 	},
+	{ R_BUSERR        ,	"BUSERR"  	},
+	{ R_PWRCOUNT      ,	"PWRCOUNT"	},
+	{ R_INT		  ,	"int"		},
+	// { R_HALT	  ,	"halt"		},
+	{ R_DEBOUNCED	  ,	"DEBOUNCED"	},
+	{ R_TRANSITIONS	  ,	"BOUNCES"	},
+	{ R_TRANSITIONS	  ,	"TRANSITIONS"	},
+	{ R_MAXCLOCKS	  ,	"DURATION"	},
+	{ R_MAXCLOCKS	  ,	"MAXCLOCKS"	},
+	{ R_SCOPE         ,	"SCOPE"   	},
+	{ R_SCOPD         ,	"SCOPD"   	},
+	{ R_RSTCOUNTER    ,	"RESET"     	}
 };
 
-class	TTYCOMMS : public LLCOMMSI {
-public:
-	TTYCOMMS(const char *dev);
-};
+#define	RAW_NREGS	(sizeof(raw_bregs)/sizeof(bregs[0]))
 
-class	NETCOMMS : public LLCOMMSI {
-public:
-	NETCOMMS(const char *dev, const int port);
-	virtual	void	close(void);
-};
+const	REGNAME		*bregs = raw_bregs;
+const	int	NREGS = RAW_NREGS;
 
-#endif
+unsigned	addrdecode(const char *v) {
+	if (isalpha(v[0])) {
+		for(int i=0; i<NREGS; i++)
+			if (strcasecmp(v, bregs[i].m_name)==0)
+				return bregs[i].m_addr;
+		fprintf(stderr, "Unknown register: %s\n", v);
+		exit(-2);
+	} else
+		return strtoul(v, NULL, 0);
+}
+
+const	char *addrname(const unsigned v) {
+	for(int i=0; i<NREGS; i++)
+		if (bregs[i].m_addr == v)
+			return bregs[i].m_name;
+	return NULL;
+}
+

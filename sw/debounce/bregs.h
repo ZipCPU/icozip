@@ -1,20 +1,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	llcomms.h
+// Filename:	bregs.h
 //
 // Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
-// Purpose:	This is the C++ program on the command side that will interact
-//		with a UART on an FPGA, both sending and receiving characters.
-//	Any bus interaction will call routines from this lower level library to
-//	accomplish the actual connection to and transmission to/from the board.
+// Purpose:	
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2017, Gisselquist Technology, LLC
+// Copyright (C) 2017, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -38,37 +35,33 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-#ifndef	LLCOMMS_H
-#define	LLCOMMS_H
+#ifndef	BREGS_H
+#define	BREGS_H
 
-class	LLCOMMSI {
-protected:
-	int	m_fdw, m_fdr;
-	LLCOMMSI(void);
-public:
-	unsigned long	m_total_nread, m_total_nwrit;
+#define	R_VERSION       0x00002040
+#define	R_SOMETHING	0x00002044
+#define	R_BUSERR       	0x00002048
+#define	R_PWRCOUNT	0x0000204c
+#define	R_INT		0x00002050
+#define	R_TRANSITIONS	0x00002058
+#define	R_MAXCLOCKS	0x0000205c
+#define	R_DEBOUNCED	0x00002060
 
-	virtual	~LLCOMMSI(void) { close(); }
-	virtual	void	kill(void)  { this->close(); };
-	virtual	void	close(void);
-	virtual	void	write(char *buf, int len);
-	virtual int	read(char *buf, int len);
-	virtual	bool	poll(unsigned ms);
+#define	R_SCOPE		0x00002080
+#define	R_SCOPD		0x00002084
 
-	// Tests whether or not bytes are available to be read, returns a 
-	// count of the bytes that may be immediately read
-	virtual	int	available(void); // { return 0; };
-};
+#define	R_RSTCOUNTER	0x00002058
 
-class	TTYCOMMS : public LLCOMMSI {
-public:
-	TTYCOMMS(const char *dev);
-};
+typedef	struct {
+	unsigned	m_addr;
+	const char	*m_name;
+} REGNAME;
 
-class	NETCOMMS : public LLCOMMSI {
-public:
-	NETCOMMS(const char *dev, const int port);
-	virtual	void	close(void);
-};
+extern	const	REGNAME	*bregs;
+extern	const	int	NREGS;
+// #define	NREGS	(sizeof(bregs)/sizeof(bregs[0]))
 
-#endif
+extern	unsigned	addrdecode(const char *v);
+extern	const	char *addrname(const unsigned v);
+
+#endif	// BREGS_H
