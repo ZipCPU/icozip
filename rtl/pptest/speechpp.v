@@ -279,6 +279,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 			o_pp_clkfb);
 `ifdef	VERILATOR
 	assign	io_pp_data = (i_pp_dir) ? 8'bzzzz_zzzz : w_pp_data;
+	assign	i_pp_data = io_pp_data;
 `else
 	ppio	theppio(i_pp_dir, io_pp_data, w_pp_data, i_pp_data);
 `endif
@@ -295,5 +296,12 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 	assign	o_ledg[1] = pp_tx_busy;
 	assign	o_ledr = !txfifo_int;
 
+
+	// Make verilator happy
+	// verilator lint_off UNUSED
+	wire	[35:0] unused;
+	assign	unused = { ignored_rx_int, ignored_rxfifo_int, pp_rx_data[7],
+			pport_ack, pport_data };
+	// verilator lint_off UNUSED
 
 endmodule
