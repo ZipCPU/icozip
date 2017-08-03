@@ -77,8 +77,6 @@ module	wbpport(i_clk, i_rst,
 	output	wire		o_rx_int, o_tx_int,
 				o_rxfifo_int, o_txfifo_int;
 
-	wire	tx_busy;
-
 	//
 	wire	[31:0]	pp_setup;
 	assign	pp_setup = 32'd12;
@@ -163,9 +161,8 @@ module	wbpport(i_clk, i_rst,
 	//
 	/////////////////////////////////////////
 	wire		tx_empty_n, txf_err;
-	wire	[7:0]	tx_pp_data;
 	wire	[15:0]	txf_status;
-	reg		r_tx_break, txf_wb_write, tx_pp_reset;
+	reg		txf_wb_write, tx_pp_reset;
 	reg	[6:0]	txf_wb_data;
 
 	// Unlike the receiver which goes from RX -> UFIFO -> WB, the
@@ -279,4 +276,13 @@ module	wbpport(i_clk, i_rst,
 	// set this value to zero.
 	assign	o_wb_stall = 1'b0;
 
+`ifdef	VERILATOR
+	// Make Verilator happy
+	//
+	// verilator lint_off UNUSED
+	wire	[25:0] unused;
+	assign	unused = { i_wb_cyc, i_wb_data[31:13], i_wb_data[11:7],
+			rx_fifo_err };
+	// verilator lint_on  UNUSED
+`endif
 endmodule
