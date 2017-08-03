@@ -63,7 +63,7 @@ module	pport(i_clk,
 	input	wire		i_pp_clk;
 	input	wire	[7:0]	i_pp_data;
 	output	reg	[7:0]	o_pp_data;
-	output	wire		o_pp_clkfb;
+	output	reg		o_pp_clkfb;
 
 	//
 	//
@@ -71,50 +71,43 @@ module	pport(i_clk,
 	//
 	//
 
-	// First, sycnrhonize the clock and generate a clock strobe
-	wire		ck_pp_clk;
-	wire		ck_rd_dir, ck_wr_dir;
-	wire		pp_stb;
-	reg	[2:0]	pp_clk_transfer;
-	initial	pp_clk_transfer = 3'h0;
-	always @(posedge i_clk)
-		pp_clk_transfer <= { pp_clk_transfer[1:0], i_pp_clk };
-	assign	pp_stb = (pp_clk_transfer[2:1]== 2'b01);
-	assign	ck_pp_clk  = pp_clk_transfer[1];
-	assign	o_pp_clkfb = pp_clk_transfer[2];
+	localparam	SCLKS = 2;
 
-	// Next, synchronize the incoming data
-	//	Not really necessary, though, since ... these should
-	//	be stable once we notice the clock is high
-	/*
-	reg	[7:0]	q_pp_data, ck_pp_data;
+	// First, sycnrhonize the clock and generate a clock strobe
+	reg		stb_pp_dir, ck_pp_dir;
+	wire		stb_rd_dir, stb_wr_dir;
+	wire		ck_rd_dir, ck_wr_dir;
+	reg		pp_stb;
+	reg	[(SCLKS-1):0]	pp_clk_transfer;
+	initial	pp_clk_transfer = 0;
+	initial	pp_stb = 0;
 	always @(posedge i_clk)
-		q_pp_data  <= i_pp_data;
+		pp_clk_transfer <= { pp_clk_transfer[(SCLKS-2):0], i_pp_clk };
 	always @(posedge i_clk)
-		ck_pp_data <= q_pp_data;
-	*/
+		if (&pp_clk_transfer[(SCLKS-1):1])
+			o_pp_clkfb <= 1'b1;
+		else if (pp_clk_transfer[(SCLKS-1):1] == 0)
+			o_pp_clkfb <= 1'b0;
+	always @(posedge i_clk)
+		pp_stb <= (&pp_clk_transfer[(SCLKS-1):1])&&(!o_pp_clkfb);
+
 	reg	[7:0]	ck_pp_data;
 	always @(posedge i_clk)
 		ck_pp_data <= i_pp_data;
 
-	// ... and the incoming direction
-	//	which should also be stable, due to waiting on the clock
-	/*
-	reg		q_pp_dir, ck_pp_dir;
 	always @(posedge i_clk)
-		q_pp_dir  <= i_pp_dir;
+		stb_pp_dir <= i_pp_dir;
 	always @(posedge i_clk)
-		ck_pp_dir <= q_pp_dir;
-	*/
-	reg	ck_pp_dir;
-	always @(posedge i_clk)
-		ck_pp_dir <= i_pp_dir;
+		ck_pp_dir <= stb_pp_dir;
 
-	assign	ck_rd_dir =  ck_pp_dir; // Read from the PI
-	assign	ck_wr_dir = !ck_rd_dir; // Write to the PI
+	assign	stb_rd_dir =  stb_pp_dir; // Read from the PI
+	assign	stb_wr_dir = !stb_rd_dir; // Write to the PI
+	assign	ck_rd_dir  =  ck_pp_dir;
+	assign	ck_wr_dir  = !ck_rd_dir;
 
 	always @(posedge i_clk)
-		o_rx_stb <= (pp_stb)&&(ck_rd_dir);
+		o_rx_stb <= (pp_stb)&&(stb_rd_dir);
+
 	always @(posedge i_clk)
 		if (pp_stb)
 			o_rx_data <= ck_pp_data;
@@ -123,13 +116,20 @@ module	pport(i_clk,
 	always @(posedge i_clk)
 		if ((i_tx_wr)&&(!o_tx_busy))
 			loaded <= 1'b1;
-		else if ((pp_stb)&&(ck_wr_dir))
+		else if ((pp_stb)&&(stb_wr_dir))
 			loaded <= 1'b0;
 
 	always @(posedge i_clk)
+		// We are busy if ...
+		//	1. We have a word loaded and ready to transmit
 		o_tx_busy <= (loaded)
+			// 2. We are not busy, and someone gives us a word
+			// to transmit, or
 			||((i_tx_wr)&&(!o_tx_busy))
-			||((ck_pp_clk)&&(ck_wr_dir));
+			// 3. We are in the middle of a read transaction.
+			// During transactions, things cannot be changed, so
+			// ... we are hence busy
+			||((|pp_clk_transfer[(SCLKS-1):1])&&(ck_wr_dir));
 
 	always @(posedge i_clk)
 		if (!o_tx_busy)
