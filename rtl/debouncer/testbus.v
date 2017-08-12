@@ -67,9 +67,9 @@ module	testbus(i_clk, i_btn, o_ledg, o_ledr,
 		.FDA_FEEDBACK(4'b1111),
 		.FDA_RELATIVE(4'b1111),
 		.DIVR(4'd4),		// Divide by (DIVR+1)  = 5
-		.DIVQ(3'd0),		// Divide by 2^(DIVQ)  = 1
-		.DIVF(7'd3),		// Multiply by (DIVF+1)= 4
-		.FILTER_RANGE(3'b111)
+		.DIVQ(3'd3),		// Divide by 2^(DIVQ)  = 1
+		.DIVF(7'd31),		// Multiply by (DIVF+1)= 4
+		.FILTER_RANGE(3'b010)
 	) plli (
 		.PACKAGEPIN     (i_clk        ),
 		.PLLOUTCORE     (clk_80mhz    ),
