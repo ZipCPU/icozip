@@ -51,16 +51,14 @@ all: hellopp speechpp linepp # pppintest
 	icetime -d hx8k -c 75 $<
 	icepack $< $@
 
-.PHONY: hellopp speechpp pppintest linepp
+.PHONY: hellopp speechpp linepp
 hellopp:   hellopp.bin
 speechpp:  speechpp.bin
 linepp:    linepp.bin
-pppintest: pppintest.bin
 
 speechpp.blif:   speechpp.v $(addprefix ../pport/,pport.v ppio.v ufifo.v wbpport.v)
 hellopp.blif:    hellopp.v  ../pport/pport.v ../pport/ppio.v
 linepp.blif:     linepp.v   ../pport/pport.v ../pport/ppio.v
-pppintest.blif:  pppintest.v
 
 .PHONY: clean
 clean:
