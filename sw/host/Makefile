@@ -57,14 +57,14 @@ hostcheck:
 
 CXX := $(CROSS)g++
 OBJDIR := obj-$(ARCH)
-BUSSRCS := ttybus.cpp llcomms.cpp regdefs.cpp byteswap.cpp
+BUSSRCS := hexbus.cpp llcomms.cpp regdefs.cpp byteswap.cpp
 SOURCES := wbregs.cpp netpport.cpp $(BUSSRCS)
 # rdclocks.cpp flashdrvr.cpp		\
 #	 mkedid.cpp $(BUSSRCS)	edidrxscope.cpp	edidtxscope.cpp		\
 #	zipload.cpp zipstate.cpp zipdbg.cpp cpedid.cpp readhist.cpp	\
 	readframe.cpp rawdscope.cpp
 	# netsetup.cpp manping.cpp wbsettime.cpp
-HEADERS := llcomms.h port.h ttybus.h devbus.h
+HEADERS := llcomms.h port.h hexbus.h devbus.h
 OBJECTS := $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(SOURCES)))
 BUSOBJS := $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(BUSSRCS)))
 CFLAGS := -g -Wall -I. -I../../rtl

@@ -1914,6 +1914,13 @@ module	zipcpu(i_clk, i_rst, i_interrupt,
 	assign	o_i_count  = (alu_pc_valid)&&(!clear_pipeline);
 
 `ifdef	DEBUG_SCOPE
+	wire	[22:0]	dbg_pf_pc;
+	generate if (AW+2 < 22)
+		assign	dbg_pf_pc = { {(23-(AW+2)){1'b0}}, pf_pc[(AW+1):0] };
+	else
+		assign	dbg_pf_pc = pf_pc[21:0];
+	endgenerate
+
 	always @(posedge i_clk)
 		o_debug <= {
 			wr_reg_ce, pf_valid, new_pc,
@@ -1922,7 +1929,7 @@ module	zipcpu(i_clk, i_rst, i_interrupt,
 				:{ op_stall,
 					o_wb_gbl_cyc, o_wb_gbl_stb, o_wb_we,
 						mem_busy,
-					dcd_valid, op_ce, pf_pc[21:0] }
+					dcd_valid, op_ce, dbg_pf_pc[21:0] }
 			};
 `endif
 

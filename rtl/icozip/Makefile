@@ -104,20 +104,21 @@ bin: icozip.bin
 #
 #
 icozip.blif: toplevel.v $(VFLIST)
-	yosys -p 'synth_ice40 -blif icozip.blif -top toplevel' $^ |tee simple.log
+	echo yosys -p 'synth_ice40 -blif icozip.blif -top toplevel' $^ |tee simple.log
+	yosys -p 'synth_ice40 -blif icozip.blif -top toplevel' $^ |tee -a simple.log
 
 .PHONY: yosys
 yosys: icozip.blif
 
 icozip.asc: $(PCFFILE) icozip.blif
-	arachne-pnr -d 8k -p $(PCFFILE) icozip.blif -o $@
+	arachne-pnr -d 8k -r -p $(PCFFILE) icozip.blif -o $@
 
 .PHONY: arachne
 arachne: icozip.asc
 
 icozip.bin: icozip.asc
 	icepack icozip.asc icozip.bin
-	icetime -d hx8k -c 34 icozip.asc
+	icetime -d hx8k -c 40 icozip.asc
 
 #
 #

@@ -83,7 +83,6 @@ module	prefetch(i_clk, i_rst, i_new_pc, i_clear_cache, i_stalled_n, i_pc,
 	// pipeline this, but for now let's just do one at a time.
 	initial	o_wb_cyc = 1'b0;
 	initial	o_wb_stb = 1'b0;
-	initial	o_wb_addr= 0;
 	always @(posedge i_clk)
 		if ((i_rst)||(i_wb_ack)||(i_wb_err))
 		begin

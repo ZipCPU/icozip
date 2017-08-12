@@ -126,17 +126,20 @@ private:
 	unsigned	m_rd_fill;
 	unsigned	m_rd_size;
 
-#define	PAUSE	sched_yield()
+// #define	PAUSE	sched_yield()
+#define	PAUSE
+
 	unsigned	pp_xfer(unsigned nbytes, const char *data, char *rdbuf){
 		unsigned	nr = 0;
 
-		digitalWrite(RASPI_CLK, 0);
 		for(unsigned i=0; i<nbytes; i++) {
 			char	datab = data[i];
 
+			digitalWrite(RASPI_DIR, OUTPUT);
+			digitalWrite(RASPI_CLK, 0);
+			//
 			while(digitalRead(RASPI_D8) != 0)
 				PAUSE;
-			digitalWrite(RASPI_DIR, OUTPUT);
 			pinMode(RASPI_D7, OUTPUT);
 			pinMode(RASPI_D6, OUTPUT);
 			pinMode(RASPI_D5, OUTPUT);
@@ -155,10 +158,12 @@ private:
 			digitalWrite(RASPI_D1, (datab & 0x02) ? 1:0);
 			digitalWrite(RASPI_D0, (datab & 0x01) ? 1:0);
 
+			usleep(2);
 			digitalWrite(RASPI_CLK, 1);
+			while(digitalRead(RASPI_CLK) != 1)
+				PAUSE;
 			while(digitalRead(RASPI_D8) == 0)
 				PAUSE;
-			digitalWrite(RASPI_CLK, 0);
 
 			pinMode(RASPI_D7, INPUT);
 			pinMode(RASPI_D6, INPUT);
@@ -170,8 +175,10 @@ private:
 			pinMode(RASPI_D0, INPUT);
 
 			digitalWrite(RASPI_DIR, INPUT);
+			digitalWrite(RASPI_CLK, 0);
 			while(digitalRead(RASPI_D8) != 0)
 				PAUSE;
+			usleep(2);
 			digitalWrite(RASPI_CLK, 1);
 			while(digitalRead(RASPI_D8) != 1)
 				PAUSE;
@@ -188,9 +195,9 @@ private:
 
 			if (datab != 0x0ff)
 				rdbuf[nr++] = datab;
-
-			digitalWrite(RASPI_CLK, 0);
 		}
+		digitalWrite(RASPI_DIR, INPUT);
+		digitalWrite(RASPI_CLK, 0);
 
 		return nr;
 	}
@@ -209,6 +216,8 @@ private:
 		pinMode(RASPI_D1, INPUT);
 		pinMode(RASPI_D0, INPUT);
 		digitalWrite(RASPI_DIR, INPUT);
+		while(digitalRead(RASPI_DIR) != INPUT)
+			PAUSE;
 
 		for(unsigned i=0; i<nbytes; i++) {
 			char	datab = 0;
@@ -216,6 +225,8 @@ private:
 			while(digitalRead(RASPI_D8) != 0)
 				PAUSE;
 			digitalWrite(RASPI_CLK, 1);
+			while(digitalRead(RASPI_CLK) == 0)
+				PAUSE;
 			while(digitalRead(RASPI_D8) == 0)
 				PAUSE;
 
@@ -229,6 +240,8 @@ private:
 			if (digitalRead(RASPI_D0))	datab |= 0x01;
 
 			digitalWrite(RASPI_CLK, 0);
+			while(digitalRead(RASPI_CLK) != 0)
+				PAUSE;
 
 			if (datab == 0x0ff)
 				break;
@@ -266,18 +279,14 @@ public:
 		if (nr < nreq)
 			nr += pp_read(nreq - nr, &buf[nr]);
 
-		if (nr > 0)
-			printf("%4d read, %4d@%4d/%4d in buffer\n", nr, m_rd_fill, m_rd_pos, m_rd_size);
 		return nr;
 	}
 
 	void	write(unsigned nreq, char *buf) {
 		unsigned	nr;
 
-printf("WRITE-REQ for %4d, %4d/%4d in the buffer\n", nreq, m_rd_fill, m_rd_size);
 		if (nreq > m_rd_size - m_rd_fill - m_rd_pos) {
 			if (m_rd_pos > 0) {
-printf("\tZEROing buffer\n");
 				memmove(m_rd_buf, &m_rd_buf[m_rd_pos], m_rd_fill);
 				m_rd_pos = 0;
 			}
@@ -285,7 +294,6 @@ printf("\tZEROing buffer\n");
 				unsigned	newsz;
 				char		*alt;
 
-printf("\tAllocating new buffer\n");
 				newsz = m_rd_size;
 				while(newsz < m_rd_fill + nreq)
 					newsz <<= 1;
@@ -420,8 +428,8 @@ public:
 				exit(EXIT_FAILURE);
 				break;
 			} else if (nw == 0) {
-				// TTY device has closed our connection
-				fprintf(stderr, "TTY device has closed\n");
+				// TTY(i.e. FPGA) dev has closed our connection
+				fprintf(stderr, "Device has closed\n");
 				exit(EXIT_SUCCESS);
 				break;
 			}
@@ -513,7 +521,6 @@ int main(int argc, char **argv)
 		struct	pollfd	p[4];
 		int	pv, nfds;
 
-
 		//
 		// Set up a poll to see if we have any events to examine
 		//
@@ -567,9 +574,10 @@ int main(int argc, char **argv)
 		char	rawbuf[256];
 		nr = pport->read(sizeof(rawbuf), rawbuf);
 		if (nr > 0) {
+			unsigned iterations = 0;
 			last_empty = false;
 			last_busy  = (nr == sizeof(rawbuf));
-			while(nr > 0) {
+			while((nr > 0)&&(iterations++ < 16)) {
 				int	ncmd = 0, ncon = 0;
 				for(unsigned i=0; i<nr; i++) {
 					if (rawbuf[i] & 0x80)
@@ -639,7 +647,7 @@ int main(int argc, char **argv)
 		if (p[1].revents & POLLIN) {
 			if (p[1].fd == console) {
 				lbcon.accept(console);
-				if (lbcmd.m_connected)
+				if (lbcon.m_connected)
 					printf("Console port is now connected\n");
 			} else { // p[1].fd == lbcon.m_fd
 				int nr = lbcon.read();

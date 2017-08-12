@@ -49,7 +49,7 @@ module	pport(i_clk,
 		o_rx_stb, o_rx_data,
 		i_tx_wr, i_tx_data, o_tx_busy,
 		i_pp_dir, i_pp_clk, i_pp_data, o_pp_data,
-			o_pp_clkfb);
+			o_pp_clkfb, o_dbg);
 	input	wire	i_clk;
 	// Receive interface
 	output	reg		o_rx_stb;
@@ -64,6 +64,7 @@ module	pport(i_clk,
 	input	wire	[7:0]	i_pp_data;
 	output	reg	[7:0]	o_pp_data;
 	output	reg		o_pp_clkfb;
+	output	wire		o_dbg;
 
 	//
 	//
@@ -71,7 +72,7 @@ module	pport(i_clk,
 	//
 	//
 
-	localparam	SCLKS = 2;
+	localparam	SCLKS = 3;
 
 	// First, sycnrhonize the clock and generate a clock strobe
 	reg		stb_pp_dir, ck_pp_dir;
@@ -140,4 +141,17 @@ module	pport(i_clk,
 				o_pp_data <= 8'hff;
 		end
 
+/*
+wire	trig;
+assign	trig = (i_tx_wr)&&(!o_tx_busy);
+reg	r_dbg;
+reg	[2:0]	dbg_pipe;
+always @(posedge i_clk)
+	dbg_pipe <= { dbg_pipe[1:0], (r_dbg)&&(trig) };
+always @(posedge i_clk)
+	r_dbg <= (trig)&&(!o_dbg)||(|dbg_pipe)&&(!r_dbg);
+assign	o_dbg = r_dbg; // (o_rx_stb);
+// assign	o_dbg = (o_rx_stb)||((i_tx_wr)&&(!o_tx_busy));
+*/
+assign	o_dbg = i_clk;
 endmodule

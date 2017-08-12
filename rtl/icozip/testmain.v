@@ -158,6 +158,10 @@ module	main(i_clk, i_reset,
 	wire	[0:0]	wbubus_dbg;
 	wire		pp_rx_stb,  pp_tx_stb,  pp_tx_busy;
 	wire	[7:0]	pp_rx_data, pp_tx_data;
+`ifndef	INCLUDE_ZIPCPU
+	wire		zip_dbg_ack, zip_dbg_stall;
+	wire	[31:0]	zip_dbg_data;
+`endif
 	// ZipSystem/ZipCPU connection definitions
 	// All we define here is a set of scope wires
 	wire	[31:0]	zip_debug;
@@ -559,6 +563,12 @@ module	main(i_clk, i_reset,
 			pp_tx_stb, pp_tx_data, pp_tx_busy,
 			i_pp_dir, i_pp_clk, i_pp_data, o_pp_data,
 				o_pp_clkfb, o_pp_dbg);
+`ifdef	INCLUDE_ZIPCPU
+`else
+	assign	zip_dbg_ack   = 1'b0;
+	assign	zip_dbg_stall = 1'b0;
+	assign	zip_dbg_data  = 0;
+`endif
 `ifndef	BUSPIC_ACCESS
 	wire	w_bus_int;
 	assign	w_bus_int = 1'b0;
@@ -638,11 +648,15 @@ module	main(i_clk, i_reset,
 	// another 16 GPIO outputs.  The interrupt trips when any of the inputs
 	// changes.  (Sorry, which input isn't (yet) selectable.)
 	//
+	wire	[(NGPO-1):0]	w_gpio;
+	reg	version_toggle, sio_toggle;
 	localparam	INITIAL_GPIO = 3'h0;
 	wbgpio	#(NGPI, NGPO, INITIAL_GPIO)
 		gpioi(i_clk, 1'b1, (wb_stb)&&(gpio_sel), 1'b1,
-			wb_data, gpio_data, i_gpio, o_gpio,
+			wb_data, gpio_data, i_gpio, w_gpio,
 			gpio_int);
+	assign	o_gpio = { w_gpio[(NGPO-1):2], w_gpio[1]^sio_toggle, w_gpio[0] ^ version_toggle };
+
 `else	// GPIO_ACCESS
 	reg	r_gpio_ack;
 	initial	r_gpio_ack = 1'b0;
@@ -668,6 +682,15 @@ module	main(i_clk, i_reset,
 	assign	bkram_data  = 0;
 `endif	// BKRAM_ACCESS
 
+	initial	version_toggle = 1'b0;
+	initial	sio_toggle = 1'b0;
+	always @(posedge i_clk)
+		if ((wb_stb)&&(version_sel)&&(!wb_stall))
+			version_toggle <= !version_toggle;
+	always @(posedge i_clk)
+		if ((wb_stb)&&(wb_sio_sel)&&(!wb_stall))
+			sio_toggle <= !sio_toggle;
+
 	assign	version_data = `DATESTAMP;
 	assign	version_ack = 1'b0;
 	assign	version_stall = 1'b0;
@@ -680,8 +703,6 @@ module	main(i_clk, i_reset,
 			w_console_rx_stb, w_console_rx_data,
 			uartrx_int, uarttx_int, uartrxf_int, uarttxf_int);
 `else	// BUSCONSOLE_ACCESS
-	assign	w_console_tx_stb  = 1'b0;
-	assign	w_console_tx_data = 7'h7f;
 	reg	r_console_ack;
 	initial	r_console_ack = 1'b0;
 	always @(posedge i_clk)	r_console_ack <= (wb_stb)&&(console_sel);
@@ -700,7 +721,7 @@ module	main(i_clk, i_reset,
 	// And an arbiter to decide who gets access to the bus
 	//
 	//
-	// Clock speed = 40000000 Hz
+	// Clock speed = 33333333 Hz
 	wbpriarbiter #(32,12)	bus_arbiter(i_clk,
 		// The Zip CPU bus master --- gets the priority slot
 		zip_cyc, zip_stb, zip_we, zip_addr, zip_data, zip_sel,

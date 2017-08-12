@@ -49,7 +49,7 @@
 
 #include "port.h"
 #include "regdefs.h"
-#include "ttybus.h"
+#include "hexbus.h"
 
 FPGA	*m_fpga;
 void	closeup(int v) {
@@ -149,18 +149,26 @@ void	usage(void) {
 "\t-d\tIf given, specifies the value returned should be in decimal,\n"
 "\t\trather than hexadecimal.\n"
 "\n"
+"\t-n [host]\tAttempt to connect, via TCP/IP, to host named [host].\n"
+"\t\tThe default host is \'%s\'\n"
+"\n"
+"\t-p [port]\tAttempt to connect, via TCP/IP, to port number [port].\n"
+"\t\tThe default port is \'%d\'\n"
+"\n"
 "\tAddress is either a 32-bit value with the syntax of strtoul, or a\n"
 "\tregister name.  Register names can be found in regdefs.cpp\n"
 "\n"
 "\tIf a value is given, that value will be written to the indicated\n"
 "\taddress, otherwise the result from reading the address will be \n"
-"\twritten to the screen.\n");
+"\twritten to the screen.\n", FPGAHOST, FPGAPORT);
 }
 
 int main(int argc, char **argv) {
 	int	skp=0;
 	bool	use_decimal = false;
 	char	*map_file = NULL;
+	const char *host = FPGAHOST;
+	int	port=FPGAPORT;
 
 	skp=1;
 	for(int argn=0; argn<argc-skp; argn++) {
@@ -174,6 +182,20 @@ int main(int argc, char **argv) {
 				}
 				map_file = argv[argn+skp+1];
 				skp++; argn--;
+			} else if (argv[argn+skp][1] == 'n') {
+				if (argn+skp+1 >= argc) {
+					fprintf(stderr, "ERR: No network host given\n");
+					exit(EXIT_SUCCESS);
+				}
+				host = argv[argn+skp+1];
+				skp++; argn--;
+			} else if (argv[argn+skp][1] == 'p') {
+				if (argn+skp+1 >= argc) {
+					fprintf(stderr, "ERR: No network port # given\n");
+					exit(EXIT_SUCCESS);
+				}
+				port = strtoul(argv[argn+skp+1], NULL, 0);
+				skp++; argn--;
 			} else {
 				usage();
 				exit(EXIT_SUCCESS);
@@ -183,7 +205,7 @@ int main(int argc, char **argv) {
 			argv[argn] = argv[argn+skp];
 	} argc -= skp;
 
-	FPGAOPEN(m_fpga);
+	m_fpga = new FPGA(new NETCOMMS(host, port));
 
 	signal(SIGSTOP, closeup);
 	signal(SIGHUP, closeup);
@@ -200,7 +222,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	const char *nm, *named_address = argv[0];
+	const char *nm = NULL, *named_address = argv[0];
 	unsigned address, value;
 
 	if (isvalue(named_address)) {
@@ -220,6 +242,9 @@ int main(int argc, char **argv) {
 		address = addrdecode(named_address);
 		nm = addrname(address);
 	}
+
+	if (NULL == nm)
+		nm = "";
 
 	if (argc < 2) {
 		FPGA::BUSW	v;

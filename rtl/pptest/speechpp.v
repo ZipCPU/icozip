@@ -81,10 +81,10 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 		.PLLOUT_SELECT("GENCLK"),
 		.FDA_FEEDBACK(4'b1111),
 		.FDA_RELATIVE(4'b1111),
-		.DIVR(4'd1),		// Divide by (DIVR+1)
-		.DIVQ(3'd1),		// Divide by 2^(DIVQ)
-		.DIVF(7'd1),		// Multiply by (DIVF+1)
-		.FILTER_RANGE(3'b111)
+		.DIVR(4'd8),		// Divide by (DIVR+1)
+		.DIVQ(3'd3),		// Divide by 2^(DIVQ)
+		.DIVF(7'd47),		// Multiply by (DIVF+1)
+		.FILTER_RANGE(3'b001)
 	) plli (
 		.PACKAGEPIN     (i_clk        ),
 		.PLLOUTCORE     (clk_66mhz    ),

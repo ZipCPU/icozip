@@ -57,7 +57,7 @@ CFLAGS	:= -Og -g -Wall $(INCS)
 #
 # A list of our sources and headers
 #
-SIMSRCS := zipelf.cpp memsim.cpp uartsim.cpp byteswap.cpp
+SIMSRCS := zipelf.cpp memsim.cpp byteswap.cpp pportsim.cpp
 # Not used: i2csim.cpp
 VOBJDR	:= $(RTLD)/$(OBJDIR)
 VOBJS   := $(OBJDIR)/verilated.o $(OBJDIR)/verilated_vcd_c.o
@@ -65,7 +65,7 @@ SIMOBJ := $(subst .cpp,.o,$(SIMSRCS))
 SIMOBJS:= $(addprefix $(OBJDIR)/,$(SIMOBJ)) $(VOBJS)
 SOURCES := automaster_tb.cpp $(SIMSRCS)
 HEADERS := $(foreach header,$(subst .cpp,.h,$(SOURCES)),$(wildcard $(header))) \
-	dblpipecmdr.h pipecmdr.h port.h testb.h main_tb.cpp
+	port.h testb.h main_tb.cpp
 #
 PROGRAMS := $(ARCH)-main_tb
 # Now return to the "all" target, and fill in some details

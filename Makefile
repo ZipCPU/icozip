@@ -38,7 +38,7 @@
 ##
 ##
 .PHONY: all
-all:	check-install archive datestamp autodata rtl sw # sim verilated bench bit
+all:	check-install archive datestamp autodata rtl sw sim # verilated bench
 #
 # Could also depend upon load, if desired, but not necessary
 SIM   := `find sim -name Makefile` `find sim -name "*.cpp"` `find sim -name "*.h"` `find sim -name "*.c"`
@@ -92,14 +92,13 @@ check-yosys:
 check-arachnepnr:
 	$(call checkif-installed,arachne-pnr,-v)
 
-# .PHONY: check-icetime
-# check-icetime:
-#	$(call checkif-installed,icetime,-v)
+.PHONY: check-icetime
+check-icetime:
+	$(call checkif-installed,which,icetime)
 
 .PHONY: check-icepack
 check-icepack:
-	# $(call checkif-installed,icepack,-v)
-	echo "Do you have icepack installed?"
+	$(call checkif-installed,which,icepack)
 
 #
 #
@@ -152,17 +151,16 @@ doc:
 verilated: rtl
 
 .PHONY: rtl
-rtl: check-yosys check-arachnepnr check-icepack datestamp autodata
+rtl: check-yosys check-arachnepnr check-icepack check-icetime datestamp autodata
 	$(SUBMAKE) rtl
 
 #
 #
 # Build a simulation of this entire design
 #
-# (Not yet supported)
-# .PHONY: sim
-# sim: rtl
-#	$(SUBMAKE) sim/verilated
+.PHONY: sim
+sim: rtl
+	$(SUBMAKE) sim/verilated
 
 #
 #
