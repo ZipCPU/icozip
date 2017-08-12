@@ -41,10 +41,11 @@
 @PROJECT=ICO Zip, iCE40 ZipCPU demonstration project
 #
 @KEYS.INTLIST= BUS_ADDRESS_WIDTH NADDR NPIC NSCOPES PIC.MAX REGS.N ID
+@DEFAULT.BUS=wb
 # @$RESET_ADDRESS=@$flash.BASE+(@$flash.NADDR)
-@VERILATOR_PREFIX=v
 @$RESET_ADDRESS=@$bkram.BASE
 @RESET_ADDRESS.FORMAT=32'h%08x
+@VERILATOR_PREFIX=v
 @REGDEFS.H.INSERT=
 typedef	struct {
 	unsigned	m_addr;
@@ -94,3 +95,17 @@ const	char *addrname(const unsigned v) {
 	return NULL;
 }
 
+@SIM.INCLUDE=
+#include "verilated.h"
+#include "Vmain.h"
+#define	BASECLASS	Vmain
+
+#include "design.h"
+#include "regdefs.h"
+#include "testb.h"
+@PREFIX=wb
+@BUS.NAME=wb
+@BUS.TYPE=wb
+@$BUS.WIDTH=32
+@BUS.CLOCK=clk
+@$BUS.NULLSZ=0x400

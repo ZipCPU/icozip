@@ -38,13 +38,20 @@
 ##
 @PREFIX=buserr
 @NADDR=1
-@PTYPE=SINGLE
+@SLAVE.TYPE=SINGLE
+@SLAVE.BUS=wb
 @SINGLE.INPUT= r_bus_err
+@MAIN.DEFNS=
+	reg	[@$(SLAVE.BUS.AWID)-1:0]	r_@$(PREFIX)_addr;
 @MAIN.INSERT=
-	assign	buserr_data = r_bus_err;
+	always @(posedge @$(SLAVE.BUS.CLOCK.WIRE))
+		if (@$(SLAVE.BUS.NAME)_err)
+			r_@$(PREFIX)_addr <= @$(SLAVE.BUS.NAME)_addr;
+	assign	@$(PREFIX)_data = { {(@$(SLAVE.BUS.WIDTH)-2-@$(SLAVE.BUS.AWID)){1'b0}},
+			r_@$(PREFIX)_addr, 2'b00 };
 @REGS.N=1
 @REGS.0= 0 R_BUSERR BUSERR
 @BDEF.IONAME=io_buserr
 @BDEF.IOTYPE=unsigned
 @BDEF.OSDEF=_BOARD_HAS_BUSERR
-@BDEF.OSVAL=static volatile @$THIS.BDEF.IOTYPE *const _buserr = ((@$THIS.BDEF.IOTYPE *)@$THIS.BASE);
+@BDEF.OSVAL=static volatile @$THIS.BDEF.IOTYPE *const _buserr = ((@$THIS.BDEF.IOTYPE *)@$.REGBASE);

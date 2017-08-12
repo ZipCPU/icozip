@@ -7,3 +7,5 @@ regdefs.cpp
 rtl.make.inc
 toplevel.v
 main_tb.cpp
+testb.h
+autofpga.dbg

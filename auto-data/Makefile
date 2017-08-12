@@ -48,7 +48,7 @@ all:	data install
 #
 DATA := global.txt bkram.txt buserr.txt clock.txt			\
 	dlyarbiter.txt pic.txt pwrcount.txt version.txt	\
-	busconsole.txt gpio.txt zipbones.txt
+	hbconsole.txt gpio.txt zipbones.txt
 	# Not used: flash.txt rtclite.txt
 
 AUTOFPGA := ../../../autofpga/trunk/sw/autofpga
