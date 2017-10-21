@@ -37,6 +37,7 @@
 ##
 @$CLKFREQHZ=40000000
 @PREFIX=clk
+@CLOCK.NAME=clk
 @TOP.DEFNS=
 	wire		s_clk, s_reset;
 @TOP.INSERT=
