@@ -36,7 +36,7 @@
 ################################################################################
 ##
 ##
-all: hellopp speechpp linepp # pppintest
+all: hellopp speechpp linepp
 
 # GNU Make automatic variables (since I can never remember these ...)
 # $@	- name of the target
