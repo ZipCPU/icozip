@@ -72,7 +72,7 @@ module	pport(i_clk,
 	//
 	//
 
-	localparam	SCLKS = 3;
+	localparam	SCLKS = 3; // 3 is the minimum
 
 	// First, sycnrhonize the clock and generate a clock strobe
 	reg		stb_pp_dir, ck_pp_dir;
@@ -141,17 +141,8 @@ module	pport(i_clk,
 				o_pp_data <= 8'hff;
 		end
 
-/*
-wire	trig;
-assign	trig = (i_tx_wr)&&(!o_tx_busy);
 reg	r_dbg;
-reg	[2:0]	dbg_pipe;
 always @(posedge i_clk)
-	dbg_pipe <= { dbg_pipe[1:0], (r_dbg)&&(trig) };
-always @(posedge i_clk)
-	r_dbg <= (trig)&&(!o_dbg)||(|dbg_pipe)&&(!r_dbg);
+	r_dbg <= (i_tx_wr)&&(!o_tx_busy);
 assign	o_dbg = r_dbg; // (o_rx_stb);
-// assign	o_dbg = (o_rx_stb)||((i_tx_wr)&&(!o_tx_busy));
-*/
-assign	o_dbg = i_clk;
 endmodule
