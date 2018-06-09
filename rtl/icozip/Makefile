@@ -89,7 +89,7 @@ design.h: main.v
 	@echo "#ifndef DESIGN_H" >> $@
 	@echo "#define DESIGN_H" >> $@
 	@echo >> $@
-	@grep "^\`" $< | grep -v default_nettype | grep -v include | sed -e '{ s/^`/#/ }' | sed -e ' s/main.v/design.h/' >> $@
+	@grep "^\`" $< | grep -v default_nettype | grep -v include | sed -e '{ s/^`/#/ }' | sed -e ' s/main.v/design.h/' | grep -v timescale >> $@
 	@echo >> $@
 	@echo "#endif // DESIGN_H" >> $@
 
@@ -104,8 +104,8 @@ bin: icozip.bin
 #
 #
 icozip.blif: toplevel.v $(VFLIST)
-	echo yosys -p 'synth_ice40 -blif icozip.blif -top toplevel' $^ |tee simple.log
-	yosys -p 'synth_ice40 -blif icozip.blif -top toplevel' $^ |tee -a simple.log
+	echo yosys -ql simple.log -p 'synth_ice40 -blif icozip.blif -top toplevel' $^
+	yosys -ql simple.log -p 'synth_ice40 -blif icozip.blif -top toplevel' $^
 
 .PHONY: yosys
 yosys: icozip.blif
