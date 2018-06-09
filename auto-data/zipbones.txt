@@ -14,7 +14,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017, Gisselquist Technology, LLC
+## Copyright (C) 2017-2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -40,6 +40,8 @@
 ##
 @PREFIX=zip
 @ACCESS=INCLUDE_ZIPCPU
+@DBGBUS=hb
+@DBGPFX=zip_dbg
 @MASTER.TYPE=CPU
 @MASTER.BUS=zip
 @BUS.NAME=zip
@@ -50,7 +52,6 @@
 @INT.ZIP.WIRE=zip_cpu_int
 @INT.ZIP.BUS=
 @SPREFIX=zip_dbg
-@SBUS=hb
 @MAIN.PARAM=
 	//
 	//
@@ -80,15 +81,14 @@
 	// ZipSystem/ZipCPU connection definitions
 	// All we define here is a set of scope wires
 	wire	[31:0]	zip_debug;
-	wire		zip_trigger, cpu_reset;
+	wire		zip_trigger;
+	wire		zip_halted;
 @MAIN.INSERT=
 	//
 	//
 	// The ZipCPU/ZipSystem BUS master
 	//
 	//
-	// assign	cpu_reset = i_btn[0];
-	assign	cpu_reset = i_gpio[0];
 	zipbones #(RESET_ADDRESS,ZIP_ADDRESS_WIDTH,ZIP_LGCACHE_SZ,
 			ZIP_START_HALTED)
 		swic(i_clk, cpu_reset,
@@ -97,14 +97,17 @@
 					zip_ack, zip_stall, zip_idata, zip_err,
 			w_bus_int, zip_cpu_int,
 			// Debug wishbone interface
-			(@$(SBUS)_cyc), ((@$(SBUS)_stb)&&(@$(SPREFIX)_sel)),@$(SBUS)_we,
-			@$(SBUS)_addr[0],
-			@$(SBUS)_data, @$(SPREFIX)_ack, @$(SPREFIX)_stall, @$(SPREFIX)_data,
+			(@$(DBGBUS)_cyc), ((@$(DBGBUS)_stb)&&(@$(DBGPFX)_sel)),@$(DBGBUS)_we,
+			@$(DBGBUS)_addr[0],
+			@$(DBGBUS)_data, @$(DBGPFX)_ack, @$(DBGPFX)_stall, @$(DBGPFX)_data,
 			zip_debug);
 	assign	zip_trigger = zip_debug[0];
 @BDEF.INCLUDE=
 #include <design.h>
 #include <cpudefs.h>
+
+#define	_HAVE_ZIPBONES
+
 @REGDEFS.H.INSERT=
 
 #define	CPU_GO		0x0000
@@ -128,25 +131,35 @@
 #include "zipelf.h"
 
 @SIM.DEFINES=
-#define	cpu_break 	@$(VERILATOR_PREFIX)__DOT__swic__DOT__cpu_break
-#define	cpu_cmd_halt	@$(VERILATOR_PREFIX)__DOT__swic__DOT__cmd_halt
-#define	cpu_ipc		@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__ipc
-#define	cpu_upc		@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__r_upc
-#define	cpu_gie		@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__r_gie
-#define	cpu_iflags	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__w_iflags
-#define	cpu_uflags	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__w_uflags
-#define	cpu_regs	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__regset
-#define	cpu_cmd_addr	@$(VERILATOR_PREFIX)__DOT__swic__DOT__cmd_addr
-#define	cpu_bus_err	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__bus_err
-#define	cpu_ibus_err	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__ibus_err_flag
-#define	cpu_ubus_err	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__r_ubus_err_flag
-#define	cpu_mem_rdaddr	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__domem__DOT__rdaddr
-#define	cpu_mem_wraddr	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__domem__DOT__wraddr
-#define	cpu_op_sim	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__op_sim
-#define	cpu_op_valid	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__op_valid
-#define	cpu_alu_ce	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__alu_ce
-#define	cpu_new_pc	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__new_pc
-#define	cpu_sim_immv	@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__op_sim_immv
+#ifndef	VVAR
+#ifdef	NEW_VERILATOR
+#define	VVAR(A)	main__DOT_ ## A
+#else
+#define	VVAR(A)	v__DOT_ ## A
+#endif
+#endif
+
+#define	CPUVAR(A)	VVAR(_swic__DOT__thecpu__DOT_ ## A)
+#define	cpu_break 	VVAR(_swic__DOT__cpu_break)
+#define	cpu_cmd_halt	VVAR(_swic__DOT__cmd_halt)
+#define	cpu_reset	VVAR(_swic__DOT__cmd_reset)
+#define	cpu_ipc		VVAR(_swic__DOT__thecpu__DOT__ipc)
+#define	cpu_upc		CPUVAR(_SET_USER_PC__DOT__r_upc)
+#define	cpu_gie		CPUVAR(_SET_GIE__DOT__r_gie)
+#define	cpu_iflags	CPUVAR(_w_iflags)
+#define	cpu_uflags	CPUVAR(_w_uflags)
+#define	cpu_regs	CPUVAR(_regset)
+#define	cpu_cmd_addr	VVAR(_swic__DOT__cmd_addr)
+#define	cpu_bus_err	CPUVAR(_bus_err)
+#define	cpu_ibus_err	CPUVAR(_ibus_err_flag)
+#define	cpu_ubus_err	CPUVAR(_r_ubus_err_flag)
+#define	cpu_mem_rdaddr	CPUVAR(_swic__DOT__thecpu__DOT__domem__DOT__rdaddr)
+#define	cpu_mem_wraddr	VVAR(_swic__DOT__thecpu__DOT__domem__DOT__wraddr)
+#define	cpu_op_valid	VVAR(_swic__DOT__thecpu__DOT__op_valid)
+#define	cpu_alu_ce	CPUVAR(_alu_ce)
+#define	cpu_new_pc	CPUVAR(_new_pc)
+#define	cpu_op_sim	CPUVAR(_op_sim)
+#define	cpu_sim_immv	CPUVAR(_op_sim_immv)
 
 @SIM.DEFNS=
 	int	m_cpu_bombed;
@@ -157,7 +170,7 @@
 @SIM.CLRRESET=
 		m_core->i_gpio &= ~1;
 @SIM.METHODS=
-
+#ifdef	@$(ACCESS)
 	void	loadelf(const char *elfname) {
 		ELFSECTION	**secpp, *secp;
 		uint32_t	entry;
@@ -168,7 +181,7 @@
 			secp = secpp[s];
 
 			load(secp->m_start, secp->m_data, secp->m_len);
-		}
+		} free(secpp);
 	}
 
 
@@ -298,6 +311,7 @@
 				m_core->cpu_upc);
 		} fflush(stdout);
 	}
+#endif
 
 @SIM.TICK=
 #ifdef	@$(ACCESS)
@@ -310,7 +324,7 @@
 			execsim(m_core->cpu_sim_immv);
 		}
 
-		if (m_core->v__DOT__swic__DOT__cpu_break) {
+		if (m_core->cpu_break) {
 			printf("\n\nBOMB : CPU BREAK RECEIVED\n");
 			m_cpu_bombed++;
 			dump(m_core->cpu_regs);
@@ -324,15 +338,77 @@
 #
 #
 @RTL.MAKE.GROUP=ZIPCPU
-@RTL.MAKE.FILES= zipcpu.v cpuops.v dblfetch.v memops.v idecode.v
-		wbpriarbiter.v zipbones.v icontrol.v wbwatchdog.v busdelay.v
-		cpudefs.v wbdblpriarb.v
+@RTL.MAKE.FILES= zipcpu.v cpuops.v dblfetch.v prefetch.v memops.v
+		idecode.v ziptimer.v 
+		wbpriarbiter.v zipbones.v busdelay.v cpudefs.v icontrol.v
+		div.v mpyop.v wbdblpriarb.v
 @RTL.MAKE.SUBD= cpu
-@SIM.DEFNS=
-#define	cpu_ipc		@$(VERILATOR_PREFIX)__DOT__swic__DOT__thecpu__DOT__ipc
-#define	cpu_cmd_halt	@$(VERILATOR_PREFIX)__DOT__swic__DOT__cmd_halt
+#
+#
+#
+@PREFIX=bustimer
+@DEVID=BUSTIMER
+@ACCESS=@$(DEVID)_ACCESS
+@SLAVE.TYPE=DOUBLE
+@SLAVE.BUS=wb
+@NADDR=1
+@MAIN.INSERT=
+	ziptimer #(.VW(16))
+		@$(PREFIX)i(i_clk, i_reset, 1'b1,
+			wb_cyc, (wb_stb)&&(@$(PREFIX)_sel), wb_we, wb_data,
+				@$(PREFIX)_ack, @$(PREFIX)_stall,
+				@$(PREFIX)_data, @$(PREFIX)_int);
+@INT.BUSTIMER.WIRE= @$(PREFIX)_int
+@INT.BUSTIMER.PIC= buspic
+@REGS.NOTE= // The bus timer
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@BDEF.IONAME=_bustimer
+@BDEF.IOTYPE=unsigned
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.OSVAL=static volatile @$BDEF.IOTYPE *const @$(BDEF.IONAME) = ((@$BDEF.IOTYPE *)@$[0x%08x](REGBASE));
+#
+#
+# A watchdog timer
+#
+@PREFIX=watchdog
+@ACCESS=WATCHDOG_ACCESS
+@DEVID=WATCHDOG
+@SLAVE.TYPE=DOUBLE
+@SLAVE.BUS=wb
+@REGS.NOTE= // The watchdog timer
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@NADDR=1
+@INT.WATCHDOG.PIC=cpu_reset
+@INT.WATCHDOG.WIRE=watchdog_reset
+@INT.RESET.PIC=cpu_reset
+@INT.RESET.WIRE=i_reset
+@MAIN.INSERT=
+	ziptimer #(.VW(16), .RELOADABLE(0))
+		@$(PREFIX)i(i_clk, i_reset, 1'b1,
+			wb_cyc, (wb_stb)&&(@$(PREFIX)_sel), wb_we, wb_data,
+				@$(PREFIX)_ack, @$(PREFIX)_stall,
+				@$(PREFIX)_data, watchdog_reset);
+@BDEFS.IONAME=_@$(PREFIX)
+@BDEFS.IOTYPE=unsigned
+@BDEFS.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEFS.OSVAL=static volatile @$BDEF.IOTYPE *const @$(BDEF.IONAME) = ((@$BDEF.IOTYPE *)@$[0x%08x](REGBASE));
+#
+#
+#
 @PREFIX=zip_dbg
 @SLAVE.TYPE=OTHER
 @SLAVE.BUS=hb
 @SLAVE.ORDER=1000000
 @NADDR=2
+#
+#
+@PREFIX=cpu_reset
+@MAIN.DEFNS=
+	reg	@$(PREFIX);
+@MAIN.INSERT=
+	always @(posedge i_clk)
+		@$(PREFIX) <= (|@$(PREFIX)_bus);
+@PIC.BUS=cpu_reset_bus
+@PIC.MAX=8

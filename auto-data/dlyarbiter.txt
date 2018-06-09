@@ -38,6 +38,7 @@
 @PREFIX=zip_dwb
 @$NADDR=(1<<@$(BUS.AWID))
 @ERROR.WIRE=@$(PREFIX)_err
+@DEPENDS=INCLUDE_ZIPCPU
 @SLAVE.TYPE=BUS
 @SLAVE.BUS.NAME=zip
 @SLAVE.BUS.WIDTH=32
@@ -50,9 +51,6 @@
 @SLAVE.BUS.NAME=hb
 @$SLAVE.BUS.WIDTH=32
 @SLAVE.ORDER=0
-@MASTER.TYPE=ARBITER
-@MASTER.BUS=wb
-@BUS.NAME=wb
 @MASTER.TYPE=ARBITER
 @MASTER.BUS=wb
 @BUS.NAME=wb
@@ -100,7 +98,7 @@
 	assign	@$(PREFIX)i_cyc   = @$(SLAVE.BUS.NAME)_cyc;
 	assign	@$(PREFIX)i_stb   = @$(SLAVE.BUS.NAME)_stb;
 	assign	@$(PREFIX)i_we    = @$(SLAVE.BUS.NAME)_we;
-	assign	@$(PREFIX)i_addr  = @$(SLAVE.BUS.NAME)_addr;
+	assign	@$(PREFIX)i_addr  = @$(SLAVE.BUS.NAME)_addr[(@$(AWID)-1):0];
 	assign	@$(PREFIX)i_odata = @$(SLAVE.BUS.NAME)_data;
 	assign	@$(PREFIX)i_sel   = @$(SLAVE.BUS.NAME)_sel;
 	assign	@$(PREFIX)_ack    = @$(PREFIX)i_ack;
@@ -115,7 +113,7 @@
 `endif
 `endif
 `ifdef	BUS_DELAY_NEEDED
-	busdelay #(@$(AWID))	@$(PREFIX)i_delay(i_clk,
+	busdelay #(@$(AWID))	@$(PREFIX)i_delay(i_clk, i_reset,
 		@$(PREFIX)i_cyc, @$(PREFIX)i_stb, @$(PREFIX)i_we, @$(PREFIX)i_addr, @$(PREFIX)i_odata, @$(PREFIX)i_sel,
 			@$(PREFIX)i_ack, @$(PREFIX)i_stall, @$(PREFIX)i_idata, @$(PREFIX)i_err,
 		wb_cyc, wb_stb, wb_we, wb_addr, wb_data, wb_sel,

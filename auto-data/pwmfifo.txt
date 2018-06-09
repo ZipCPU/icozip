@@ -1,11 +1,10 @@
 ################################################################################
 ##
-## Filename: 	bkram.txt
+## Filename: 	wbpwmfifo.txt
 ##
 ## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
 ##
-## Purpose:	To define the interface to a generic block RAM device for the
-##		purposes of autofpga.
+## Purpose:	To define the interface of a generic PWM audio component
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
@@ -36,53 +35,46 @@
 ################################################################################
 ##
 ##
-@PREFIX=bkram
-@DEVID=BKRAM
-# @$LGMEMSZ=13
-@$LGMEMSZ=8
-@LGMEMSZ.FORMAT=%d
-@$NADDR=(1<<(@$THIS.LGMEMSZ-2))
-@$NBYTES=(1<<(@$THIS.LGMEMSZ))
-@NBYTES.FORMAT=0x%08x
+@PREFIX=pwmfifo
+@DEVID=PWMAUDIO
+@$NADDR=2
 @ACCESS=@$(DEVID)_ACCESS
-@SLAVE.TYPE=MEMORY
+@SLAVE.TYPE=DOUBLE
 @SLAVE.BUS=wb
-@LD.PERM=wx
+@CLOCK.NAME=clk
+@MAIN.PORTLIST=
+	o_@$(PREFIX), o_@$(PREFIX)_gain, o_@$(PREFIX)_shutdown_n
+@MAIN.IODECL=
+	output	wire o_@$(PREFIX), o_@$(PREFIX)_gain, o_@$(PREFIX)_shutdown_n;
 @MAIN.INSERT=
-	memdev #(.LGMEMSZ(@$THIS.LGMEMSZ), .EXTRACLOCK(1))
-		@$(PREFIX)i(i_clk, 1'b0,
+	wbpwmfifo #(.DEFAULT_RELOAD(16'd1042),.VARIABLE_RATE(0))
+		@$(PREFIX)i(i_clk,
 			(wb_cyc), (wb_stb)&&(@$(PREFIX)_sel), wb_we,
-				wb_addr[(@$THIS.LGMEMSZ-3):0], wb_data, wb_sel,
-				@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data);
-@REGS.N=1
-@REGS.0= 0 R_@$(DEVID) RAM
-@REGDEFS.H.DEFNS=
-#define	@$(DEVID)BASE	@$(BASEHX)
-#define	@$(DEVID)LEN	@$NBYTES
-@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
-@MEM.NAME= @$(PREFIX)
-@BDEF.OSVAL=extern char	_@$(MEM.NAME)[@$NBYTES];
-@LDSCRIPT.PSTR=	wx
-@LDSCRIPT.PTR=	@$(MEM.NAME)
-@LDSCRIPT.DEF=
-_@$(MEM.NAME) = ORIGIN(@$(MEM.NAME))
-@RTL.MAKE.GROUP= @$(DEVID)
-@RTL.MAKE.FILES= memdev.v
-@$BASEHX = @$REGBASE
-@BASEHX.FORMAT= 0x%08x
-@$NADDRHX = @$NADDR
-@NADDRHX.FORMAT= 0x%x
-@SIM.INCLUDE=
-#include "byteswap.h"
-@SIM.DEFINES=
-#define	block_ram	@$(VERILATOR_PREFIX)__DOT__@$(PREFIX)i__DOT__mem
-@SIM.LOAD=
-			start = start & (-4);
-			wlen = (wlen+3)&(-4);
+				wb_addr[0], wb_data,
+				@$(PREFIX)_ack, @$(PREFIX)_stall,
+				@$(PREFIX)_data,
+			o_@$(PREFIX),
+			{ o_@$(PREFIX)_gain, o_@$(PREFIX)_shutdown_n },
+			@$(PREFIX)_int);
+@REGS.N=2
+@REGS.0= 0 R_@$(DEVID) PWM PWMSAMPLE
+@REGS.1= 1 R_@$(DEVID)STATUS PWMRATE
+@BDEF.DEFNS=
+#define	PWM_SET_GAIN		0x218000
+#define	PWM_CLEAR_GAIN		0x018000
+#define	PWM_SHUTDOWN		0x018000
+#define	PWM_CLEAR_SHUTDOWN	0x118000
+#define	PWM_POWER_ON		(PWM_SET_GAIN | PWM_CLEAR_SHUTDOWN)
 
-			// Need to byte swap data to get it into the memory
-			char	*bswapd = new char[len+8];
-			memcpy(bswapd, &buf[offset], wlen);
-			byteswapbuf(len>>2, (uint32_t *)bswapd);
-			memcpy(&m_core->block_ram[start], bswapd, wlen);
-			delete	bswapd;
+typedef	struct	@$(PREFIX)_S {
+	int	pwm_sample;
+	int	pwm_rate;
+};
+@INT.PWM.WIRE=@$(PREFIX)_int
+@INT.PWM.PIC=buspic
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@BDEF.IONAME=_@$(PREFIX)
+@BDEF.IOTYPE=@$(DEVID)
+@BDEF.OSVAL=static volatile @$(BDEF.IOTYPE) *const @$(BDEF.IONAME) = ((@$BDEF.IOTYPE *)@$(REGBASE));
+@RTL.MAKE.GROUP= @$(DEVID)
+@RTL.MAKE.FILES= wbpwmaudio.v wbpwmfifo.v dacfifo.v

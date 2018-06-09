@@ -150,6 +150,7 @@ int	main(int argc, char **argv) {
 #endif
 
 	if (elfload) {
+#ifdef	INCLUDE_ZIPCPU
 		uint32_t	entry;
 		ELFSECTION	**secpp = NULL, *secp;
 		elfread(elfload, entry, secpp);
@@ -164,6 +165,10 @@ int	main(int argc, char **argv) {
 		tb->m_core->cpu_ipc = entry;
 		tb->m_core->cpu_cmd_halt = 0;
 		tb->tick();
+#else
+		fprintf(stderr, "ERR: Design has no ZipCPU\n");
+		exit(EXIT_FAILURE);
+#endif
 	}
 
 	if (willexit) {

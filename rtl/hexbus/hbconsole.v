@@ -37,7 +37,7 @@
 //
 `default_nettype	none
 //
-module	hbconsole(i_clk, i_rx_stb, i_rx_byte, 
+module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 		o_wb_cyc, o_wb_stb, o_wb_we, o_wb_addr, o_wb_data, o_wb_sel,
 		i_wb_ack, i_wb_stall, i_wb_err, i_wb_data,
 		i_interrupt,
@@ -76,7 +76,7 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 		o_console_data <= i_rx_byte[6:0];
 
 
-	wire	w_reset;	
+	wire	w_reset;
 
 	//
 	//
@@ -180,5 +180,10 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 	assign	o_tx_data = ps_data;
 	assign	o_console_busy = (hb_tx_stb)||(ps_full);
 
+	// Make verilator happy
+	// verilator lint_off UNUSED
+	wire	unused;
+	assign	unused = hb_tx_byte[7];
+	// verilator lint_on  UNUSED
 endmodule
 

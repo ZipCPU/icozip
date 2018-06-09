@@ -87,6 +87,16 @@ set_io o_dbgwires[2] B6		#
 set_io o_dbgwires[1] B3		#
 set_io o_dbgwires[0] B5		#
 
+#
+# PMOD #2
+#
+#
+# set_io o_pwmfifo		B8	# o_pwmfifo
+# set_io o_pwmfifo_gain		A9	# o_pwmfifo_gain
+# set_io o_pm2bot[1]		A10	# No connect
+# set_io o_pwmfifo_shutdown_n	A11	# o_pwmfifo_shutdown_n
+# Ground
+# Power
 
 #
 # SPI Flash, also controlled by RPI_ICE_x through MachXO2

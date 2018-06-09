@@ -414,7 +414,6 @@ module	idecode(i_clk, i_reset, i_ce, i_stalled,
 			//	o_illegal <= 1'b1;
 		end
 
-	initial	o_pc = 0;
 	always @(posedge i_clk)
 	if ((i_ce)&&((o_phase)||(i_pf_valid)))
 	begin
@@ -579,7 +578,6 @@ module	idecode(i_clk, i_reset, i_ce, i_stalled,
 		end else
 			r_early_branch_stb <= 1'b0;
 
-		initial	r_branch_pc = 0;
 		always @(posedge i_clk)
 			if (i_ce)
 			begin

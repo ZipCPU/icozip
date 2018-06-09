@@ -48,15 +48,13 @@ all:	data install
 #
 DATA := global.txt bkram.txt buserr.txt clock.txt		\
 	pic.txt pwrcount.txt version.txt			\
-	hbconsole.txt gpio.txt pwmfifo.txt			\
-	dlyarbiter.txt zipbones.txt ziptimer.txt
+	hbconsole.txt gpio.txt dlyarbiter.txt zipbones.txt
 	# nodelay.txt
 	# Not used: flash.txt rtclite.txt watchdog.txt
 
 AUTOFPGA := autofpga
-
 .PHONY: data
-data: $(AUTOFPGA) $(DATA)
+data: $(DATA)
 	$(AUTOFPGA) -o . $(DATA)
 
 .PHONY: install

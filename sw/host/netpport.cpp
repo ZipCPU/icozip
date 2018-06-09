@@ -84,40 +84,10 @@ bool verbose = false;
 #  define RASPI_D0  27 // PIN 36, GPIO.27, IO193,       D9
 #  define RASPI_DIR 28 // PIN 38, GPIO.28, IO191,       C9
 #  define RASPI_CLK 29 // PIN 40, GPIO.29, IO185,       C10
+#  define RASPI_CLKFB  RASPI_D8
 
 #define	READ_FROM_ICO	0
 #define	WRITE_TO_ICO	1
-
-/*
-void	pp_write(unsigned nbytes, char *data) {
-printf("Calling pp_write, %d bytes\n", nbytes);
-	digitalWrite(RASPI_DIR, OUTPUT);
-	pinMode(RASPI_D7, OUTPUT);
-	pinMode(RASPI_D6, OUTPUT);
-	pinMode(RASPI_D5, OUTPUT);
-	pinMode(RASPI_D4, OUTPUT);
-	pinMode(RASPI_D3, OUTPUT);
-	pinMode(RASPI_D2, OUTPUT);
-	pinMode(RASPI_D1, OUTPUT);
-	pinMode(RASPI_D0, OUTPUT);
-
-	for(unsigned i=0; i<nbytes; i++) {
-		char	datab = data[i];
-
-		digitalWrite(RASPI_D7, (datab & 0x80) ? 1:0);
-		digitalWrite(RASPI_D6, (datab & 0x40) ? 1:0);
-		digitalWrite(RASPI_D5, (datab & 0x20) ? 1:0);
-		digitalWrite(RASPI_D4, (datab & 0x10) ? 1:0);
-		digitalWrite(RASPI_D3, (datab & 0x08) ? 1:0);
-		digitalWrite(RASPI_D2, (datab & 0x04) ? 1:0);
-		digitalWrite(RASPI_D1, (datab & 0x02) ? 1:0);
-		digitalWrite(RASPI_D0, (datab & 0x01) ? 1:0);
-
-		digitalWrite(RASPI_CLK, 1);
-		digitalWrite(RASPI_CLK, 0);
-	}
-}
-*/
 
 class	MUXDCOMMS {
 private:
@@ -138,7 +108,7 @@ private:
 			digitalWrite(RASPI_DIR, OUTPUT);
 			digitalWrite(RASPI_CLK, 0);
 			//
-			while(digitalRead(RASPI_D8) != 0)
+			while(digitalRead(RASPI_CLKFB) != 0)
 				PAUSE;
 			pinMode(RASPI_D7, OUTPUT);
 			pinMode(RASPI_D6, OUTPUT);
@@ -158,11 +128,10 @@ private:
 			digitalWrite(RASPI_D1, (datab & 0x02) ? 1:0);
 			digitalWrite(RASPI_D0, (datab & 0x01) ? 1:0);
 
-			usleep(2);
 			digitalWrite(RASPI_CLK, 1);
 			while(digitalRead(RASPI_CLK) != 1)
 				PAUSE;
-			while(digitalRead(RASPI_D8) == 0)
+			while(digitalRead(RASPI_CLKFB) == 0)
 				PAUSE;
 
 			pinMode(RASPI_D7, INPUT);
@@ -176,11 +145,10 @@ private:
 
 			digitalWrite(RASPI_DIR, INPUT);
 			digitalWrite(RASPI_CLK, 0);
-			while(digitalRead(RASPI_D8) != 0)
+			while(digitalRead(RASPI_CLKFB) != 0)
 				PAUSE;
-			usleep(2);
 			digitalWrite(RASPI_CLK, 1);
-			while(digitalRead(RASPI_D8) != 1)
+			while(digitalRead(RASPI_CLKFB) != 1)
 				PAUSE;
 
 			datab = 0;
@@ -222,12 +190,12 @@ private:
 		for(unsigned i=0; i<nbytes; i++) {
 			char	datab = 0;
 
-			while(digitalRead(RASPI_D8) != 0)
+			while(digitalRead(RASPI_CLKFB) != 0)
 				PAUSE;
 			digitalWrite(RASPI_CLK, 1);
 			while(digitalRead(RASPI_CLK) == 0)
 				PAUSE;
-			while(digitalRead(RASPI_D8) == 0)
+			while(digitalRead(RASPI_CLKFB) == 0)
 				PAUSE;
 
 			if (digitalRead(RASPI_D7))	datab |= 0x80;
@@ -251,6 +219,66 @@ private:
 		return nr;
 	}
 
+	bool	pp_idle(void) {
+		if ( digitalRead(RASPI_CLK))	return false;
+		if ( digitalRead(RASPI_CLKFB))	return false;
+		if (!digitalRead(RASPI_D7))	return false;
+		if (!digitalRead(RASPI_D6))	return false;
+		if (!digitalRead(RASPI_D5))	return false;
+		if (!digitalRead(RASPI_D4))	return false;
+		if (!digitalRead(RASPI_D3))	return false;
+		if (!digitalRead(RASPI_D2))	return false;
+		if (!digitalRead(RASPI_D1))	return false;
+		if (!digitalRead(RASPI_D0))	return false;
+		return true;
+	}
+
+	void	pp_dump(void) {
+		unsigned	datab = 0, clk=0, clkfb=0, dir=0;
+
+		dir   = digitalRead(RASPI_DIR);
+		clk   = digitalRead(RASPI_CLK);
+		clkfb = digitalRead(RASPI_CLKFB);
+
+		if (digitalRead(RASPI_D7))	datab |= 0x80;
+		if (digitalRead(RASPI_D6))	datab |= 0x40;
+		if (digitalRead(RASPI_D5))	datab |= 0x20;
+		if (digitalRead(RASPI_D4))	datab |= 0x10;
+		if (digitalRead(RASPI_D3))	datab |= 0x08;
+		if (digitalRead(RASPI_D2))	datab |= 0x04;
+		if (digitalRead(RASPI_D1))	datab |= 0x02;
+		if (digitalRead(RASPI_D0))	datab |= 0x01;
+
+
+		printf("%s %s/%s %02x\n",
+			(dir)?"OUT":" IN",
+			(clk)?"CLK":" ( )",
+			(clkfb)?"FB":" ()",
+			datab & 0x0ff);
+	}
+
+	void	pp_init(void) {
+		// Initialize the wiringPi library
+		wiringPiSetup();
+
+		// Comms take place over 8 bidirectional data bits, a clock,
+		// and a direction bit
+
+		pinMode(RASPI_DIR, OUTPUT);
+		digitalWrite(RASPI_DIR, OUTPUT);
+		pinMode(RASPI_CLK, OUTPUT);
+		digitalWrite(RASPI_CLK, 0);
+		pinMode(RASPI_CLKFB, INPUT);
+		pinMode(RASPI_D7,    INPUT);
+		pinMode(RASPI_D6,    INPUT);
+		pinMode(RASPI_D5,    INPUT);
+		pinMode(RASPI_D4,    INPUT);
+		pinMode(RASPI_D3,    INPUT);
+		pinMode(RASPI_D2,    INPUT);
+		pinMode(RASPI_D1,    INPUT);
+		pinMode(RASPI_D0,    INPUT);
+		digitalWrite(RASPI_DIR, INPUT);
+	}
 
 public:
 	MUXDCOMMS(void) {
@@ -258,6 +286,7 @@ public:
 		m_rd_buf = new char[m_rd_size];
 		m_rd_fill = 0;
 		m_rd_pos  = 0;
+		pp_init();
 	}
 
 	unsigned	read(unsigned nreq, char *buf) {
@@ -265,7 +294,6 @@ public:
 
 		if (m_rd_fill > 0) {
 			unsigned ln = nreq;
-			printf("READ-REQ for %4d, %4d@%4d/%4d in the buffer\n", nreq, m_rd_fill, m_rd_pos, m_rd_size);
 			if (ln > m_rd_fill)
 				ln = m_rd_fill;
 			memcpy(&buf[nr], &m_rd_buf[m_rd_pos], ln);
@@ -308,6 +336,9 @@ public:
 		nr = pp_xfer(nreq, buf, &m_rd_buf[m_rd_pos]);
 		m_rd_fill += nr;
 	}
+
+	bool	is_idle(void) { return pp_idle(); }
+	void	dump(void) { pp_dump(); }
 };
 
 #include "port.h"
@@ -492,21 +523,7 @@ public:
 
 int main(int argc, char **argv)
 {
-	bool	last_empty = true, last_busy = false;
-
-	// Comms take place over 8 bidirectional data bits, a clock,
-	// and a direction bit
-
-	wiringPiSetup();
-
-	pinMode(RASPI_CLK, OUTPUT);
-	pinMode(RASPI_DIR, OUTPUT);
-	pinMode(RASPI_D8,  INPUT);
-
-	digitalWrite(RASPI_DIR, OUTPUT);
-	digitalWrite(RASPI_CLK, 0);
-	while(digitalRead(RASPI_D8)!=0)
-		;
+	bool	last_busy = false;
 
 	// First, set ourselves up to listen on a variety of network ports
 	int	skt = setup_listener(FPGAPORT),
@@ -548,7 +565,7 @@ int main(int argc, char **argv)
 
 		int	wait_time;
 
-		if (!last_empty) {
+		if (!pport->is_idle()) {
 			wait_time = NO_WAITING;
 		} else if (last_busy) {
 			wait_time = SHORTWHILE;
@@ -560,7 +577,6 @@ int main(int argc, char **argv)
 			exit(-1);
 		}
 
-		last_empty = true;
 		last_busy  = false;
 
 		//
@@ -575,7 +591,6 @@ int main(int argc, char **argv)
 		nr = pport->read(sizeof(rawbuf), rawbuf);
 		if (nr > 0) {
 			unsigned iterations = 0;
-			last_empty = false;
 			last_busy  = (nr == sizeof(rawbuf));
 			while((nr > 0)&&(iterations++ < 16)) {
 				int	ncmd = 0, ncon = 0;
@@ -635,10 +650,12 @@ int main(int argc, char **argv)
 					lbcmd.flush_out(stdout, "< ");
 					// printf("Disconnect\n");
 					lbcmd.close();
+					pport->dump();
 					printf("Command port disconnect\n");
 				} else if (nr > 0) {
 					// printf("%d read from SKT\n", nr);
 					lbcmd.pp_write(nr, 0x80);
+					last_busy = true;
 					lbcmd.print_out(stdout, nr, "< ");
 				}
 			}
@@ -654,9 +671,11 @@ int main(int argc, char **argv)
 				if (nr == 0) {
 					lbcon.flush_out(stdout);
 					lbcon.close();
+					pport->dump();
 					printf("Console port closed\n");
 				} else if (nr > 0) {
 					lbcon.pp_write(nr, 0x0);
+					last_busy = true;
 					lbcon.print_out(stdout, nr, "( ");
 				}
 			}

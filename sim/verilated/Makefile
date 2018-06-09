@@ -4,14 +4,17 @@
 ##
 ## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##
-## Purpose:
+## Purpose:	To coordinate the build of both a cycle accurate, Verilator based,
+##		simulation of the main module as well as the final ICOZIP FPGA
+##	design components.  Access to both components is provided via a software
+##	commands via a TCP/IP port.
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2015-2017, Gisselquist Technology, LLC
+## Copyright (C) 2017-2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -50,9 +53,10 @@ CXX	:= $(CROSS)g++
 OBJDIR  := obj-$(ARCH)
 RTLD	:= ../../rtl/icozip
 VERILATOR_ROOT ?= $(shell bash -c 'verilator -V|grep VERILATOR_ROOT | head -1 | sed -e " s/^.*=\s*//"')
-VROOT   := $(VERILATOR_ROOT)
+VROOT	:= $(VERILATOR_ROOT)
+VDEFS   := $(shell ./vversion.sh)
 VINCD   := $(VROOT)/include
-INCS	:= -I$(RTLD) -I$(RTLD)/obj-$(ARCH)/ -I$(RTLD) -I$(VINCD) -I$(VINCD)/vltstd
+INCS	:= -I$(RTLD) -I$(RTLD)/obj-$(ARCH)/ -I$(VINCD) -I$(VINCD)/vltstd
 CFLAGS	:= -Og -g -Wall $(INCS)
 #
 # A list of our sources and headers
@@ -73,7 +77,7 @@ all:	$(PROGRAMS)
 
 $(OBJDIR)/%.o: %.cpp
 	$(mk-objdir)
-	$(CXX) $(CFLAGS) $(INCS) -c $< -o $@
+	$(CXX) $(CFLAGS) $(VDEFS) $(INCS) -c $< -o $@
 
 $(OBJDIR)/%.o: $(VINCD)/%.cpp
 	$(mk-objdir)
@@ -93,6 +97,7 @@ clean:
 	rm -f *.vcd
 	rm -f $(PROGRAMS)
 	rm -rf $(OBJDIR)/
+
 #
 # The "depends" target, to know what files things depend upon.  The depends
 # file itself is kept in $(OBJDIR)/depends.txt

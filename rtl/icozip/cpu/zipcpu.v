@@ -1078,11 +1078,8 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	generate if ((OPT_PIPELINED)||(EARLY_BRANCHING))
 	begin : SET_OP_PC
 
-		initial	op_pc= 0;
 		always @(posedge i_clk)
-		if (i_reset)
-			op_pc <= 0;
-		else if (op_ce)
+		if (op_ce)
 			op_pc <= (dcd_early_branch)?dcd_branch_pc:dcd_pc;
 
 	end else begin : SET_OP_PC
@@ -2164,30 +2161,30 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 
 	initial	ipc = { RESET_BUS_ADDRESS, 2'b00 };
 	always @(posedge i_clk)
-		if (i_reset)
-			ipc <= { RESET_BUS_ADDRESS, 2'b00 };
-		else if ((wr_reg_ce)&&(!wr_reg_id[4])&&(wr_write_pc))
-			ipc <= { wr_spreg_vl[(AW+1):2], 2'b00 };
-		else if ((!alu_gie)&&(!alu_phase)&&
-				(((alu_pc_valid)&&(!clear_pipeline)&&(!alu_illegal))
-				||(mem_pc_valid)))
-			ipc <= alu_pc;
+	if (i_reset)
+		ipc <= { RESET_BUS_ADDRESS, 2'b00 };
+	else if ((wr_reg_ce)&&(!wr_reg_id[4])&&(wr_write_pc))
+		ipc <= { wr_spreg_vl[(AW+1):2], 2'b00 };
+	else if ((!alu_gie)&&(!alu_phase)&&
+			(((alu_pc_valid)&&(!clear_pipeline)&&(!alu_illegal))
+			||(mem_pc_valid)))
+		ipc <= alu_pc;
 
 	initial pf_pc = { RESET_BUS_ADDRESS, 2'b00 };
 	always @(posedge i_clk)
-		if (i_reset)
-			pf_pc <= { RESET_BUS_ADDRESS, 2'b00 };
-		else if ((w_switch_to_interrupt)
-				||((!gie)&&((w_clear_icache)||(dbg_clear_pipe))))
-			pf_pc <= { ipc[(AW+1):2], 2'b00 };
-		else if ((w_release_from_interrupt)||((gie)&&((w_clear_icache)||(dbg_clear_pipe))))
-			pf_pc <= { upc[(AW+1):2], 2'b00 };
-		else if ((wr_reg_ce)&&(wr_reg_id[4] == gie)&&(wr_write_pc))
-			pf_pc <= { wr_spreg_vl[(AW+1):2], 2'b00 };
-		else if ((dcd_early_branch_stb)&&(!clear_pipeline))
-			pf_pc <= { dcd_branch_pc[AW+1:2] + 1'b1, 2'b00 };
-		else if ((new_pc)||((!pf_stalled)&&(pf_valid)))
-			pf_pc <= { pf_pc[(AW+1):2] + 1'b1, 2'b00 };
+	if (i_reset)
+		pf_pc <= { RESET_BUS_ADDRESS, 2'b00 };
+	else if ((w_switch_to_interrupt)
+			||((!gie)&&((w_clear_icache)||(dbg_clear_pipe))))
+		pf_pc <= { ipc[(AW+1):2], 2'b00 };
+	else if ((w_release_from_interrupt)||((gie)&&((w_clear_icache)||(dbg_clear_pipe))))
+		pf_pc <= { upc[(AW+1):2], 2'b00 };
+	else if ((wr_reg_ce)&&(wr_reg_id[4] == gie)&&(wr_write_pc))
+		pf_pc <= { wr_spreg_vl[(AW+1):2], 2'b00 };
+	else if ((dcd_early_branch_stb)&&(!clear_pipeline))
+		pf_pc <= { dcd_branch_pc[AW+1:2] + 1'b1, 2'b00 };
+	else if ((new_pc)||((!pf_stalled)&&(pf_valid)))
+		pf_pc <= { pf_pc[(AW+1):2] + 1'b1, 2'b00 };
 
 	initial	last_write_to_cc = 1'b0;
 	always @(posedge i_clk)

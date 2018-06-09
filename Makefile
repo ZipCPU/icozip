@@ -66,39 +66,39 @@ SUBMAKE:= $(MAKE) --no-print-directory -C
 check-install: check-perl check-autofpga check-verilator check-zip-gcc check-gpp
 
 .PHONY: check-perl
-	$(call checkif-installed,perl,)
+	$(call checkif-installed,perl,,perl)
 
 .PHONY: check-autofpga
 check-autofpga:
-	$(call checkif-installed,autofpga,-V)
+	$(call checkif-installed,autofpga,-V,autofpga)
 
 .PHONY: check-verilator
 check-verilator:
-	$(call checkif-installed,verilator,-V)
+	$(call checkif-installed,verilator,-V,verilator)
 
 .PHONY: check-zip-gcc
 check-zip-gcc:
-	$(call checkif-installed,zip-gcc,-v)
+	$(call checkif-installed,zip-gcc,-v,zip-gcc)
 
 .PHONY: check-gpp
 check-gpp:
-	$(call checkif-installed,g++,-v)
+	$(call checkif-installed,g++,-v,g++)
 
 .PHONY: check-yosys
 check-yosys:
-	$(call checkif-installed,yosys,-h)
+	$(call checkif-installed,yosys,-h,yosys)
 
 .PHONY: check-arachnepnr
 check-arachnepnr:
-	$(call checkif-installed,arachne-pnr,-v)
+	$(call checkif-installed,arachne-pnr,-v,arachne-pnr)
 
 .PHONY: check-icetime
 check-icetime:
-	$(call checkif-installed,which,icetime)
+	$(call checkif-installed,which,icetime,icetime)
 
 .PHONY: check-icepack
 check-icepack:
-	$(call checkif-installed,which,icepack)
+	$(call checkif-installed,which,icepack,icepack)
 
 #
 #
@@ -211,6 +211,7 @@ endef
 # Check if the given program is installed
 #
 define	checkif-installed
+	@echo "Checking whether or not $(3) is installed and in your path"
 	@bash -c '$(1) $(2) < /dev/null >& /dev/null; if [[ $$? != 0 ]]; then echo "Program not found: $(1)"; exit -1; fi'
 endef
 
