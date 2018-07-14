@@ -2,21 +2,40 @@
 //
 // Filename: 	spixpress.v
 //
-// Project:	CMod S6 System on a Chip, ZipCPU demonstration project
+// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
-// Purpose:	
+// Purpose:	This module is intended to be a low logic flash controller.
+// 		It uses the 8'h03 read command from the flash, and so it
+// 	cannot be used with a clock speed any greater than 50MHz.
+//
+//	Although this controller has no erase or program capability, it
+//	includes a control port.  When using the control port, you should be
+//	able to send arbitrary commands to the flash--but not read from the
+//	flash during that time.
+//
 // Actions:
 // 	Control Port
+// 	[31:9]	Unused bits, ignored on write, read as zero
 // 	[8]	CS_n
+// 			Can be activated via a write to the control port.
+// 			This will render the memory addresses unreadable.
+// 			Write a '1' to this value to return the memory to
+// 			normal operation.
 // 	[7:0]	BYTE-DATA
+// 			Following a write to the control port where bit [8]
+// 			is low, the controller will send bits [7:0] out the
+// 			SPI port, top bit first.  Once accomplished, the
+// 			control port may be read to see what values were
+// 			read from the SPI port.  Those values will be stored
+// 			in these same bits [7:0].
 // 
-// 	Writes to the control register will clock the SPI port and send the
-// 		lower 8-bits to the channel
-// 	The CS_N register will be set based upon bit 8 of any control port
-// 	write.
+//	Memory
+//		Returns the data from the address read
 //
-//	Read port
-//	Returns the data from the address read
+//		Requires that the CS_N setting within the control port be
+//		deactivated, otherwise requests to read from memory
+//		will simply return the control port register immediately
+//		without doing anything.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -36,7 +55,7 @@
 // for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this program.  (It's in the $(ROOT)/doc directory, run make with no
+// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
 //
