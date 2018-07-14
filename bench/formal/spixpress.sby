@@ -1,0 +1,29 @@
+[tasks]
+safety		nopipe
+safety_pipe	pipe
+cover		nopipe
+cover_pipe	pipe
+
+[options]
+safety:      mode prove
+safety_pipe: mode prove
+cover:       mode cover
+cover_pipe:  mode cover
+depth 70
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -formal fwb_slave.v
+read_verilog -formal spixpress.v
+cover:      chparam -set F_OPT_COVER 1 spixpress
+cover_pipe: chparam -set F_OPT_COVER 1 spixpress
+nopipe:	chparam -set OPT_PIPE   0 spixpress
+pipe:	chparam -set OPT_PIPE   1 spixpress
+prep -top spixpress
+
+[files]
+fwb_slave.v
+../../rtl/icozip/spixpress.v
+
