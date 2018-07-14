@@ -1,0 +1,128 @@
+################################################################################
+##
+## Filename: 	sram.txt
+##
+## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
+##
+## Purpose:	
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+##
+## Copyright (C) 2018, Gisselquist Technology, LLC
+##
+## This program is free software (firmware): you can redistribute it and/or
+## modify it under the terms of  the GNU General Public License as published
+## by the Free Software Foundation, either version 3 of the License, or (at
+## your option) any later version.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+##
+## License:	GPL, v3, as defined and found on www.gnu.org,
+##		http://www.gnu.org/licenses/gpl.html
+##
+##
+################################################################################
+##
+##
+@PREFIX=sram
+@DEVID=SRAM
+@$LGMEMSZ=17
+@LGMEMSZ.FORMAT=%d
+@$NADDR=(1<<(@$THIS.LGMEMSZ-2))
+@$NBYTES=(1<<(@$THIS.LGMEMSZ))
+@NBYTES.FORMAT=0x%08x
+@ACCESS=@$(DEVID)_ACCESS
+@SLAVE.TYPE=MEMORY
+@SLAVE.BUS=wb
+@LD.PERM=wx
+@TOP.PORTLIST=
+		o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr, o_ram_sel, 
+			io_ram_data
+@TOP.IODECL=
+	output	wire	o_ram_ce_n, o_ram_oe_n, o_ram_we_n;
+	output	wire	[15:0]	o_ram_addr;
+	output	wire	[1:0]	o_ram_sel;
+	inout	wire	[15:0]	io_ram_data;
+@TOP.INSERT=
+	//
+	// SRAM Interface
+	//
+	// Use the PPIO primitive to give us access to a group of SB_IO's,
+	// and therefore access to a tristate output
+	//
+	ppio #(.W(16))
+		ppioi(o_ram_we_n, io_ram_data, o_ram_data, i_ram_data);
+
+@TOP.DEFNS=
+	wire	[15:0]		i_ram_data, o_ram_data;
+
+@TOP.MAIN=
+		o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr, o_ram_sel, 
+			o_ram_data, i_ram_data
+@MAIN.PORTLIST=
+		o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr, o_ram_sel, 
+			o_ram_data, i_ram_data
+@MAIN.IODECL=
+	output	wire		o_ram_ce_n, o_ram_oe_n, o_ram_we_n;
+	output	wire	[15:0]	o_ram_addr;
+	output	wire	[1:0]	o_ram_sel;
+	output	wire	[15:0]	o_ram_data;
+	input	wire	[15:0]	i_ram_data;
+@MAIN.INSERT=
+	sramdev #(.WBADDR(@$LGMEMSZ-2))
+		@$(PREFIX)i(i_clk,
+			(wb_cyc), (wb_stb)&&(@$(PREFIX)_sel), wb_we,
+				wb_addr[(@$LGMEMSZ-3):0], wb_data, wb_sel,
+				@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data,
+			o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr,
+				o_ram_data, o_ram_sel, i_ram_data);
+@REGS.N=1
+@REGS.0= 0 R_@$(DEVID) $(DEVID)
+@REGDEFS.H.DEFNS=
+#define	@$(DEVID)BASE	@$(BASEHX)
+#define	@$(DEVID)LEN	@$NBYTES
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
+@MEM.NAME= @$(PREFIX)
+@BDEF.OSVAL=extern char	_@$(MEM.NAME)[@$NBYTES];
+@LDSCRIPT.PSTR=	wx
+@LDSCRIPT.PTR=	@$(MEM.NAME)
+@LDSCRIPT.DEF=
+_@$(MEM.NAME) = ORIGIN(@$(MEM.NAME))
+@RTL.MAKE.GROUP= @$(DEVID)
+@RTL.MAKE.FILES= sramdev.v
+@$BASEHX = @$REGBASE
+@BASEHX.FORMAT= 0x%08x
+@$NADDRHX = @$NADDR
+@NADDRHX.FORMAT= 0x%x
+@SIM.INCLUDE=
+#include "sramsim.h"
+@SIM.DEFNS=
+#ifdef	@$(ACCESS)
+	SRAMSIM		*m_@$(MEM.NAME);
+#endif // @$(ACCESS)
+@SIM.INIT=
+#ifdef	@$(ACCESS)
+		m_@$(MEM.NAME) = new SRAMSIM(SRAMLEN);
+#endif // @$(ACCESS)
+@SIM.TICK=
+#ifdef	@$(ACCESS)
+		m_core->i_ram_data = (*m_@$(MEM.NAME))(m_core->o_ram_ce_n,
+			m_core->o_ram_oe_n,
+			m_core->o_ram_we_n,
+			m_core->o_ram_addr,
+			m_core->o_ram_data,
+			m_core->o_ram_sel);
+#endif // @$(ACCESS)
+@SIM.LOAD=
+			m_@$(MEM.NAME)->load(start, &buf[offset], wlen);
