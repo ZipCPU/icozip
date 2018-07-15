@@ -75,11 +75,11 @@ module	spixpress(i_clk, i_reset,
 	//
 	parameter [0:0]	OPT_PIPE = 1'b1;
 	//
-	input			i_clk, i_reset;
+	input	wire		i_clk, i_reset;
 	//
-	input			i_wb_cyc, i_wb_stb, i_wb_we;
-	input		[22:0]	i_wb_addr;
-	input		[31:0]	i_wb_data;
+	input	wire		i_wb_cyc, i_wb_stb, i_wb_we;
+	input	wire	[22:0]	i_wb_addr;
+	input	wire	[31:0]	i_wb_data;
 	output	reg		o_wb_stall, o_wb_ack;
 	output	reg	[31:0]	o_wb_data;
 	//
@@ -120,11 +120,11 @@ module	spixpress(i_clk, i_reset,
 	if ((i_reset)||(!i_wb_cyc))
 		ack_delay <= 0;
 	else if (bus_request)
-		ack_delay <= 7'd64;
+		ack_delay <= ((o_spi_cs_n)||(!OPT_PIPE)) ? 7'd64 : 7'd32;
 	else if (user_request)
 		ack_delay <= 7'd8;
 	else if (ack_delay != 0)
-		ack_delay <= ack_delay - 1;
+		ack_delay <= ack_delay - 1'b1;
 
 	initial	o_wb_ack = 0;
 	always @(posedge i_clk)
@@ -301,6 +301,14 @@ module	spixpress(i_clk, i_reset,
 	always @(*)
 		assert((!bus_request)||(!user_request));
 
+	always @(*)
+	if (!cfg_user_mode)
+		assert((o_spi_cs_n)
+			||((o_spi_sck)&&(ack_delay>0)));
+
+	always @(*)
+	if (ack_delay > 1)
+		assert(o_wb_stall);
 	generate if (F_OPT_COVER)
 	begin
 
@@ -338,9 +346,9 @@ module	spixpress(i_clk, i_reset,
 		begin
 
 			always @(posedge i_clk)
-				cover((!o_wb_stall)&&(f_pending_bus_request)&&(ack_delay == 1));
+				cover((!o_wb_stall)&&(f_pending_bus_request)&&(ack_delay == 7'h1));
 			always @(posedge i_clk)
-				cover((next_request)&&(f_pending_bus_request)&&(ack_delay == 2));
+				cover((next_request)&&(f_pending_bus_request)&&(ack_delay == 7'h2));
 		end
 
 	end endgenerate
@@ -351,22 +359,25 @@ module	spixpress(i_clk, i_reset,
 
 	always @(posedge i_clk)
 	if (bus_request)
-		f_last_addr <= i_addr[21:0];
+		f_last_addr <= i_wb_addr[21:0];
 
 	always @(*)
 		f_next_addr <= f_last_addr + 1'b1;
 
 	// Writes are immediately returned
 	assert property (@(posedge i_clk)
+		disable iff ((i_reset)||(!i_wb_cyc))
 		(i_wb_stb)&&(!o_wb_stall)&&(!user_request)&&(!bus_request)
 		|=> (o_wb_ack)&&(!o_wb_stall));
 
 	assert property (@(posedge i_clk)
+		disable iff ((i_reset)||(!i_wb_cyc))
 		(i_wb_stb)&&(!o_wb_stall)&&(!o_spi_cs_n)&&(!i_wb_we)
-		|-> (i_wb_addr == f_last_addr + 1)
+			&&(!cfg_user_mode)
+		|-> (OPT_PIPE)&&(!i_wb_addr[22])&&(i_wb_addr[21:0] == f_next_addr)
 		);
 
-	sequence READ_COMMAND
+	sequence READ_COMMAND;
 		// Send command 8'h03
 		(f_last_addr == $past(i_wb_addr))
 				&&(!o_spi_cs_n)&&(o_spi_sck)&&(!o_spi_mosi)
@@ -381,8 +392,8 @@ module	spixpress(i_clk, i_reset,
 				##1 ( o_spi_mosi));
 	endsequence
 
-	sequence	SEND_ADDRESS
-		(((f_last_addr == $past(last_addr))&&(!o_spi_cs_n)&&(o_spi_sck))
+	sequence	SEND_ADDRESS;
+		(((f_last_addr == $past(f_last_addr))&&(!o_spi_cs_n)&&(o_spi_sck))
 		throughout
 			(o_spi_mosi == f_last_addr[21])
 			##1 (o_spi_mosi == f_last_addr[20])
@@ -410,30 +421,114 @@ module	spixpress(i_clk, i_reset,
 			##1 (o_spi_mosi == 1'b0));
 	endsequence
 
-	sequence	READ_DATA
-		(!o_spi_cs_n)&&(o_spi_sck)&&(o_wb_data == $past(o_wb_data[30:0], i_spi_miso))
+	sequence	READ_DATA;
+		(!o_spi_cs_n)&&(o_spi_sck)&&(o_wb_data == $past({o_wb_data[30:0], i_spi_miso}))
 		[*32] ##1
-		(o_wb_ack)&&(o_wb_data == $past(o_wb_data[30:0], i_spi_miso));
+		(o_wb_ack)&&(o_wb_data == $past({o_wb_data[30:0], i_spi_miso}));
 	endsequence
 
 	assert property (@(posedge i_clk)
+		disable iff ((i_reset)||(!i_wb_cyc))
 		(i_wb_stb)&&(!o_wb_stall)&&(!i_wb_we)&&(o_spi_cs_n)
 			&&(!cfg_user_mode)&&(!i_wb_addr[22])
 		// Send command 8'h03
 		|=> READ_COMMAND
 		##1 ((f_last_addr == $past(f_last_addr)) throughout
-				SEND_ADDRESS(lastaddr))
+				SEND_ADDRESS)
 		##1 READ_DATA);
+
+
+	//////////////
+	//
+	// The known data/address contract
+	//
+	/////////////
+	(* anyconst *) wire	[21:0]	f_addr;
+	(* anyconst *) wire	[31:0]	f_data;
+
+	sequence	THIS_DATA;
+			(i_spi_miso == f_data[31])
+			##1 (i_spi_miso == f_data[30])
+			##1 (i_spi_miso == f_data[29])
+			##1 (i_spi_miso == f_data[28])
+			##1 (i_spi_miso == f_data[27])
+			##1 (i_spi_miso == f_data[26])
+			##1 (i_spi_miso == f_data[25])
+			##1 (i_spi_miso == f_data[24])
+			##1 (i_spi_miso == f_data[23])
+			##1 (i_spi_miso == f_data[22])
+			##1 (i_spi_miso == f_data[21])
+			##1 (i_spi_miso == f_data[20])
+			##1 (i_spi_miso == f_data[19])
+			##1 (i_spi_miso == f_data[18])
+			##1 (i_spi_miso == f_data[17])
+			##1 (i_spi_miso == f_data[16])
+			##1 (i_spi_miso == f_data[15])
+			##1 (i_spi_miso == f_data[14])
+			##1 (i_spi_miso == f_data[13])
+			##1 (i_spi_miso == f_data[12])
+			##1 (i_spi_miso == f_data[11])
+			##1 (i_spi_miso == f_data[10])
+			##1 (i_spi_miso == f_data[ 9])
+			##1 (i_spi_miso == f_data[ 8])
+			##1 (i_spi_miso == f_data[ 7])
+			##1 (i_spi_miso == f_data[ 6])
+			##1 (i_spi_miso == f_data[ 5])
+			##1 (i_spi_miso == f_data[ 4])
+			##1 (i_spi_miso == f_data[ 3])
+			##1 (i_spi_miso == f_data[ 2])
+			##1 (i_spi_miso == f_data[ 1])
+			##1 (i_spi_miso == f_data[ 0]);
+	endsequence
+
+	assume property (@(posedge i_clk)
+		disable iff ((o_spi_cs_n)||(!o_spi_sck))
+		(i_wb_stb)&&(!o_wb_stall)&&(!i_wb_we)&&(o_spi_cs_n)
+			&&(!cfg_user_mode)&&(!i_wb_addr[22])
+			&&(i_wb_addr[21:0] == f_addr)
+		// Send command 8'h03
+		##1 READ_COMMAND
+		##1 ((f_last_addr == $past(f_last_addr)) throughout
+				SEND_ADDRESS)
+		|=> THIS_DATA);
+
+	assume property (@(posedge i_clk)
+		disable iff ((o_spi_cs_n)||(!o_spi_sck))
+		(OPT_PIPE)&&(i_wb_stb)&&(!o_wb_stall)&&(!i_wb_we)&&(!o_spi_cs_n)
+			&&(!cfg_user_mode)&&(!i_wb_addr[22])
+			&&(i_wb_addr[21:0] == f_addr)
+		|=> THIS_DATA);
+
+	assert property (@(posedge i_clk)
+		disable iff ((i_reset)||(!i_wb_cyc))
+		(i_wb_stb)&&(!o_wb_stall)&&(!i_wb_we)&&(o_spi_cs_n)
+			&&(!cfg_user_mode)&&(!i_wb_addr[22])
+			&&(i_wb_addr[21:0] == f_addr)
+		// Send command 8'h03
+		##1 READ_COMMAND
+		##1 ((f_last_addr == $past(f_last_addr)) throughout
+				SEND_ADDRESS)
+		##1 THIS_DATA
+		|=> (o_wb_ack)&&(o_wb_data == f_data));
+
+	assert property (@(posedge i_clk)
+		disable iff ((i_reset)||(!i_wb_cyc))
+		(OPT_PIPE)&&(i_wb_stb)&&(!o_wb_stall)&&(!i_wb_we)&&(!o_spi_cs_n)
+			&&(!cfg_user_mode)&&(!i_wb_addr[22])
+			&&(i_wb_addr[21:0] == f_addr)
+		##1 THIS_DATA
+		|=> (o_wb_ack)&&(o_wb_data == f_data));
+
 `endif
 endmodule
 // Usage on an iCE40
 // 		W/o Pipe	Piped
-// Cells	156		243
+// Cells	156		244
 // SB_CARRY	 10		 30
 // SB_DFF	 21		 21
 // SB_DFFE	 10		 32
 // SB_DFFESR	 31		 31
 // SB_DFFSR	 10		 10
 // SB_DFFSS	  2		  2
-// SB_LUT4	 72		117
+// SB_LUT4	 72		118
 //
