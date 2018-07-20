@@ -75,7 +75,7 @@ _@$(MEM.NAME) = ORIGIN(@$(MEM.NAME))
 @SIM.INCLUDE=
 #include "byteswap.h"
 @SIM.DEFINES=
-#define	block_ram	@$(VERILATOR_PREFIX)__DOT__@$(PREFIX)i__DOT__mem
+#define	block_ram	VVAR(_@$(PREFIX)i__DOT__mem)
 @SIM.LOAD=
 			start = start & (-4);
 			wlen = (wlen+3)&(-4);
