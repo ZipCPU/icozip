@@ -100,10 +100,10 @@ set_io o_dbgwires[0] B5		#
 
 #
 # SPI Flash, also controlled by RPI_ICE_x through MachXO2
-# set_io o_spi_cs_n	R12
-# set_io o_spi_sck	R11
-# set_io o_spi_mosi	P11
-# set_io i_spi_miso	P12
+set_io o_spi_cs_n	R12
+set_io o_spi_sck	R11
+set_io o_spi_mosi	P11
+set_io i_spi_miso	P12
 #
 #
 # RPI SPI interface
@@ -112,41 +112,41 @@ set_io o_dbgwires[0] B5		#
 # set_io o_spi_miso	A7	# But this is a pport data line ... ??
 #
 # SRAM
-# o_ram_ce_n	M7	# IO64
-# o_ram_we_n	T7	# IO75
-# o_ram_oe_n	L5	# IO23A
-# o_ram_addr[0]	N2	# IO21B
-# o_ram_addr[1]	K5	# IO20A
-# o_ram_addr[2]	J5	# IO13A
-# o_ram_addr[3]	M5	# IO25B
-# o_ram_addr[4]	P4	# IO54
-# o_ram_addr[5]	N5	# IO56
-# o_ram_addr[6]	P5	# IO58
-# o_ram_addr[7]	P7	# IO77
-# o_ram_addr[8]	M6	# IO22A
-# o_ram_addr[9]	P6	# IO67
-# o_ram_addr[10]	T8	# IO76
-# o_ram_addr[11]	T1	# IO53
-# o_ram_addr[12]	P2	# IO25A
-# o_ram_addr[13]	R1	# IO26A
-# o_ram_addr[14]	N3	# IO23B
-# o_ram_addr[15]	M5	# IO24A
-# io_ram_data[0]	T2	# IO57
-# io_ram_data[1]	R3	# IO59
-# io_ram_data[2]	T3	# IO61
-# io_ram_data[3]	R4	# IO63
-# io_ram_data[4]	R5	# IO60
-# io_ram_data[5]	T5	# IO69
-# io_ram_data[6]	R6	# IO71
-# io_ram_data[7]	T6	# IO73
-# io_ram_data[8]	N4	# IO26B
-# io_ram_data[9]	M4	# IO24B
-# io_ram_data[10]	L6	# IO19A
-# io_ram_data[11]	M3	# IO22B
-# io_ram_data[12]	L4	# IO17A
-# io_ram_data[13]	L3	# IO19B
-# io_ram_data[14]	K4	# IO18A
-# io_ram_data[15]	K3	# IO16B
-# o_ram_lb	J4	# IO12A
-# o_ram_ub	J3	# IO14A
+set_io o_ram_ce_n	M7	# IO64
+set_io o_ram_we_n	T7	# IO75
+set_io o_ram_oe_n	L5	# IO23A
+set_io o_ram_addr[0]	N2	# IO21B
+set_io o_ram_addr[1]	K5	# IO20A
+set_io o_ram_addr[2]	J5	# IO13A
+set_io o_ram_addr[3]	M5	# IO25B
+set_io o_ram_addr[4]	P4	# IO54
+set_io o_ram_addr[5]	N5	# IO56
+set_io o_ram_addr[6]	P5	# IO58
+set_io o_ram_addr[7]	P7	# IO77
+set_io o_ram_addr[8]	M6	# IO22A
+set_io o_ram_addr[9]	P6	# IO67
+set_io o_ram_addr[10]	T8	# IO76
+set_io o_ram_addr[11]	T1	# IO53
+set_io o_ram_addr[12]	P2	# IO25A
+set_io o_ram_addr[13]	R1	# IO26A
+set_io o_ram_addr[14]	N3	# IO23B
+set_io o_ram_addr[15]	P1	# IO24A
+set_io io_ram_data[0]	T2	# IO57
+set_io io_ram_data[1]	R3	# IO59
+set_io io_ram_data[2]	T3	# IO61
+set_io io_ram_data[3]	R4	# IO63
+set_io io_ram_data[4]	R5	# IO60
+set_io io_ram_data[5]	T5	# IO69
+set_io io_ram_data[6]	R6	# IO71
+set_io io_ram_data[7]	T6	# IO73
+set_io io_ram_data[8]	N4	# IO26B
+set_io io_ram_data[9]	M4	# IO24B
+set_io io_ram_data[10]	L6	# IO19A
+set_io io_ram_data[11]	M3	# IO22B
+set_io io_ram_data[12]	L4	# IO17A
+set_io io_ram_data[13]	L3	# IO19B
+set_io io_ram_data[14]	K4	# IO18A
+set_io io_ram_data[15]	K3	# IO16B
+set_io o_ram_sel[0]	J4	# IO12A
+set_io o_ram_sel[1]	J3	# IO14A
 #

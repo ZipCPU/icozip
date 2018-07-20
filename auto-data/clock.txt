@@ -46,27 +46,13 @@
 `ifdef	VERILATOR
 	assign	s_clk = i_clk;
 `else
-	wire	clk_40mhz, pll_locked;
-	SB_PLL40_PAD #(
-		.FEEDBACK_PATH("SIMPLE"),
-		.DELAY_ADJUSTMENT_MODE_FEEDBACK("FIXED"),
-		.DELAY_ADJUSTMENT_MODE_RELATIVE("FIXED"),
-		.PLLOUT_SELECT("GENCLK"),
-		.FDA_FEEDBACK(4'b1111),
-		.FDA_RELATIVE(4'b1111),
-		.DIVR(4'd4),		// Divide by (DIVR+1)  = 3
-		.DIVQ(3'd4),		// Divide by 2^(DIVQ)  = 1
-		.DIVF(7'd31),		// Multiply by (DIVF+1)= 1
-		.FILTER_RANGE(3'b010)
-	) plli (
-		.PACKAGEPIN     (i_clk        ),
-		.PLLOUTCORE     (clk_40mhz    ),
-		.LOCK           (pll_locked  ),
-		.BYPASS         (1'b0         ),
-		.RESETB         (1'b1         )
-	);
+	reg	clk_50mhz;
 
-	assign	s_clk = clk_40mhz;
+	initial	clk_50mhz = 1'b0;
+	always @(posedge i_clk)
+		clk_50mhz <= !clk_50mhz;
+
+	SB_GB global_buffer(clk_50mhz, s_clk);
 `endif
 
 @REGDEFS.H.DEFNS=

@@ -25,3 +25,4 @@ design.h
 *.asc
 201*-ico.tjz
 201*-build.v
+autofpga.dbg

@@ -1,0 +1,152 @@
+################################################################################
+##
+## Filename: 	flexpress.txt
+##
+## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+##
+## Purpose:	Describes the flash in our new data format.
+##
+## Creator:	Dan Gisselquist, Ph.D.
+##		Gisselquist Technology, LLC
+##
+################################################################################
+##
+## Copyright (C) 2017-2018, Gisselquist Technology, LLC
+##
+## This program is free software (firmware): you can redistribute it and/or
+## modify it under the terms of  the GNU General Public License as published
+## by the Free Software Foundation, either version 3 of the License, or (at
+## your option) any later version.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+## target there if the PDF file isn't present.)  If not, see
+## <http://www.gnu.org/licenses/> for a copy.
+##
+## License:	GPL, v3, as defined and found on www.gnu.org,
+##		http://www.gnu.org/licenses/gpl.html
+##
+##
+################################################################################
+##
+##
+@PREFIX= flash
+@$LGFLASHSZ.EXPR=24
+@$NADDR=(1<<(@$LGFLASHSZ-2))
+@$NBYTES=(1<<@$LGFLASHSZ)
+@NBYTES.FORMAT=0x%08x
+@ACCESS= FLASH_ACCESS
+@SLAVE.TYPE=MEMORY
+@SLAVE.BUS=wb
+@LD.PERM=rx
+@TOP.PORTLIST=
+		// Top level Dual-SPI I/O ports
+		o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso
+@TOP.IODECL=
+	// Dual SPI flash
+	output	wire		o_spi_cs_n;
+	output	wire		o_spi_sck, o_spi_mosi;
+	input	wire		i_spi_miso;
+@TOP.DEFNS=
+	wire		spi_sck;
+@TOP.MAIN=
+		// SPI flash
+		o_spi_cs_n, spi_sck, o_spi_mosi, i_spi_miso
+@TOP.INSERT=
+	//
+	//
+	// Wires for setting up the SPI flash wishbone peripheral
+	//
+	//
+	oclkddr spi_ddr_sck(s_clk, {!spi_sck, 1'b1}, o_spi_sck);
+
+@MAIN.PORTLIST=
+		// The SPI Flash
+		o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso
+@MAIN.IODECL=
+	// The SPI flash
+	output	wire		o_spi_cs_n;
+	output	wire		o_spi_sck;
+	output	wire		o_spi_mosi;
+	input	wire		i_spi_miso;
+@MAIN.INSERT=
+	spixpress @$(PREFIX)i(i_clk, i_reset,
+			(wb_cyc),
+				(wb_stb)&&(@$(PREFIX)_sel),
+				(wb_stb)&&(flash_cfg_sel), wb_we,
+				wb_addr[(@$LGFLASHSZ-3):0],
+				wb_data,
+			@$(PREFIX)_stall, @$(PREFIX)_ack, @$(PREFIX)_data,
+			o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso);
+@MAIN.ALT=
+	assign	o_spi_cs_n = 1'b1;
+	assign	o_spi_sck  = 1'b0;
+	assign	o_spi_mosi = 1'b1;
+@MEM.NAME= flash
+@MEM.ACCESS = rx
+@REGS.N= 1
+@DEVID=FLASH
+@REGDEFS.H.DEFNS=
+#define	@$(DEVID)BASE	@$[0x%08x](REGBASE)
+#define	@$(DEVID)LEN	@$NBYTES
+#define	@$(DEVID)LGLEN	@$LGFLASHSZ
+@REGS.0= 0 R_@$(DEVID) @$(FLASH)
+@BDEF.OSDEF=_BOARD_HAS_@$(FLASH)
+@BDEF.OSVAL=extern char _@$(PREFIX)[@$NBYTES];
+@LDSCRIPT.PSTR=	rx
+@LDSCRIPT.PTR=	@$(PREFIX)
+@LDSCRIPT.DEF=
+_@$(PREFIX)=ORIGIN(@$(PREFIX));
+@REGDEFS.H.INSERT=
+
+@SIM.INCLUDE+=
+#include "flashsim.h"
+@SIM.DEFNS+=
+#ifdef	@$(ACCESS)
+	FLASHSIM	*m_@$(MEM.NAME);
+#endif
+@SIM.INIT+=
+#ifdef	@$(ACCESS)
+		m_@$(MEM.NAME) = new FLASHSIM(FLASHLGLEN);
+#endif
+@SIM.TICK +=
+#ifdef	@$(ACCESS)
+		{
+		int	idspi;
+		// The toplevel logic creates a one cycle/clock delay.  Emulate
+		// it here.
+		if (m_core->o_spi_sck) {
+			(*m_@$(MEM.NAME))(m_core->o_dspi_cs_n,
+						(m_core->o_spi_sck)?0:1,
+						m_core->o_spi_mosi);
+		} m_core->i_miso = (*m_@$(MEM.NAME))(m_core->o_spi_cs_n, 1,
+						m_core->o_spi_mosi);
+#endif
+@SIM.LOAD +=
+			m_@$(MEM.NAME)->load(start, &buf[offset], wlen);
+#
+#
+#
+#
+#
+@RTL.MAKE.GROUP= FLASH
+@RTL.MAKE.FILES= spixpress.v oclkddr.v
+#
+#
+#
+@PREFIX=flash_cfg
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=wb
+@NADDR=1
+@REGS.N=1
+@REGS.0= 0  R_FLASHCFG FLASHCFG
+@MAIN.DEFNS=
+@MAIN.INSERT=
+	assign	flash_cfg_data  = flash_data;
+	assign	flash_cfg_stall = flash_stall;
+	assign	flash_cfg_ack   = 1'b0;

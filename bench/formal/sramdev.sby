@@ -1,0 +1,16 @@
+[options]
+mode bmc
+# mode cover
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -formal sramdev.v
+read_verilog -formal fwb_slave.v
+prep -top sramdev
+
+[files]
+../../rtl/icozip/sramdev.v
+fwb_slave.v
+
