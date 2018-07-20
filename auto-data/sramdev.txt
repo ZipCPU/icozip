@@ -88,7 +88,7 @@
 			o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr,
 				o_ram_data, o_ram_sel, i_ram_data);
 @REGS.N=1
-@REGS.0= 0 R_@$(DEVID) $(DEVID)
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
 @REGDEFS.H.DEFNS=
 #define	@$(DEVID)BASE	@$(BASEHX)
 #define	@$(DEVID)LEN	@$NBYTES
