@@ -57,7 +57,7 @@ VROOT	:= $(VERILATOR_ROOT)
 VDEFS   := $(shell ./vversion.sh)
 VINCD   := $(VROOT)/include
 INCS	:= -I$(RTLD) -I$(RTLD)/obj-$(ARCH)/ -I$(VINCD) -I$(VINCD)/vltstd
-CFLAGS	:= -Og -g -Wall $(INCS)
+CFLAGS	:= -Og -g -faligned-new -Wall $(INCS)
 #
 # A list of our sources and headers
 #
