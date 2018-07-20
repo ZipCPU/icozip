@@ -67,7 +67,7 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 	reg		next_ack;
 	reg		write;
 
-	initial	ram_state  = 1'b0;
+	initial	ram_state  = 2'b00;
 	initial	o_wb_ack   = 1'b0;
 	initial	o_wb_stall = 1'b0;
 	initial	next_ack   = 1'b0;
