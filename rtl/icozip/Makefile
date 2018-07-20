@@ -111,14 +111,14 @@ icozip.blif: toplevel.v $(VFLIST)
 yosys: icozip.blif
 
 icozip.asc: $(PCFFILE) icozip.blif
-	arachne-pnr -d 8k -r -p $(PCFFILE) icozip.blif -o $@
+	arachne-pnr -d 8k -r -P ct256 -p $(PCFFILE) icozip.blif -o $@
 
 .PHONY: arachne
 arachne: icozip.asc
 
 icozip.bin: icozip.asc
 	icepack icozip.asc icozip.bin
-	icetime -d hx8k -c 40 icozip.asc
+	icetime -d hx8k -c 50 icozip.asc
 
 #
 #
