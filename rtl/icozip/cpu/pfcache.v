@@ -97,8 +97,8 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 	input	wire			i_wb_ack, i_wb_stall, i_wb_err;
 	input	wire	[(BUSW-1):0]	i_wb_data;
 	//
-	// o_illegal will be true if this instruction was the result of a bus error
-	// (This is also part of the CPU interface)
+	// o_illegal will be true if this instruction was the result of a
+	// bus error (This is also part of the CPU interface)
 	output	reg			o_illegal;
 
 	// Fixed bus outputs: we read from the bus only, never write.
@@ -109,11 +109,11 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 
 	wire			r_v;
 	reg	[(BUSW-1):0]	cache	[0:((1<<CW)-1)];
-	reg	[(AW-CW-1):0]	tags	[0:((1<<(LGLINES))-1)];
-	reg	[((1<<(LGLINES))-1):0]	vmask;
+	reg	[(AW-CW-1):0]	cache_tags	[0:((1<<(LGLINES))-1)];
+	reg	[((1<<(LGLINES))-1):0]	valid_mask;
 
 	reg			r_v_from_pc, r_v_from_last, r_new_request;
-	reg			rvsrc, tagsrc;
+	reg			rvsrc;
 	wire			w_v_from_pc, w_v_from_last;
 	reg	[(AW+1):0]	lastpc;
 	reg	[(CW-1):0]	wraddr;
@@ -198,25 +198,12 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 	/////////////////////////////////////////////////
 	//
 	//
-	// tagsrc is roughly equivalent to isrc above.
-//
-// CAN WE REPLACE TAGSRC WITH ISRC?  THE LOGIC LOOKS IDENTICAL, NOW THAT I
-// REMOVED i_clear_cache FROM THE LOGIC
-//
-	always @(posedge i_clk)
-		// It may be possible to recover a clock once the cache line
-		// has been filled, but our prior attempt to do so has lead
-		// to a race condition, so we keep this logic simple.
-		if (((r_v)&&(i_stall_n))||(i_new_pc))
-			tagsrc <= 1'b1;
-		else
-			tagsrc <= 1'b0;
 
 	//
 	// Read the tag value associated with this i_pc value
 	initial	tagvalipc = 0;
 	always @(posedge i_clk)
-		tagvalipc <= tags[i_pc[(CW+1):PW+2]];
+		tagvalipc <= cache_tags[i_pc[(CW+1):PW+2]];
 
 
 	//
@@ -225,10 +212,10 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 	// not, or perhaps from when we determined that i was not in the cache.
 	initial	tagvallst = 0;
 	always @(posedge i_clk)
-		tagvallst <= tags[lastpc[(CW+1):PW+2]];
+		tagvallst <= cache_tags[lastpc[(CW+1):PW+2]];
 
 	// Select from between these two values on the next clock
-	assign	tagval = (tagsrc)?tagvalipc : tagvallst;
+	assign	tagval = (isrc)?tagvalipc : tagvallst;
 
 	// i_pc will only increment when everything else isn't stalled, thus
 	// we can set it without worrying about that.   Doing this enables
@@ -306,10 +293,7 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 	assign	r_v = ((rvsrc)?(r_v_from_pc):(r_v_from_last))&&(!r_new_request);
 	assign	o_valid = (((rvsrc)?(r_v_from_pc):(r_v_from_last))
 				||((o_illegal)&&(!o_wb_cyc)))
-//
-// DO WE STILL NEED THIS?  If this is captured by the decoder, then we may
-// not need this as combinatorial logic
-			&&(!i_new_pc)&&(!i_reset)&&(!i_clear_cache);
+			&&(!i_new_pc);
 
 	/////////////////////////////////////////////////
 	//
@@ -319,15 +303,11 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 	/////////////////////////////////////////////////
 	//
 	//
-//
-// THIS LOOKS LIKE IT REQUIRES AN EXTRA TWO CLOCKS DELAY.  SHOULDn'T WE BE
-// CHECKING FOR DELAY == 1, and push other parts of this check to the next
-// clock?
 	initial	needload = 1'b0;
 	always @(posedge i_clk)
 		needload <= ((!r_v)&&(delay==0)
 			// &&((tagvallst != lastpc[(AW+1):CW+2])
-			//	||(!vmask[lastpc[(CW+1):PW+2]]))
+			//	||(!valid_mask[lastpc[(CW+1):PW+2]]))
 			&&(!w_v_from_last)
 			// Prevent us from reloading an illegal address
 			// (i.e. one that produced a bus error) over and over
@@ -443,26 +423,26 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 		cache[wraddr] <= i_wb_data;
 
 	// VMask ... is a section loaded?
-	// Note "svmask".  It's purpose is to delay the vmask setting by one
-	// clock, so that we can insure the right value of the cache is loaded
-	// before declaring that the cache line is valid.  Without this, the
-	// cache line would get read, and the instruction would read from the
-	// last cache line.
-	initial	vmask = 0;
+	// Note "svmask".  It's purpose is to delay the valid_mask setting by
+	// one clock, so that we can insure the right value of the cache is
+	// loaded before declaring that the cache line is valid.  Without
+	// this, the cache line would get read, and the instruction would
+	// read from the last cache line.
+	initial	valid_mask = 0;
 	initial	svmask = 1'b0;
 	always @(posedge i_clk)
 		if ((i_reset)||(i_clear_cache))
 		begin
-			vmask <= 0;
+			valid_mask <= 0;
 			svmask<= 1'b0;
 		end
 		else begin
 			svmask <= ((o_wb_cyc)&&(i_wb_ack)&&(last_ack));
 
 			if (svmask)
-				vmask[saddr] <= (!bus_abort);
+				valid_mask[saddr] <= (!bus_abort);
 			if ((!o_wb_cyc)&&(needload))
-				vmask[lastpc[(CW+1):PW+2]] <= 1'b0;
+				valid_mask[lastpc[(CW+1):PW+2]] <= 1'b0;
 		end
 	always @(posedge i_clk)
 		if ((o_wb_cyc)&&(i_wb_ack))
@@ -505,5 +485,4 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 `ifdef	FORMAL
 // Formal verification properties would go here
 `endif	// FORMAL
-
 endmodule

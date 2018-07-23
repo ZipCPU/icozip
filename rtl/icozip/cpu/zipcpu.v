@@ -793,8 +793,8 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	always @(posedge i_clk)
 	if (dcd_ce)
 	begin
-		pre_rewrite_flag_A <= (wr_reg_ce)&&(dcd_preA[4:0] == wr_reg_id);
-		pre_rewrite_flag_B <= (wr_reg_ce)&&(dcd_preB[4:0] == wr_reg_id);
+		pre_rewrite_flag_A <= (wr_reg_ce)&&(dcd_preA == wr_reg_id);
+		pre_rewrite_flag_B <= (wr_reg_ce)&&(dcd_preB == wr_reg_id);
 		pre_rewrite_value  <= wr_gpreg_vl;
 	end
 
@@ -803,16 +803,16 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 		always @(posedge i_clk)
 		if (dcd_ce)
 		begin
-			pre_op_Av = regset[dcd_preA[3:0]];
-			pre_op_Bv = regset[dcd_preB[3:0]];
+			pre_op_Av <= regset[dcd_preA[3:0]];
+			pre_op_Bv <= regset[dcd_preB[3:0]];
 		end
 	end else begin
 
 		always @(posedge i_clk)
 		if (dcd_ce)
 		begin
-			pre_op_Av = regset[dcd_preA];
-			pre_op_Bv = regset[dcd_preB];
+			pre_op_Av <= regset[dcd_preA];
+			pre_op_Bv <= regset[dcd_preB];
 		end
 
 	end endgenerate
@@ -830,6 +830,11 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 		assign	w_op_Bv = regset[dcd_B];
 
 	end endgenerate
+
+	// verilator lint_off UNUSED
+	wire	[9:0]	unused_prereg_addrs;
+	assign	unused_prereg_addrs = { dcd_preA, dcd_preB };
+	// verilator lint_on  UNUSED
 `endif
 
 	assign	w_cpu_info = {
@@ -2305,10 +2310,32 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 		end
 	end else begin : SETDBG
 
+`ifdef	NO_DISTRIBUTED_RAM
+/*
+		reg	[31:0]	pre_dbg_reg;
+		always @(posedge i_clk)
+			pre_dbg_reg <= regset[i_dbg_reg];
+
 		always @(posedge i_clk)
 		begin
-			o_dbg_reg <= 0;
-			/*
+			o_dbg_reg <= pre_dbg_reg;
+			if (i_dbg_reg[3:0] == `CPU_PC_REG)
+				o_dbg_reg <= w_debug_pc;
+			else if (i_dbg_reg[3:0] == `CPU_CC_REG)
+			begin
+				o_dbg_reg[14:0] <= (i_dbg_reg[4])
+						? w_uflags : w_iflags;
+				o_dbg_reg[15] <= 1'b0;
+				o_dbg_reg[31:23] <= w_cpu_info;
+				o_dbg_reg[`CPU_GIE_BIT] <= gie;
+			end
+		end
+*/
+		always @(*)
+			o_dbg_reg = 0;
+`else
+		always @(posedge i_clk)
+		begin
 			o_dbg_reg <= regset[i_dbg_reg];
 			if (i_dbg_reg[3:0] == `CPU_PC_REG)
 				o_dbg_reg <= w_debug_pc;
@@ -2320,8 +2347,8 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 				o_dbg_reg[31:23] <= w_cpu_info;
 				o_dbg_reg[`CPU_GIE_BIT] <= gie;
 			end
-			*/
 		end
+`endif
 
 	end endgenerate
 
