@@ -113,7 +113,7 @@ _@$(MEM.NAME) = ORIGIN(@$(MEM.NAME))
 #endif // @$(ACCESS)
 @SIM.INIT=
 #ifdef	@$(ACCESS)
-		m_@$(MEM.NAME) = new SRAMSIM(SRAMLEN);
+		m_@$(MEM.NAME) = new SRAMSIM(@$NBYTES);
 #endif // @$(ACCESS)
 @SIM.TICK=
 #ifdef	@$(ACCESS)

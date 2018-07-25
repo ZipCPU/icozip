@@ -1,5 +1,7 @@
 arm-netpport
 arm-pptest
 arm-wbregs
+arm-flashid
 pc-wbregs
+pc-flashid
 resetbus

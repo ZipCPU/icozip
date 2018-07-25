@@ -57,11 +57,12 @@ VROOT	:= $(VERILATOR_ROOT)
 VDEFS   := $(shell ./vversion.sh)
 VINCD   := $(VROOT)/include
 INCS	:= -I$(RTLD) -I$(RTLD)/obj-$(ARCH)/ -I$(VINCD) -I$(VINCD)/vltstd
-CFLAGS	:= -Og -g -faligned-new -Wall $(INCS)
+CFLAGS	:= -Og -g -Wall $(INCS)
+# CFLAGS	:= -Og -g -faligned-new -Wall $(INCS)
 #
 # A list of our sources and headers
 #
-SIMSRCS := zipelf.cpp memsim.cpp byteswap.cpp pportsim.cpp
+SIMSRCS := zipelf.cpp byteswap.cpp pportsim.cpp sramsim.cpp flashsim.cpp
 # Not used: i2csim.cpp
 VOBJDR	:= $(RTLD)/$(OBJDIR)
 VOBJS   := $(OBJDIR)/verilated.o $(OBJDIR)/verilated_vcd_c.o

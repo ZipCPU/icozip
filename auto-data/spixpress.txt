@@ -95,8 +95,8 @@
 #define	@$(DEVID)BASE	@$[0x%08x](REGBASE)
 #define	@$(DEVID)LEN	@$NBYTES
 #define	@$(DEVID)LGLEN	@$LGFLASHSZ
-@REGS.0= 0 R_@$(DEVID) @$(FLASH)
-@BDEF.OSDEF=_BOARD_HAS_@$(FLASH)
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=extern char _@$(PREFIX)[@$NBYTES];
 @LDSCRIPT.PSTR=	rx
 @LDSCRIPT.PTR=	@$(PREFIX)
@@ -116,19 +116,17 @@ _@$(PREFIX)=ORIGIN(@$(PREFIX));
 #endif
 @SIM.TICK +=
 #ifdef	@$(ACCESS)
-		{
-		int	idspi;
-		// The toplevel logic creates a one cycle/clock delay.  Emulate
-		// it here.
 		if (m_core->o_spi_sck) {
-			(*m_@$(MEM.NAME))(m_core->o_dspi_cs_n,
+			(*m_@$(MEM.NAME))(m_core->o_spi_cs_n,
 						(m_core->o_spi_sck)?0:1,
 						m_core->o_spi_mosi);
-		} m_core->i_miso = (*m_@$(MEM.NAME))(m_core->o_spi_cs_n, 1,
+		} m_core->i_spi_miso = (*m_@$(MEM.NAME))(m_core->o_spi_cs_n, 1,
 						m_core->o_spi_mosi);
 #endif
 @SIM.LOAD +=
+#ifdef	@$(ACCESS)
 			m_@$(MEM.NAME)->load(start, &buf[offset], wlen);
+#endif
 #
 #
 #

@@ -17,7 +17,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015,2017, Gisselquist Technology, LLC
+// Copyright (C) 2015,2017-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -47,7 +47,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "qspiflashsim.h"
+#include "flashsim.h"
 
 static	const unsigned	DEVID = 0x0115,
 	DEVESD = 0x014,
@@ -65,7 +65,7 @@ static	const unsigned	DEVID = 0x0115,
 	// tPP    = 1200 * MICROSECONDS,
 	// tSE    = 1500 * MILLISECONDS;
 
-QSPIFLASHSIM::QSPIFLASHSIM(const int lglen, bool debug) {
+FLASHSIM::FLASHSIM(const int lglen, bool debug) {
 	m_membytes = (1<<lglen);
 	m_memmask = (m_membytes - 1);
 	m_mem = new char[m_membytes];
@@ -82,7 +82,7 @@ QSPIFLASHSIM::QSPIFLASHSIM(const int lglen, bool debug) {
 	memset(m_mem, 0x0ff, m_membytes);
 }
 
-void	QSPIFLASHSIM::load(const unsigned addr, const char *fname) {
+void	FLASHSIM::load(const unsigned addr, const char *fname) {
 	FILE	*fp;
 	size_t	len;
 	int	nr = 0;
@@ -109,7 +109,7 @@ void	QSPIFLASHSIM::load(const unsigned addr, const char *fname) {
 		m_mem[i] = 0x0ff;
 }
 
-void	QSPIFLASHSIM::load(const uint32_t offset, const char *data, const uint32_t len) {
+void	FLASHSIM::load(const uint32_t offset, const char *data, const uint32_t len) {
 	uint32_t	moff = (offset & (m_memmask));
 
 	memcpy(&m_mem[moff], data, len);
@@ -117,7 +117,7 @@ void	QSPIFLASHSIM::load(const uint32_t offset, const char *data, const uint32_t 
 
 #define	QOREG(A)	m_oreg = ((m_oreg & (~0x0ff))|(A&0x0ff))
 
-int	QSPIFLASHSIM::operator()(const int csn, const int sck, const int dat) {
+int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 	// Keep track of a timer to determine when page program and erase
 	// cycles complete.
 

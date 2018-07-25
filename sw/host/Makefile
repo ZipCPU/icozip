@@ -41,10 +41,10 @@ all:
 CROSS ?=
 ARCH  ?= $(shell bash ./arch.sh)
 #
-ifeq ($(ARCH), arm)
+ifeq ($(ARCH),arm)
 PROGRAMS   := wbregs netpport
 else
-PROGRAMS   := wbregs # netpport
+PROGRAMS   := wbregs flashid # netpport
 endif
 
 PREFXPPGMS := $(addprefix $(ARCH)-,$(PROGRAMS))
@@ -58,7 +58,7 @@ hostcheck:
 CXX := $(CROSS)g++
 OBJDIR := obj-$(ARCH)
 BUSSRCS := hexbus.cpp llcomms.cpp regdefs.cpp byteswap.cpp
-SOURCES := wbregs.cpp netpport.cpp $(BUSSRCS)
+SOURCES := wbregs.cpp netpport.cpp flashid.cpp $(BUSSRCS)
 # rdclocks.cpp flashdrvr.cpp		\
 #	 mkedid.cpp $(BUSSRCS)	edidrxscope.cpp	edidtxscope.cpp		\
 #	zipload.cpp zipstate.cpp zipdbg.cpp cpedid.cpp readhist.cpp	\
@@ -108,6 +108,10 @@ $(ARCH)-wbregs: $(OBJDIR)/wbregs.o $(BUSOBJS)
 # Programs that depend upon not just the bus objects, but the flash driver
 # as well.
 wbprogram: $(OBJDIR)/wbprogram.o $(OBJDIR)/flashdrvr.o $(BUSOBJS)
+	$(CXX) -g $^ -o $@
+.PHONY: flashid
+flashid: $(ARCH)-flashid
+$(ARCH)-flashid: $(OBJDIR)/flashid.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
 zipload: $(OBJDIR)/zipload.o $(OBJDIR)/flashdrvr.o $(BUSOBJS) $(OBJDIR)/zipelf.o
 	$(CXX) -g $^ -lelf -o $@

@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015,2017, Gisselquist Technology, LLC
+// Copyright (C) 2015,2017-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -38,13 +38,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-#ifndef	QSPIFLASHSIM_H
-#define	QSPIFLASHSIM_H
+#ifndef	FLASHSIM_H
+#define	FLASHSIM_H
 
 #define	QSPIF_WIP_FLAG			0x0001
 #define	QSPIF_WEL_FLAG			0x0002
 #define	QSPIF_DEEP_POWER_DOWN_FLAG	0x0200
-class	QSPIFLASHSIM {
+class	FLASHSIM {
 	typedef	enum {
 		QSPIF_IDLE,
 		QSPIF_QUAD_READ_IDLE,
@@ -74,7 +74,7 @@ class	QSPIFLASHSIM {
 	bool		m_quad_mode, m_debug;
 
 public:
-	QSPIFLASHSIM(const int lglen = 24, bool debug = false);
+	FLASHSIM(const int lglen = 24, bool debug = false);
 	void	load(const char *fname) { load(0, fname); }
 	void	load(const unsigned addr, const char *fname);
 	void	load(const uint32_t offset, const char *data, const uint32_t len);

@@ -6,8 +6,8 @@ mode bmc
 smtbmc
 
 [script]
-read_verilog -formal sramdev.v
-read_verilog -formal fwb_slave.v
+read -sv sramdev.v
+read -sv fwb_slave.v
 prep -top sramdev
 
 [files]

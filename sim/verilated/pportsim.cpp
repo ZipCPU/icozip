@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	dblpipecmdr.cpp
+// Filename: 	pportsim.cpp
 //
 // Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2017, Gisselquist Technology, LLC
+// Copyright (C) 2015-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -196,14 +196,13 @@ void	PPORTSIM::poll_read(void) {
 	else if (r == 0)
 		return;
 
-	printf("POLL = %d\n", r);
+	// printf("POLL = %d\n", r);
 	for(int i=0; i<npb; i++) {
 		if (pb[i].revents & POLLIN) {
 			int	nr;
 			nr =recv(pb[i].fd, &m_rxbuf[m_ilen],
 					sizeof(m_rxbuf)-m_ilen,
 					MSG_DONTWAIT);
-printf("RCVD: %d bytes\n", nr);
 			if (pb[i].fd == m_cmd) {
 				for(int j=0; j<nr; j++) {
 					m_cmdline[m_cllen] = m_rxbuf[j+m_ilen];
@@ -263,8 +262,8 @@ void	PPORTSIM::received(const char ch) {
 		m_cmdbuf[m_cmdpos] = '\0';
 		if (m_copy) printf("> %s", m_cmdbuf);
 		if (snt < m_cmdpos) {
-			fprintf(stderr, "CMD: Only sent %d bytes of %d!\n",
-				snt, m_cmdpos);
+			// fprintf(stderr, "CMD: Only sent %d bytes of %d!\n",
+			//	snt, m_cmdpos);
 		}
 		m_cmdpos = 0;
 	} if ((m_conpos>0)&&((m_conbuf[m_conpos-1] == '\n')

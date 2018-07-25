@@ -61,13 +61,13 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 	input	wire	[15:0]		i_ram_data;
 
 	
-	reg	[1:0]	ram_state;
-	reg	[15:0]	hi_data;
-	reg	[1:0]	hi_sel;
+	reg		ram_state;
+	reg	[15:0]	lo_data;
+	reg	[1:0]	lo_sel;
 	reg		next_ack;
 	reg		write;
 
-	initial	ram_state  = 2'b00;
+	initial	ram_state  = 1'b0;
 	initial	o_wb_ack   = 1'b0;
 	initial	o_wb_stall = 1'b0;
 	initial	next_ack   = 1'b0;
@@ -84,12 +84,16 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 		o_wb_ack   <= 1'b0;
 		next_ack   <= 1'b0;
 		case(ram_state)
-		2'b00: begin // Idle state
+		1'b0: begin // Idle state
 			// If we just finished a second cycle
-			o_wb_data[31:16] <= i_ram_data;
 			o_ram_addr <= { i_wb_addr, 1'b0 };
 			o_ram_sel  <= 2'b11;
 			o_ram_ce_n <= 1'b1;
+			o_wb_data[15:0] <= i_ram_data;
+			o_wb_ack  <= (next_ack)&&(i_wb_cyc);
+			//
+			o_ram_data <= i_wb_data[31:16];
+			o_ram_sel  <= i_wb_sel[3:2];
 			if (i_wb_stb)
 			begin
 				// Start a cycle
@@ -97,54 +101,35 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 				o_ram_oe_n <=  (i_wb_we);
 				o_ram_we_n <= (!i_wb_we);
 				write      <= i_wb_we;
-				ram_state  <= 2'b01;
-				o_ram_data <= i_wb_data[31:16];
-				o_ram_sel  <= i_wb_sel[3:2];
+				ram_state  <= 1'b1;
 				//
-				hi_data    <= i_wb_data[15:0];
-				hi_sel     <= i_wb_sel[1:0];
+				lo_data    <= i_wb_data[15:0];
+				lo_sel     <= i_wb_sel[1:0];
 				o_wb_stall <= 1'b1;
 				next_ack   <= 1'b1;
 			end end
-		2'b01: begin
-			o_ram_ce_n <= 1'b1;
-			o_ram_oe_n <= 1'b1;
-			o_ram_we_n <= 1'b1;
-			o_ram_sel  <= 2'b11;
-			ram_state  <= 2'b10;
+		1'b1: begin
+			o_wb_data[31:16] <= i_ram_data;
+			o_ram_data       <= lo_data;
+			o_ram_sel        <= lo_sel;
+			o_ram_ce_n       <= o_ram_ce_n;
+			o_ram_oe_n       <= o_ram_oe_n;
+			o_ram_we_n       <= o_ram_we_n;
 			next_ack   <= (next_ack)&&(i_wb_cyc);
-			o_wb_stall <= 1'b1;
-			end
-		2'b10: begin // Second half of read/write
-			ram_state  <= 2'b11;
-			o_ram_ce_n <= 1'b0;
-			o_ram_oe_n <= write;
-			o_ram_we_n <= !write;
-			o_ram_data <= hi_data;
-			o_ram_sel  <= hi_sel;
-			o_wb_stall <= 1'b1;
-			o_wb_data[15:0] <= i_ram_data;
-			o_ram_addr[0] <= 1'b1;
-			next_ack   <= (next_ack)&&(i_wb_cyc);
-			end
-		2'b11: begin
-			// Finish the access
-			o_ram_ce_n <= 1'b1;
-			o_ram_oe_n <= 1'b1;
-			o_ram_we_n <= 1'b1;
-			o_ram_sel  <= 2'b11;
 			o_wb_stall <= 1'b0;
-			ram_state <= 2'b00;
-			o_wb_ack  <= (next_ack)&&(i_wb_cyc);
+			o_ram_addr[0] <= 1'b1;
+			ram_state <= 1'b0;
 			end
 		endcase
 	end
 
 `ifdef	FORMAL
-	reg	f_reset;
-	initial	f_reset = 1'b1;
+	reg	f_past_valid, f_reset;
+	initial	f_past_valid = 1'b0;
 	always @(posedge i_clk)
-		f_reset <= 1'b0;
+		f_past_valid <= 1'b1;
+	always @(*)
+		f_reset = !f_past_valid;
 
 	parameter	F_LGDEPTH = 3;
 	wire	[F_LGDEPTH-1:0]	f_nreqs, f_nacks, f_outstanding;
@@ -164,6 +149,18 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 		cover((i_wb_cyc)&&(o_wb_ack)&&($past(write)));
 
 	always @(posedge i_clk)
+	if (f_past_valid)
+		assert(o_ram_ce_n != ((($past(i_wb_stb))&&(!$past(o_wb_stall)))
+					||($past(ram_state))));
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&($past((!next_ack)||(!i_wb_cyc))))
+		assert(!o_wb_ack);
+
+	always @(*)
+		assert(o_wb_stall == ram_state);
+
+	always @(posedge i_clk)
 	if (o_ram_ce_n)
 	begin
 		assert(o_ram_oe_n);
@@ -171,9 +168,68 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 		assert(o_ram_sel == 2'b11);
 	end
 
-	always @(posedge i_clk)
-	if ($past(!o_ram_ce_n))
-		assert(o_ram_ce_n);
+	always @(*)
+	if (!o_ram_ce_n)
+		assert(o_ram_we_n != o_ram_oe_n);
 
+	always @(posedge i_clk)
+	if (($past(o_ram_ce_n))||($past(o_ram_ce_n,2)))
+		assert(!o_wb_ack);
+	always @(posedge i_clk)
+	if (o_wb_ack)
+	begin
+		assert(o_wb_data[15:0] == $past(i_ram_data));
+		assert(o_wb_data[31:16] == $past(i_ram_data,2));
+	end
+
+	(* anyconst *)	reg	[15:0]	f_addr;
+			reg	[15:0]	f_data;
+
+	always @(posedge i_clk)
+	if ((!o_ram_ce_n)&&(!o_we_n)&&(o_ram_addr == f_addr))
+	begin
+		if (o_ram_sel[1])
+			f_data[15:8] <= o_ram_data[15:8];
+		if (o_ram_sel[0])
+			f_data[7:0] <= o_ram_data[7:0];
+	end
+
+	always @(*)
+	if ((!o_ram_ce_n)&&(!o_ram_oe_n))
+		assume(i_ram_data == f_data);
+
+	always @(posedge i_clk)
+	if (((o_wb_ack)&&($past(o_wb_addr[14:0],3)== f_addr[15:1]))
+			&&(!$past(o_wb_we,3)))
+	begin
+		if (f_addr[0])
+			assert(o_wb_data[15:0] == f_data);
+		else
+			assert(o_wb_data[31:16] == f_data);
+	end
+`endif
+`ifdef	VERIFIC
+	assert property (@(posedge i_clk)
+		disable iff (!i_wb_cyc)
+		(i_wb_stb)&&(!o_wb_stall)
+		|=> (ram_state)&&(!o_ram_ce_n)&&(o_wb_stall)
+			&&(o_ram_we_n == !$past(i_wb_we))
+		##1 (!ram_state)&&(!o_ram_ce_n)&&(!o_wb_stall)
+				&&(o_wb_data[31:16] == $past(i_ram_data))
+				&&(o_ram_we_n == $past(o_ram_we_n))
+		##1 (o_wb_ack)&&(o_wb_data[31:16] == o_wb_data[31:16])
+			&&(o_wb_data[15:0] == $past(i_ram_data)));
+
+	assert property (@(posedge i_clk)
+		disable iff (!i_wb_cyc)
+		(i_wb_stb)&&(!o_wb_stall)&&(o_wb_we)
+		|=> (ram_state)&&(!o_ram_ce_n)&&(o_wb_stall)
+			&&(!o_ram_we_n)&&(!o_ram_addr[0])
+				&&(o_ram_data==$past(o_wb_data[31:16]))
+		##1 (!ram_state)&&(!o_ram_ce_n)&&(!o_wb_stall)
+				&&(o_wb_data[31:16] == $past(i_ram_data))
+				&&(o_ram_we_n == $past(o_ram_we_n))
+				&&(o_ram_data==$past(o_wb_data[15:0],2))
+		##1 (o_wb_ack);
 `endif
 endmodule

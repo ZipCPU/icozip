@@ -2294,9 +2294,7 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 
 		always @(posedge i_clk)
 		begin
-			o_dbg_reg <= 0;
-			/*
-			// o_dbg_reg <= regset[i_dbg_reg[3:0]];
+			o_dbg_reg <= regset[i_dbg_reg[3:0]];
 			if (i_dbg_reg[3:0] == `CPU_PC_REG)
 				o_dbg_reg <= w_debug_pc;
 			else if (i_dbg_reg[3:0] == `CPU_CC_REG)
@@ -2306,33 +2304,28 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 				o_dbg_reg[31:23] <= w_cpu_info;
 				o_dbg_reg[`CPU_GIE_BIT] <= gie;
 			end
-			*/
 		end
 	end else begin : SETDBG
 
 `ifdef	NO_DISTRIBUTED_RAM
-/*
 		reg	[31:0]	pre_dbg_reg;
 		always @(posedge i_clk)
 			pre_dbg_reg <= regset[i_dbg_reg];
 
-		always @(posedge i_clk)
+		always @(*)
 		begin
-			o_dbg_reg <= pre_dbg_reg;
+			o_dbg_reg = pre_dbg_reg;
 			if (i_dbg_reg[3:0] == `CPU_PC_REG)
-				o_dbg_reg <= w_debug_pc;
+				o_dbg_reg = w_debug_pc;
 			else if (i_dbg_reg[3:0] == `CPU_CC_REG)
 			begin
-				o_dbg_reg[14:0] <= (i_dbg_reg[4])
+				o_dbg_reg[14:0] = (i_dbg_reg[4])
 						? w_uflags : w_iflags;
-				o_dbg_reg[15] <= 1'b0;
-				o_dbg_reg[31:23] <= w_cpu_info;
-				o_dbg_reg[`CPU_GIE_BIT] <= gie;
+				o_dbg_reg[15] = 1'b0;
+				o_dbg_reg[31:23] = w_cpu_info;
+				o_dbg_reg[`CPU_GIE_BIT] = gie;
 			end
 		end
-*/
-		always @(*)
-			o_dbg_reg = 0;
 `else
 		always @(posedge i_clk)
 		begin
