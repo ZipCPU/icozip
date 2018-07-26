@@ -78,6 +78,7 @@
 // from the fields given by @MAIN.PORTLIST
 //
 module	main(i_clk, i_reset,
+	o_dbgwires,
 		o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr, o_ram_sel, 
 			o_ram_data, i_ram_data,
 		// GPIO ports
@@ -128,6 +129,7 @@ module	main(i_clk, i_reset,
 // verilator lint_off UNUSED
 	input	wire		i_reset;
 	// verilator lint_on UNUSED
+	output	wire	[3:0]	o_dbgwires;
 	output	wire		o_ram_ce_n, o_ram_oe_n, o_ram_we_n;
 	output	wire	[15:0]	o_ram_addr;
 	output	wire	[1:0]	o_ram_sel;
@@ -691,7 +693,12 @@ module	main(i_clk, i_reset,
 	wire	[31:0]	spixpress_debug;
 	wire		spixscope_int;
 
-	assign	spixpress_debug = { (!o_spi_cs_n), {(32-5){1'b0}},
+	assign	spixpress_debug = { (!o_spi_cs_n), wb_cyc,
+				(wb_stb)&&(flash_sel),
+				(wb_stb)&&(flash_cfg_sel), wb_we,
+				flash_stall,flash_ack, wb_data[8:0],
+				flash_data[8:0],
+				3'h0,
 				o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso };
 	wbscope #(.LGMEM(7), .SYNCHRONOUS(1), .HOLDOFFBITS(8))
 		spixscopei(i_clk, 1'b1, (!o_spi_cs_n), spixpress_debug,
@@ -711,6 +718,7 @@ module	main(i_clk, i_reset,
 
 `endif	// FLASH_SCOPE
 
+	assign	o_dbgwires = { o_spi_sck, flash_ack, flash_stall, flash_data[0] };
 `ifdef	SRAM_ACCESS
 	sramdev #(.WBADDR(17-2))
 		srami(i_clk,
@@ -927,7 +935,7 @@ module	main(i_clk, i_reset,
 		zip_cyc, zip_stb, zip_we, zip_addr, zip_data, zip_sel,
 			zip_ack, zip_stall, zip_err,
 		// The UART interface master
-		(hb_cyc)&&(hb_dwb_sel),
+		(hb_cyc),
 			(hb_stb)&&(hb_dwb_sel),
 			hb_we,
 			hb_addr[(23-1):0],

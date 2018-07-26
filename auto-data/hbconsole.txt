@@ -56,14 +56,12 @@
 @$BUS_ADDRESS_WIDTH= @$(MASTER.BUS.AWID)
 @TOP.PORTLIST=
 		// Parallel port to wishbone / console interface
-		i_pp_dir, i_pp_clk, io_pp_data, o_pp_clkfb,
-		o_dbgwires
+		i_pp_dir, i_pp_clk, io_pp_data, o_pp_clkfb
 @TOP.IODECL=
 	// Parallel port to wishbone / console interface
 	input	wire		i_pp_dir, i_pp_clk;
 	inout	wire	[7:0]	io_pp_data;
 	output	wire		o_pp_clkfb;
-	output	wire	[7:0]	o_dbgwires;
 @TOP.DEFNS=
 	//
 	//
@@ -77,10 +75,6 @@
 	//
 	// Parallel port I/O pin control
 	ppio	@$(PREFIX)i_io(i_pp_dir, io_pp_data, w_pp_data, i_pp_data);
-
-	assign	o_dbgwires = { i_pp_dir, i_pp_clk, o_pp_clkfb,
-				w_pp_dbg, i_pp_data[3:0] };
-
 @TOP.MAIN=
 		// External USB-UART bus control
 		i_pp_clk, i_pp_dir, i_pp_data, w_pp_data, o_pp_clkfb, w_pp_dbg

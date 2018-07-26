@@ -13,7 +13,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2017, Gisselquist Technology, LLC
+## Copyright (C) 2016-2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -38,7 +38,7 @@
 ##
 ##
 .PHONY: all
-all:	check-install archive datestamp autodata rtl sw sim # verilated bench
+all:	check-install archive datestamp autodata rtl sw sim # bench
 #
 # Could also depend upon load, if desired, but not necessary
 SIM   := `find sim -name Makefile` `find sim -name "*.cpp"` `find sim -name "*.h"` `find sim -name "*.c"`

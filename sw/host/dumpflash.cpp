@@ -1,11 +1,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	flashid.cpp
+// Filename:	dumpflash.cpp
 //
 // Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
-// Purpose:	Read the ID from the flash as a test of whether or not the
-//		SPIXPRESS controller is working or not.
+// Purpose:	Read the entire contents of the flash memory into a file.
+//		The flash is unchanged by this process.
 //
 //
 // Creator:	Dan Gisselquist, Ph.D.
@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2015-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -51,24 +51,24 @@
 #include "hexbus.h"
 
 FPGA	*m_fpga;
-void	closeup(int v) {
-	m_fpga->kill();
-	exit(0);
-}
+
+#define	DUMPMEM		FLASHBASE
+#define	DUMPWORDS	(FLASHLEN>>2)	// 16MB Flash
 
 void	usage(void) {
-	printf("USAGE: flashid [-n host] [-p port]\n"
+	printf("USAGE:\tdumpflash [-n host] [-p port] filename.bin\n"
 "\n"
-"\t[-n host]\tAttempt to connect, via TCP/IP, to host named [host].\n"
-"\t\tThe default host is \'%s\'\n"
-"\n"
-"\t-p [port]\tAttempt to connect, via TCP/IP, to port number [port].\n"
-"\t\tThe default port is \'%d\'\n"
-"\n", FPGAHOST, FPGAPORT);
+"\tReads the values from the flash on board, and dumps them directly into\n"
+"\tthe file filename.bin.\n");
 }
 
+
 int main(int argc, char **argv) {
-#ifdef	R_FLASHCFG
+	FILE		*fp = NULL;
+	const int	BUFLN = DUMPWORDS; // 1MB Flash
+	FPGA::BUSW	*buf = new FPGA::BUSW[BUFLN];
+	const	char	*fname = NULL;
+
 	const char *host = FPGAHOST;
 	int	port=FPGAPORT;
 
@@ -97,37 +97,70 @@ int main(int argc, char **argv) {
 				usage();
 				exit(EXIT_SUCCESS);
 			}
+		} else if (fname == NULL) {
+			fname = argv[argn];
 		} else {
 			usage();
 			exit(EXIT_FAILURE);
 		}
 	}
 
+	if (fname == NULL) {
+		fprintf(stderr, "No filename given\n\n");
+		usage();
+		exit(EXIT_FAILURE);
+	//} else if (0 != access(fname, W_OK)) {
+		//fprintf(stderr, "ERR: No permission to write %s\n\n", fname);
+		//exit(EXIT_FAILURE);
+	}
+		
 	m_fpga = new FPGA(new NETCOMMS(host, port));
 
-	signal(SIGSTOP, closeup);
-	signal(SIGHUP, closeup);
 
-	// Make sure we start with the flash in idle
-	m_fpga->writeio(R_FLASHCFG, 0x100);
-#ifdef	R_SPIXSCOPE
-	m_fpga->writeio(R_SPIXSCOPE, 124);
-#endif
-	m_fpga->writeio(R_FLASHCFG, 0x09f);
-	m_fpga->writeio(R_FLASHCFG, 0x000);
-	printf("ID:");
-	for(int i=0; i<12; i++) {
-		unsigned	id;
-		id = m_fpga->readio(R_FLASHCFG);
-		printf("%c%02x", (i==0)?' ':':', id&0x0ff);
-		m_fpga->writeio(R_FLASHCFG, 0x000);
-	} printf("\n");
-	m_fpga->writeio(R_FLASHCFG, 0x100);
+	// SPI flash testing
+	// Enable the faster (vector) reads
+	bool	vector_read = true;
+	unsigned	sz;
 
+	try {
+		if (vector_read) {
+			m_fpga->readi(DUMPMEM, BUFLN, buf);
+		} else {
+			for(int i=0; i<BUFLN; i++) {
+				buf[i] = m_fpga->readio(DUMPMEM+i);
+				// if (0 == (i&0x0ff))
+					printf("i = %02x / %04x, addr = i + %04x = %08x\n", i, BUFLN, DUMPMEM, i+DUMPMEM);
+			}
+		}
+	} catch(BUSERR err) {
+		fprintf(stderr, "Caught a bus ERROR at address 0x%08x\n", err.addr);
+		exit(EXIT_FAILURE);
+			
+	} catch(char *err) {
+		fprintf(stderr, "EXCEPTION: %s\n", err);
+		exit(EXIT_FAILURE);
+	} catch(...) {
+		fprintf(stderr, "Caught an unexpected exception\n");
+		fprintf(stderr, "Exiting on an unknown error\n");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("\nREAD-COMPLETE\n");
+
+	// Now, let's find the end
+	sz = BUFLN-1;
+	while((sz>0)&&(buf[sz] == 0xffffffff))
+		sz--;
+	sz+=1;
+	printf("The size of the buffer is 0x%06x or %d words\n", sz, sz);
+
+	fp = fopen(fname,"w");
+	if (fp == NULL) {
+		fprintf(stderr, "ERR: Could not write %s\n", fname);
+		exit(EXIT_FAILURE);
+	}
+	fwrite(buf, sizeof(buf[0]), sz, fp);
+	fclose(fp);
 
 	delete	m_fpga;
-#else
-	printf("ERR: NO FLASH CONFIGURATION REGISTER DEFINED!\n");
-#endif
 }
-

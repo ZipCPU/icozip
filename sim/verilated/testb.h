@@ -105,7 +105,6 @@ public:
 		// logic depends.  This forces that logic to be recalculated
 		// before the top of the clock.
 		m_changed = true;
-		sim_clk_tick();
 		if (m_changed) {
 			eval();
 			if (m_trace) m_trace->dump(m_time_ps - 5000);

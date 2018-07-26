@@ -1,10 +1,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	oclkddr.v
+// Filename: 	flashdrvr.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	OpenArty, an entirely open SoC based upon the Arty platform
 //
-// Purpose:	
+// Purpose:	Flash driver.  Encapsulates writing, both erasing sectors and
+//		the programming pages, to the flash device.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -24,7 +25,7 @@
 // for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+// with this program.  (It's in the $(ROOT)/doc directory, run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
 //
@@ -35,20 +36,25 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-`default_nettype	none
-//
-module	oclkddr(i_clk, i_ddr, o_pin);
-	input	wire		i_clk;
-	input	wire	[1:0]	i_ddr;
-	output	wire		o_pin;
+#ifndef	FLASHDRVR_H
+#define	FLASHDRVR_H
 
-	SB_IO	#(.PIN_TYPE(6'b0100_01)
-	   ) oddr(
-		.OUTPUT_CLK(i_clk),
-		.CLOCK_ENABLE(1'b1),
-		.D_OUT_0(i_ddr[1]),
-		.D_OUT_1(i_ddr[0]),
-		.OUTPUT_ENABLE(1),
-		.PACKAGE_PIN(o_pin));
+#include "regdefs.h"
 
-endmodule
+class	FLASHDRVR {
+private:
+	DEVBUS	*m_fpga;
+
+	bool	verify_config(void);
+	void	set_config(void);
+	void	flwait(void);
+public:
+	FLASHDRVR(DEVBUS *fpga) : m_fpga(fpga) {}
+	bool	erase_sector(const unsigned sector, const bool verify_erase=true);
+	bool	write_page(const unsigned addr, const unsigned len,
+			const unsigned *data, const bool verify_write=true);
+	bool	write(const unsigned addr, const unsigned len,
+			const unsigned *data, const bool verify=false);
+};
+
+#endif

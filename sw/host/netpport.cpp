@@ -86,6 +86,16 @@ bool verbose = false;
 #  define RASPI_CLK 29 // PIN 40, GPIO.29, IO185,       C10
 #  define RASPI_CLKFB  RASPI_D8
 
+#define RPI_ICE_CLK     7 // PIN  7
+#define RPI_ICE_CDONE   2 // PIN 13
+#define RPI_ICE_MOSI    21 // PIN 29
+#define RPI_ICE_MISO    22 // PIN 31
+#define LOAD_FROM_FLASH 23 // PIN 33
+#define RPI_ICE_CRESET  25 // PIN 37
+#define RPI_ICE_CS      10 // PIN 24
+#define RPI_ICE_SELECT  16 // PIN 32
+
+
 #define	READ_FROM_ICO	0
 #define	WRITE_TO_ICO	1
 
@@ -260,6 +270,11 @@ private:
 	void	pp_init(void) {
 		// Initialize the wiringPi library
 		wiringPiSetup();
+
+		//
+		// Give the FPGA access to the flash
+		pinMode(LOAD_FROM_FLASH,  OUTPUT);
+		digitalWrite(LOAD_FROM_FLASH,  1);
 
 		// Comms take place over 8 bidirectional data bits, a clock,
 		// and a direction bit

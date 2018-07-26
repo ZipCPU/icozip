@@ -44,7 +44,12 @@
 	wire	[31:0]	spixpress_debug;
 	wire		spixscope_int;
 
-	assign	spixpress_debug = { (!o_spi_cs_n), {(32-5){1'b0}},
+	assign	spixpress_debug = { (!o_spi_cs_n), wb_cyc,
+				(wb_stb)&&(flash_sel),
+				(wb_stb)&&(flash_cfg_sel), wb_we,
+				flash_stall,flash_ack, wb_data[8:0],
+				flash_data[8:0],
+				3'h0,
 				o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso };
 	wbscope #(.LGMEM(7), .SYNCHRONOUS(1), .HOLDOFFBITS(8))
 		@$(PREFIX)i(i_clk, 1'b1, (!o_spi_cs_n), spixpress_debug,
@@ -55,8 +60,26 @@
 @REGS.N= 1
 @DEVID=SPIXSCOPE
 @REGS.0= 0 R_@$(DEVID) @$(DEVID)
-@REGS.0= 1 R_@$(DEVID)D @$(DEVID)D
+@REGS.1= 1 R_@$(DEVID)D @$(DEVID)D
 #
 @RTL.MAKE.GROUP= SCOPE
 @RTL.MAKE.FILES= wbscope.v
 #
+@PREFIX=externalscope
+@TOP.PORTLIST=
+	o_dbgwires
+@TOP.IODECL=
+	output	wire	[7:0]	o_dbgwires;
+@TOP.INSERT=
+	assign	o_dbgwires[7] = o_spi_cs_n;
+	assign	o_dbgwires[5:4] = { o_spi_mosi, i_spi_miso };
+	oclkddr spidbgsck(s_clk, {!spi_sck, 1'b1}, o_dbgwires[6]);
+@TOP.MAIN=
+		// Bottom four bits to the debugger
+		o_dbgwires[3:0]
+@MAIN.PORTLIST=
+	o_dbgwires
+@MAIN.IODECL=
+	output	wire	[3:0]	o_dbgwires;
+@MAIN.INSERT=
+	assign	o_dbgwires = { o_spi_sck, flash_ack, flash_stall, flash_data[0] };

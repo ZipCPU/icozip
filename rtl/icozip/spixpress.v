@@ -13,6 +13,13 @@
 //	able to send arbitrary commands to the flash--but not read from the
 //	flash during that time.
 //
+// Configuration:
+//	In the interests of *LOW* logic, the controller has options for
+//	OPT_CFG and OPT_PIPE.  If both are set to zero, the controller will be
+//	in its lowest logic configuration.  That said, if you set OPT_CFG to
+//	zero, you must also set i_cfg_stb to zero as well--lest you expect an
+//	acknowledgement from a request made when i_cfg_stb is high.
+//
 // Actions:
 // 	Control Port
 // 	[31:9]	Unused bits, ignored on write, read as zero
@@ -73,7 +80,21 @@ module	spixpress(i_clk, i_reset,
 			o_wb_stall, o_wb_ack, o_wb_data,
 		o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso);
 	//
+	// OPT_PIPE allows successive, sequential, transactions to
+	// incrementing addresses without requiring a new address to be sent.
+	//
+	// Random access performance:	65+64(N-1)
+	// Performance when piped:	65+32(N-1)
+	//
 	parameter [0:0]	OPT_PIPE = 1'b1;
+	//
+	// OPT_CFG creates a configuration register that can be accessed through
+	// i_cfg_stb when the core isn't busy.  Using this configuration
+	// register, it is possible to send arbitrary commands to the flash,
+	// and hence to erase or program the flash.  Since the access is
+	// arbitrary, other flash features are supported as well such as
+	// programming or reading the one-time-programmable memory or more.
+	parameter [0:0]	OPT_CFG  = 1'b1;
 	//
 	input	wire		i_clk, i_reset;
 	//
@@ -89,15 +110,16 @@ module	spixpress(i_clk, i_reset,
 	//
 
 	reg		cfg_user_mode;
-	reg	[31:0]	wdata_pipe;
+	reg	[32:0]	wdata_pipe;
 	reg	[6:0]	ack_delay;
+	reg		actual_sck;
 
 	wire	[21:0]	next_addr;
 
 	wire	user_request, bus_request, next_request;
 
-	assign	user_request = (i_cfg_stb)&&(!o_wb_stall)
-					&&(i_wb_we)&&(i_wb_data[8]);
+	assign	user_request = (OPT_CFG)&&(i_cfg_stb)&&(!o_wb_stall)
+					&&(i_wb_we)&&(!i_wb_data[8]);
 	assign	bus_request  = (i_wb_stb)&&(!o_wb_stall)
 					&&(!i_wb_we)&&(!cfg_user_mode);
 	assign	next_request = (OPT_PIPE)&&(i_wb_stb)&&(!i_wb_we)
@@ -107,22 +129,22 @@ module	spixpress(i_clk, i_reset,
 	initial	wdata_pipe = 0;
 	always @(posedge i_clk)
 	if (bus_request)
-		wdata_pipe <= { 8'h03, i_wb_addr[21:0], 2'b00 };
+		wdata_pipe <= { 1'b0, 8'h03, i_wb_addr[21:0], 2'b00 };
 	else if (user_request)
-		wdata_pipe <= { i_wb_data[7:0], 24'h0 };
+		wdata_pipe <= { 1'b0, i_wb_data[7:0], 24'h0 };
 	else
-		wdata_pipe <= { wdata_pipe[30:0], 1'b0 };
+		wdata_pipe <= { wdata_pipe[31:0], 1'b0 };
 
-	assign	o_spi_mosi = wdata_pipe[31];
+	assign	o_spi_mosi = wdata_pipe[32];
 
 	initial	ack_delay = 0;
 	always @(posedge i_clk)
 	if ((i_reset)||(!i_wb_cyc))
 		ack_delay <= 0;
 	else if (bus_request)
-		ack_delay <= ((o_spi_cs_n)||(!OPT_PIPE)) ? 7'd64 : 7'd32;
+		ack_delay <= ((o_spi_cs_n)||(!OPT_PIPE)) ? 7'd65 : 7'd32;
 	else if (user_request)
-		ack_delay <= 7'd8;
+		ack_delay <= 7'd9;
 	else if (ack_delay != 0)
 		ack_delay <= ack_delay - 1'b1;
 
@@ -132,7 +154,9 @@ module	spixpress(i_clk, i_reset,
 		o_wb_ack <= 0;
 	else if (ack_delay == 1)
 		o_wb_ack <= (i_wb_cyc);
-	else if ((i_wb_stb)&&(!o_wb_stall)&&(!bus_request)&&(!user_request))
+	else if ((i_wb_stb)&&(!o_wb_stall)&&(!bus_request))
+		o_wb_ack <= 1'b1;
+	else if ((OPT_CFG)&&(i_cfg_stb)&&(!o_wb_stall)&&(!user_request))
 		o_wb_ack <= 1'b1;
 	else
 		o_wb_ack <= 0;
@@ -141,11 +165,11 @@ module	spixpress(i_clk, i_reset,
 	always @(posedge i_clk)
 	if (i_reset)
 		cfg_user_mode <= 0;
-	else if ((i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we))
+	else if ((OPT_CFG)&&(i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we))
 		cfg_user_mode <= !i_wb_data[8];
 
 	always @(posedge i_clk)
-	if (o_spi_sck)
+	if (actual_sck)
 	begin
 		if (cfg_user_mode)
 			o_wb_data <= { 23'h0, !cfg_user_mode, o_wb_data[6:0], i_spi_miso };
@@ -161,10 +185,10 @@ module	spixpress(i_clk, i_reset,
 		o_spi_cs_n <= 1'b1;
 	else if (bus_request)
 		o_spi_cs_n <= 1'b0;
-	else if (user_request)
-		o_spi_cs_n <= !i_wb_data[8];
+	else if ((OPT_CFG)&&(i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we))
+		o_spi_cs_n <= i_wb_data[8];
 	else if (cfg_user_mode)
-		o_spi_cs_n <= !cfg_user_mode;
+		o_spi_cs_n <= 1'b0;
 	else if ((ack_delay == 1)&&(!cfg_user_mode))
 		o_spi_cs_n <= 1'b1;
 
@@ -174,10 +198,19 @@ module	spixpress(i_clk, i_reset,
 		o_spi_sck <= 1'b0;
 	else if ((bus_request)||(user_request))
 		o_spi_sck <= 1'b1;
-	else if ((i_wb_cyc)&&(ack_delay > 1))
+	else if ((i_wb_cyc)&&(ack_delay > 2))
+		o_spi_sck <= 1'b1;
+	else if ((OPT_PIPE)&&(next_request)&&(ack_delay == 2))
 		o_spi_sck <= 1'b1;
 	else
 		o_spi_sck <= 1'b0;
+
+	initial	actual_sck = 1'b0;
+	always @(posedge i_clk)
+	if ((i_reset)||(!i_wb_cyc))
+		actual_sck <= 1'b0;
+	else
+		actual_sck <= o_spi_sck;
 
 	initial	o_wb_stall = 1'b0;
 	always @(posedge i_clk)
@@ -236,17 +269,21 @@ module	spixpress(i_clk, i_reset,
 	end
 
 	always @(*)
+	if (!OPT_CFG)
+		assume(!i_cfg_stb);
+
+	always @(*)
 		assume((!i_cfg_stb)||(!i_wb_stb));
 
 	always @(posedge i_clk)
-	if ((f_past_valid)&&(!$past(i_reset))
-		&&(($past(i_wb_stb))||($past(i_cfg_stb)))&&($past(i_wb_stall)))
+	if ((f_past_valid)&&(!$past(i_reset))&&(i_wb_cyc)
+		&&(($past(i_wb_stb))||($past(i_cfg_stb)))&&($past(o_wb_stall)))
 		assume({i_wb_stb,i_cfg_stb}==$past({i_wb_stb,i_cfg_stb}));
 
 	localparam	F_LGDEPTH = 7;
 	wire	[F_LGDEPTH-1:0]	f_nreqs, f_nacks, f_outstanding;
 
-	fwb_slave #( .AW(23), .F_MAX_STALL(7'd70), .F_MAX_ACK_DELAY(7'd70),
+	fwb_slave #( .AW(22), .F_MAX_STALL(7'd66), .F_MAX_ACK_DELAY(7'd66),
 			.F_LGDEPTH(F_LGDEPTH),
 			.F_MAX_REQUESTS((OPT_PIPE) ? 0 : 1'b1),
 			.F_OPT_MINCLOCK_DELAY(1'b1)
@@ -275,6 +312,13 @@ module	spixpress(i_clk, i_reset,
 		assert(f_outstanding <= 1);
 
 	always @(posedge i_clk)
+	if ((f_past_valid)&&(o_wb_ack)&&($past(o_wb_ack)))
+		assert(f_outstanding <= 1);
+	always @(posedge i_clk)
+	if ((OPT_PIPE)&&(f_outstanding == 2))
+		assert((o_wb_ack)&&(!o_spi_cs_n)&&(o_spi_sck)&&(ack_delay==7'd32));
+
+	always @(posedge i_clk)
 	if ((f_past_valid)&&($past(i_wb_stb))&&(!$past(o_wb_stall)))
 	begin
 		if ((i_wb_cyc)&&(!i_reset)
@@ -283,7 +327,7 @@ module	spixpress(i_clk, i_reset,
 	end
 
 	always @(*)
-		assert(o_spi_sck == (ack_delay > 0));
+		assert((o_spi_sck||actual_sck) == (ack_delay > 0));
 	always @(*)
 	if (o_spi_cs_n)
 		assert(!o_spi_sck);
@@ -297,27 +341,33 @@ module	spixpress(i_clk, i_reset,
 		assert((o_wb_ack)||(!o_wb_stall));
 
 	always @(*)
-		assert(ack_delay < 7'd65);
+		assert(ack_delay <= 7'd65);
 
 	always @(*)
 	if (cfg_user_mode)
-		assert(ack_delay < 7'd9);
+		assert(ack_delay <= 7'd9);
 
 	always @(*)
 	if ((!OPT_PIPE)&&(!cfg_user_mode)&&(!o_spi_cs_n))
-		assert((o_spi_sck)&&(o_wb_stall));
+		assert(((o_spi_sck)||(actual_sck))&&(o_wb_stall));
 
 	always @(*)
 		assert((!bus_request)||(!user_request));
 
 	always @(*)
 	if (!cfg_user_mode)
-		assert((o_spi_cs_n)
-			||((o_spi_sck)&&(ack_delay>0)));
+		assert((o_spi_cs_n)||((actual_sck)&&(ack_delay>0))
+			||((o_spi_sck)&&(ack_delay>1)));
 
 	always @(*)
 	if (ack_delay > 1)
 		assert(o_wb_stall);
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&(!$past(o_spi_sck))&&($past(actual_sck)))
+		assert(((o_spi_cs_n)||(cfg_user_mode))
+				&&(!o_spi_sck)&&(!actual_sck)&&(ack_delay==0));
+
 	generate if (F_OPT_COVER)
 	begin
 
@@ -355,7 +405,9 @@ module	spixpress(i_clk, i_reset,
 		begin
 
 			always @(posedge i_clk)
-				cover((!o_wb_stall)&&(f_pending_bus_request)&&(ack_delay == 7'h1));
+				cover((f_pending_bus_request)
+					&&(ack_delay == 7'h1)
+					&&(bus_request)&&(o_spi_sck));
 			always @(posedge i_clk)
 				cover((next_request)&&(f_pending_bus_request)&&(ack_delay == 7'h2));
 		end
@@ -391,50 +443,65 @@ module	spixpress(i_clk, i_reset,
 		// Send command 8'h03
 		(f_last_addr == $past(i_wb_addr))
 				&&(!o_spi_cs_n)&&(o_spi_sck)&&(!o_spi_mosi)
+				&&(!actual_sck)
 		##1 ( ((f_last_addr == $past(f_last_addr))
 			&&(!o_spi_cs_n)&&(o_spi_sck)) throughout
-				(!o_spi_mosi)
-				##1 (!o_spi_mosi)
-				##1 (!o_spi_mosi)
-				##1 (!o_spi_mosi)
-				##1 (!o_spi_mosi)
-				##1 ( o_spi_mosi)
-				##1 ( o_spi_mosi));
+				(!o_spi_mosi)&&(ack_delay==7'd64)&&(actual_sck)
+				##1 (!o_spi_mosi)&&(ack_delay==7'd63)&&(actual_sck)
+				##1 (!o_spi_mosi)&&(ack_delay==7'd62)&&(actual_sck)
+				##1 (!o_spi_mosi)&&(ack_delay==7'd61)&&(actual_sck)
+				##1 (!o_spi_mosi)&&(ack_delay==7'd60)&&(actual_sck)
+				##1 (!o_spi_mosi)&&(ack_delay==7'd59)&&(actual_sck)
+				##1 ( o_spi_mosi)&&(ack_delay==7'd58)&&(actual_sck)
+				##1 ( o_spi_mosi)&&(ack_delay==7'd57)&&(actual_sck));
 	endsequence
 
 	sequence	SEND_ADDRESS;
-		(((f_last_addr == $past(f_last_addr))&&(!o_spi_cs_n)&&(o_spi_sck))
+		(((f_last_addr == $past(f_last_addr))&&(!o_spi_cs_n)&&(o_spi_sck)
+			&&(actual_sck))
 		throughout
-			(o_spi_mosi == f_last_addr[21])
-			##1 (o_spi_mosi == f_last_addr[20])
-			##1 (o_spi_mosi == f_last_addr[19])
-			##1 (o_spi_mosi == f_last_addr[18])
-			##1 (o_spi_mosi == f_last_addr[17])
-			##1 (o_spi_mosi == f_last_addr[16])
-			##1 (o_spi_mosi == f_last_addr[15])
-			##1 (o_spi_mosi == f_last_addr[14])
-			##1 (o_spi_mosi == f_last_addr[13])
-			##1 (o_spi_mosi == f_last_addr[12])
-			##1 (o_spi_mosi == f_last_addr[11])
-			##1 (o_spi_mosi == f_last_addr[10])
-			##1 (o_spi_mosi == f_last_addr[ 9])
-			##1 (o_spi_mosi == f_last_addr[ 8])
-			##1 (o_spi_mosi == f_last_addr[ 7])
-			##1 (o_spi_mosi == f_last_addr[ 6])
-			##1 (o_spi_mosi == f_last_addr[ 5])
-			##1 (o_spi_mosi == f_last_addr[ 4])
-			##1 (o_spi_mosi == f_last_addr[ 3])
-			##1 (o_spi_mosi == f_last_addr[ 2])
-			##1 (o_spi_mosi == f_last_addr[ 1])
-			##1 (o_spi_mosi == f_last_addr[ 0])
-			##1 (o_spi_mosi == 1'b0)
-			##1 (o_spi_mosi == 1'b0));
+			(o_spi_mosi == f_last_addr[21])&&(ack_delay==7'd56)
+			##1 (o_spi_mosi == f_last_addr[20])&&(ack_delay==7'd55)
+			##1 (o_spi_mosi == f_last_addr[19])&&(ack_delay==7'd54)
+			##1 (o_spi_mosi == f_last_addr[18])&&(ack_delay==7'd53)
+			##1 (o_spi_mosi == f_last_addr[17])&&(ack_delay==7'd52)
+			##1 (o_spi_mosi == f_last_addr[16])&&(ack_delay==7'd51)
+			##1 (o_spi_mosi == f_last_addr[15])&&(ack_delay==7'd50)
+			##1 (o_spi_mosi == f_last_addr[14])&&(ack_delay==7'd49)
+			##1 (o_spi_mosi == f_last_addr[13])&&(ack_delay==7'd48)
+			##1 (o_spi_mosi == f_last_addr[12])&&(ack_delay==7'd47)
+			##1 (o_spi_mosi == f_last_addr[11])&&(ack_delay==7'd46)
+			##1 (o_spi_mosi == f_last_addr[10])&&(ack_delay==7'd45)
+			##1 (o_spi_mosi == f_last_addr[ 9])&&(ack_delay==7'd44)
+			##1 (o_spi_mosi == f_last_addr[ 8])&&(ack_delay==7'd43)
+			##1 (o_spi_mosi == f_last_addr[ 7])&&(ack_delay==7'd42)
+			##1 (o_spi_mosi == f_last_addr[ 6])&&(ack_delay==7'd41)
+			##1 (o_spi_mosi == f_last_addr[ 5])&&(ack_delay==7'd40)
+			##1 (o_spi_mosi == f_last_addr[ 4])&&(ack_delay==7'd39)
+			##1 (o_spi_mosi == f_last_addr[ 3])&&(ack_delay==7'd38)
+			##1 (o_spi_mosi == f_last_addr[ 2])&&(ack_delay==7'd37)
+			##1 (o_spi_mosi == f_last_addr[ 1])&&(ack_delay==7'd36)
+			##1 (o_spi_mosi == f_last_addr[ 0])&&(ack_delay==7'd35)
+			##1 (o_spi_mosi == 1'b0)&&(ack_delay==7'd34)
+			##1 (o_spi_mosi == 1'b0)&&(ack_delay==7'd33));
 	endsequence
 
 	sequence	READ_DATA;
-		(!o_spi_cs_n)&&(o_spi_sck)&&(o_wb_data == $past({o_wb_data[30:0], i_spi_miso}))
-		[*32] ##1
-		(o_wb_ack)&&(o_wb_data == $past({o_wb_data[30:0], i_spi_miso}));
+		(((o_wb_stall)&&(!o_spi_cs_n)&&(o_spi_sck)
+			&&(o_wb_data == $past({o_wb_data[30:0], i_spi_miso})))
+		throughout
+		(ack_delay <= 7'd32)&&(ack_delay >= 7'd25) [*8]
+		##1 (ack_delay <= 7'd24)&&(ack_delay >= 7'd17) [*8]
+		##1 (ack_delay <= 7'd16)&&(ack_delay >=  7'd9) [*8]
+		##1 (ack_delay <=  7'd8)&&(ack_delay >=  7'd2) [*7])
+		##1 ((!o_spi_cs_n)&&(actual_sck)&&(ack_delay == 7'd1)
+			&&(((OPT_PIPE)&&(i_wb_stb)&&(!i_wb_we)&&(o_spi_sck))
+				||((o_wb_stall)&&(!o_spi_sck)))
+			&&(o_wb_data == $past({o_wb_data[30:0], i_spi_miso})))
+		##1 (o_wb_ack)
+			&&(o_wb_data == $past({o_wb_data[30:0], i_spi_miso}))
+			&&((OPT_PIPE)||((o_spi_cs_n)
+					&&(!o_spi_sck)&&(!actual_sck)));
 	endsequence
 
 	assert property (@(posedge i_clk)
@@ -456,7 +523,7 @@ module	spixpress(i_clk, i_reset,
 	(* anyconst *) wire	[21:0]	f_addr;
 	(* anyconst *) wire	[31:0]	f_data;
 
-	sequence	DATA_BYTE(B);
+	sequence	DATA_BYTE(local input [7:0] B);
 		(i_spi_miso == B[7])
 		##1 (i_spi_miso == B[6])
 		##1 (i_spi_miso == B[5])
@@ -485,7 +552,7 @@ module	spixpress(i_clk, i_reset,
 			&&(i_wb_addr[21:0] == f_addr)
 		// Send command 8'h03
 		##1 READ_COMMAND
-		##1 ((f_last_addr == $past(f_last_addr)) throughout
+		##1 (($stable(f_last_addr)) throughout
 				SEND_ADDRESS)
 		|=> THIS_DATA);
 
@@ -506,7 +573,7 @@ module	spixpress(i_clk, i_reset,
 			&&(i_wb_addr[21:0] == f_addr)
 		// Send command 8'h03
 		##1 ((!o_wb_ack) throughout READ_COMMAND)
-		##1(((!o_wb_ack)&&(f_last_addr == $past(f_last_addr))) throughout
+		##1(((!o_wb_ack)&&($stable(f_last_addr))) throughout
 				SEND_ADDRESS)
 		##1 THIS_DATA
 		|=> (o_wb_ack)&&(o_wb_data == f_data));
@@ -520,36 +587,64 @@ module	spixpress(i_clk, i_reset,
 		##1 THIS_DATA
 		|=> (o_wb_ack)&&(o_wb_data == f_data));
 
-	// Now for configuration writes
-	assert property (@(posedge i_clk)
-		disable iff ((i_reset)||(!i_wb_cyc))
-		((i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we)&&(!i_wb_data[8]))
-		|=> ((!cfg_user_mode)&&(!o_spi_cs_n)&&(!o_spi_sck))
-			(o_wb_ack)&&(!o_wb_stall));
+	generate if (OPT_CFG)
+	begin
+		// Now for configuration writes
+		assert property (@(posedge i_clk)
+			disable iff ((i_reset)||(!i_wb_cyc))
+			((i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we)&&(i_wb_data[8]))
+			|=> ((!cfg_user_mode)&&(o_spi_cs_n)&&(!o_spi_sck))
+				&&(o_wb_ack)&&(!o_wb_stall));
 
-	assert property (@(posedge i_clk)
-		disable iff ((i_reset)||(!i_wb_cyc))
-		((i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we)&&(i_wb_data[8]))
-		|=> ((cfg_user_mode)&&(!o_spi_cs_n)&&(o_spi_sck)
-				(o_wb_stall)) [*8]
-		##1 (o_wb_ack)&&(!o_wb_stall)&&(cfg_user_mode));
+		reg	[7:0]	f_wr_data;
+		always @(posedge i_clk)
+		if (user_request)
+			f_wr_data <= i_wb_data[7:0];
 
-	assert property (@(posedge i_clk)
-		disable iff ((i_reset)||(!i_wb_cyc))
-		((i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we))
-		##1 DATA_BYTE(f_data[7:0])
-		|=> (o_wb_ack)&&(o_wb_data[7:0] == f_data[7:0])
-			&&(cfg_user_mode));
+		assert property (@(posedge i_clk)
+			disable iff ((i_reset)||(!i_wb_cyc))
+			((i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we)&&(!i_wb_data[8]))
+			|=> (((cfg_user_mode)&&(!o_spi_cs_n)&&(o_spi_sck)
+				&&(o_wb_stall)) throughout
+				(!o_spi_mosi)&&(ack_delay==7'd9)
+				##1 (o_spi_mosi == f_wr_data[7])
+							&&(ack_delay==7'd8)
+				##1 (o_spi_mosi == f_wr_data[6])
+							&&(ack_delay==7'd7)
+				##1 (o_spi_mosi == f_wr_data[5])
+							&&(ack_delay==7'd6)
+				##1 (o_spi_mosi == f_wr_data[4])
+							&&(ack_delay==7'd5)
+				##1 (o_spi_mosi == f_wr_data[3])
+							&&(ack_delay==7'd4)
+				##1 (o_spi_mosi == f_wr_data[2])
+							&&(ack_delay==7'd3)
+				##1 (o_spi_mosi == f_wr_data[1])
+							&&(ack_delay==7'd2))
+			##1 ((cfg_user_mode)&&(!o_spi_cs_n)&&(!o_spi_sck)
+				&&(actual_sck)&&(o_wb_stall)
+				&&(o_spi_mosi == f_wr_data[0])
+							&&(ack_delay==7'd1))
+			##1 (o_wb_ack)&&(!o_wb_stall)&&(cfg_user_mode)
+				&&(!o_spi_sck)&&(!actual_sck)&&(!o_wb_stall));
+
+		assert property (@(posedge i_clk)
+			disable iff ((i_reset)||(!i_wb_cyc))
+			((i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we)&&(!i_wb_data[8]))
+			##2 DATA_BYTE(f_data[7:0])
+			|=> (o_wb_ack)&&(o_wb_data[7:0] == f_data[7:0])
+				&&(cfg_user_mode)&&(!o_wb_stall));
+	end endgenerate
 `endif
 endmodule
 // Usage on an iCE40
-// 		W/o Pipe	Piped
-// Cells	156		244
-// SB_CARRY	 10		 30
-// SB_DFF	 21		 21
-// SB_DFFE	 10		 32
-// SB_DFFESR	 31		 31
-// SB_DFFSR	 10		 10
-// SB_DFFSS	  2		  2
-// SB_LUT4	 72		118
+// 		NoCfg	NoPipe	Piped
+// Cells	139	157		246
+// SB_CARRY	 10	 10		 30
+// SB_DFF	 21	 21		 21
+// SB_DFFE	 33	 10		 32
+// SB_DFFESR	  7	 31		 31
+// SB_DFFSR	 10	 10		 10
+// SB_DFFSS	  2	  2		  2
+// SB_LUT4	 56	 73		120
 //

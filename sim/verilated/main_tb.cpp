@@ -113,6 +113,7 @@ public:
 	int	m_cpu_bombed;
 #ifdef	FLASH_ACCESS
 	FLASHSIM	*m_flash;
+	int		m_flash_last_sck;
 #endif
 	PPORTSIM	*m_hb;
 	MAINTB(void) {
@@ -131,6 +132,7 @@ public:
 		// From flash
 #ifdef	FLASH_ACCESS
 		m_flash = new FLASHSIM(FLASHLGLEN);
+		m_flash_last_sck = 0;
 #endif
 		// From hb
 		m_hb = new PPORTSIM(FPGAPORT, true);
@@ -199,12 +201,12 @@ public:
 #endif	// INCLUDE_ZIPCPU
 
 #ifdef	FLASH_ACCESS
-		if (m_core->o_spi_sck) {
-			(*m_flash)(m_core->o_spi_cs_n,
-						(m_core->o_spi_sck)?0:1,
+		if (m_flash_last_sck) {
+			(*m_flash)(m_core->o_spi_cs_n, 0,
 						m_core->o_spi_mosi);
 		} m_core->i_spi_miso = (*m_flash)(m_core->o_spi_cs_n, 1,
 						m_core->o_spi_mosi);
+		m_flash_last_sck = m_core->o_spi_sck;
 #endif
 		int	pp_clk = m_core->i_pp_clk,
 			pp_dir = m_core->i_pp_dir;

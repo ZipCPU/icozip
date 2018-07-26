@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017, Gisselquist Technology, LLC
+## Copyright (C) 2017-2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -81,7 +81,7 @@
 		@$(ZIPB)_cyc, @$(ZIPB)_stb, @$(ZIPB)_we, @$(ZIPB)_addr, @$(ZIPB)_data, @$(ZIPB)_sel,
 			@$(ZIPB)_ack, @$(ZIPB)_stall, @$(ZIPB)_err,
 		// The UART interface master
-		(@$(SLAVE.BUS.NAME)_cyc)&&(@$(PREFIX)_sel),
+		(@$(SLAVE.BUS.NAME)_cyc),
 			(@$(SLAVE.BUS.NAME)_stb)&&(@$(PREFIX)_sel),
 			@$(SLAVE.BUS.NAME)_we,
 			@$(SLAVE.BUS.NAME)_addr[(@$(AWID)-1):0],

@@ -53,6 +53,7 @@
 // so the @TOP.PORTLIST key may be left undefined.
 //
 module	toplevel(i_clk,
+	o_dbgwires,
 		o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr, o_ram_sel, 
 			io_ram_data,
 		// GPIO wires
@@ -60,8 +61,7 @@ module	toplevel(i_clk,
 		// Top level Dual-SPI I/O ports
 		o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso,
 		// Parallel port to wishbone / console interface
-		i_pp_dir, i_pp_clk, io_pp_data, o_pp_clkfb,
-		o_dbgwires);
+		i_pp_dir, i_pp_clk, io_pp_data, o_pp_clkfb);
 	//
 	// Declaring our input and output ports.  We listed these above,
 	// now we are declaring them here.
@@ -73,6 +73,7 @@ module	toplevel(i_clk,
 	// key may be left undefined.
 	//
 	input	wire		i_clk;
+	output	wire	[7:0]	o_dbgwires;
 	output	wire	o_ram_ce_n, o_ram_oe_n, o_ram_we_n;
 	output	wire	[15:0]	o_ram_addr;
 	output	wire	[1:0]	o_ram_sel;
@@ -89,7 +90,6 @@ module	toplevel(i_clk,
 	input	wire		i_pp_dir, i_pp_clk;
 	inout	wire	[7:0]	io_pp_data;
 	output	wire		o_pp_clkfb;
-	output	wire	[7:0]	o_dbgwires;
 
 
 	//
@@ -132,6 +132,8 @@ module	toplevel(i_clk,
 	//
 
 	main	thedesign(s_clk, s_reset,
+		// Bottom four bits to the debugger
+		o_dbgwires[3:0],
 		o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr, o_ram_sel, 
 			o_ram_data, i_ram_data,
 		// GPIO wires
@@ -148,6 +150,10 @@ module	toplevel(i_clk,
 	// given by the @TOP.INSERT tag in our data files.
 	//
 
+
+	assign	o_dbgwires[7] = o_spi_cs_n;
+	assign	o_dbgwires[5:4] = { o_spi_mosi, i_spi_miso };
+	oclkddr spidbgsck(s_clk, {!spi_sck, 1'b1}, o_dbgwires[6]);
 
 	//
 	// SRAM Interface
@@ -189,10 +195,6 @@ module	toplevel(i_clk,
 	//
 	// Parallel port I/O pin control
 	ppio	hbi_io(i_pp_dir, io_pp_data, w_pp_data, i_pp_data);
-
-	assign	o_dbgwires = { i_pp_dir, i_pp_clk, o_pp_clkfb,
-				w_pp_dbg, i_pp_data[3:0] };
-
 
 
 

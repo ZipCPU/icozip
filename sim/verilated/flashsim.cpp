@@ -80,6 +80,7 @@ FLASHSIM::FLASHSIM(const int lglen, bool debug) {
 	m_mode_byte = 0;
 
 	memset(m_mem, 0x0ff, m_membytes);
+m_debug = true;
 }
 
 void	FLASHSIM::load(const unsigned addr, const char *fname) {
@@ -260,8 +261,8 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 		case 0x03: // Read data bytes
 			// Our clock won't support this command, so go
 			// to an invalid state
-			if (m_debug) printf("QSPI INVALID: This sim does not support slow reading\n");
-			m_state = QSPIF_INVALID;
+			if (m_debug) printf("QSPI: SLOW-READ (single-bit)\n");
+			m_state = QSPIF_SLOW_READ;
 			break;
 		case 0x04: // Write disable
 			m_state = QSPIF_IDLE;
@@ -395,6 +396,16 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 		case QSPIF_RDCR:
 			if (m_debug) printf("Read CREG = %02x\n", m_creg);
 			QOREG(m_creg);
+			break;
+		case QSPIF_SLOW_READ:
+			if (m_count == 32) {
+				m_addr = m_ireg & m_memmask;
+				if (m_debug) printf("READ, ADDR = %08x\n", m_addr);
+				assert((m_addr & (~(m_memmask)))==0);
+				QOREG(m_mem[m_addr++]);
+			} else if ((m_count >= 40)&&(0 == (m_sreg&0x01))) {
+				QOREG(m_mem[m_addr++]);
+			} else m_oreg = 0;
 			break;
 		case QSPIF_FAST_READ:
 			if (m_count == 32) {

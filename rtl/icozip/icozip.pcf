@@ -102,8 +102,8 @@ set_io o_dbgwires[0] B5		#
 # SPI Flash, also controlled by RPI_ICE_x through MachXO2
 set_io o_spi_cs_n	R12
 set_io o_spi_sck	R11
-set_io o_spi_mosi	P11
-set_io i_spi_miso	P12
+set_io o_spi_mosi	P12
+set_io i_spi_miso	P11
 #
 #
 # RPI SPI interface

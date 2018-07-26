@@ -40,11 +40,12 @@
 all:
 CROSS ?=
 ARCH  ?= $(shell bash ./arch.sh)
+SHARED := wbregs flashid dumpflash
 #
 ifeq ($(ARCH),arm)
-PROGRAMS   := wbregs netpport
+PROGRAMS   := $(SHARED) netpport
 else
-PROGRAMS   := wbregs flashid # netpport
+PROGRAMS   := $(SHARED)
 endif
 
 PREFXPPGMS := $(addprefix $(ARCH)-,$(PROGRAMS))
@@ -102,6 +103,11 @@ endif
 .PHONY: wbregs
 wbregs: $(ARCH)-wbregs
 $(ARCH)-wbregs: $(OBJDIR)/wbregs.o $(BUSOBJS)
+	$(CXX) $(CFLAGS) $^ $(LIBS) -o $@
+
+.PHONY: dumpflash
+dumpflash: $(ARCH)-dumpflash
+$(ARCH)-dumpflash: $(OBJDIR)/dumpflash.o $(BUSOBJS)
 	$(CXX) $(CFLAGS) $^ $(LIBS) -o $@
 
 #

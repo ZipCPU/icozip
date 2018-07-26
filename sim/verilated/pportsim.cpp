@@ -244,9 +244,9 @@ void	PPORTSIM::poll_read(void) {
 }
 
 void	PPORTSIM::received(const char ch) {
-	if (ch & 0x80) {
+	if (ch & 0x80)
 		m_cmdbuf[m_cmdpos++] = ch & 0x7f;
-	} else
+	else
 		m_conbuf[m_conpos++] = ch & 0x7f;
 	if ((m_cmdpos>0)&&((m_cmdbuf[m_cmdpos-1] == '\n')
 				||(m_cmdpos >= PPORTSIMBUFLEN-2))) {
