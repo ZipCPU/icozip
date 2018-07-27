@@ -46,8 +46,8 @@ module	ppio(i_dir, io_data, i_data, o_data);
 	output	[(W-1):0]	o_data;
 
 	genvar	k;
-	generate
-	for(k=0; k<W; k = k+1)
+	generate for(k=0; k<W; k = k+1)
+	begin : GEN_INOUT
 		SB_IO #(.PULLUP(1'b0),
 			.PIN_TYPE(6'b101001))
 			theio(
@@ -56,6 +56,6 @@ module	ppio(i_dir, io_data, i_data, o_data);
 				.D_OUT_0(i_data[k]),
 				.D_IN_0( o_data[k])
 			);
-	endgenerate
+	end endgenerate
 
 endmodule

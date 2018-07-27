@@ -98,9 +98,9 @@ SRAMSIM::BUSW SRAMSIM::apply(const uchar ce_n, const uchar oe_n, const uchar we_
 	if (ce_n)
 		return rand();
 
-	if (sel&0x2)
+	if ((sel&0x2)==0)
 		selmsk |= 0x00000ff00;
-	if (sel&0x1)
+	if ((sel&0x1)==0)
 		selmsk |= 0x0000000ff;
 
 	lcldata = data;
@@ -110,6 +110,7 @@ SRAMSIM::BUSW SRAMSIM::apply(const uchar ce_n, const uchar oe_n, const uchar we_
 	} lcladdr = addr >> 1;
 
 	if (!we_n) {
+		assert(oe_n);
 		printf("SRAM WR[%04x] = %04x ", addr, data);
 		m_mem[lcladdr & m_mask] = (m_mem[lcladdr&m_mask]&(~selmsk))
 				|(lcldata&selmsk);
@@ -120,6 +121,7 @@ SRAMSIM::BUSW SRAMSIM::apply(const uchar ce_n, const uchar oe_n, const uchar we_
 	} else {
 		assert(!oe_n);
 		unsigned	result = m_mem[lcladdr & m_mask];
+		result = (result & selmsk) | (lcldata & ~selmsk);
 		printf("SRAM RD[%08x] = %08x ", lcladdr & m_mask, result);
 		if ((addr&1)==0)
 			result >>= 16;

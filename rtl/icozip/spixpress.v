@@ -86,7 +86,7 @@ module	spixpress(i_clk, i_reset,
 	// Random access performance:	65+64(N-1)
 	// Performance when piped:	65+32(N-1)
 	//
-	parameter [0:0]	OPT_PIPE = 1'b1;
+	parameter [0:0]	OPT_PIPE = 1'b0;
 	//
 	// OPT_CFG creates a configuration register that can be accessed through
 	// i_cfg_stb when the core isn't busy.  Using this configuration
@@ -639,12 +639,12 @@ module	spixpress(i_clk, i_reset,
 endmodule
 // Usage on an iCE40
 // 		NoCfg	NoPipe	Piped
-// Cells	139	157		246
-// SB_CARRY	 10	 10		 30
-// SB_DFF	 21	 21		 21
-// SB_DFFE	 33	 10		 32
-// SB_DFFESR	  7	 31		 31
-// SB_DFFSR	 10	 10		 10
-// SB_DFFSS	  2	  2		  2
-// SB_LUT4	 56	 73		120
+// Cells	148	166	259
+// SB_CARRY	 16	 16	 36
+// SB_DFF	 21	 21	 21
+// SB_DFFE	 33	 10	 32
+// SB_DFFESR	  7	 31	 31
+// SB_DFFSR	 10	 12	 12
+// SB_DFFSS	  2	  2	  2
+// SB_LUT4	 57	 74	125
 //

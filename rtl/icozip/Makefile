@@ -104,8 +104,8 @@ bin: icozip.bin
 #
 #
 icozip.blif: toplevel.v $(VFLIST)
-	@echo yosys -ql simple.log -p 'synth_ice40 -blif icozip.blif -top toplevel' ...
-	@yosys -ql simple.log -p 'synth_ice40 -blif icozip.blif -top toplevel' $^
+	@echo yosys -ql yosys.log -p 'synth_ice40 -blif icozip.blif -top toplevel' ...
+	@yosys -ql yosys.log -p 'synth_ice40 -blif icozip.blif -top toplevel' $^
 
 .PHONY: yosys
 yosys: icozip.blif
@@ -128,7 +128,6 @@ icozip.bin: icozip.asc
 simple.blif: simple.ys simplefirst.v
 	yosys -p 'synth_ice40 -blif simple.blif' simplefirst.v |tee simple.log
 simple.asc: icozip.pcf simple.blif
-
 	arachne-pnr -d 8k -p icozip.pcf simple.blif -o simple.asc
 simple.bin: simple.asc
 	icetime -d hx8k -c 100 simple.asc

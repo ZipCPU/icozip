@@ -62,7 +62,7 @@
 	// and therefore access to a tristate output
 	//
 	ppio #(.W(16))
-		ppioi(o_ram_we_n, io_ram_data, o_ram_data, i_ram_data);
+		sramioi(o_ram_we_n, io_ram_data, o_ram_data, i_ram_data);
 
 @TOP.DEFNS=
 	wire	[15:0]		i_ram_data, o_ram_data;

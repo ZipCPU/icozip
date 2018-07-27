@@ -12,7 +12,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2015-2017, Gisselquist Technology, LLC
+## Copyright (C) 2015-2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -40,7 +40,7 @@
 all:
 CROSS ?=
 ARCH  ?= $(shell bash ./arch.sh)
-SHARED := wbregs flashid dumpflash
+SHARED := wbregs flashid dumpflash spixscope sramscope
 #
 ifeq ($(ARCH),arm)
 PROGRAMS   := $(SHARED) netpport
@@ -115,9 +115,15 @@ $(ARCH)-dumpflash: $(OBJDIR)/dumpflash.o $(BUSOBJS)
 # as well.
 wbprogram: $(OBJDIR)/wbprogram.o $(OBJDIR)/flashdrvr.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
-.PHONY: flashid
+.PHONY: flashid sramscope spixscope
 flashid: $(ARCH)-flashid
 $(ARCH)-flashid: $(OBJDIR)/flashid.o $(BUSOBJS)
+	$(CXX) -g $^ -o $@
+spixscope: $(ARCH)-spixscope
+$(ARCH)-spixscope: $(OBJDIR)/spixscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
+	$(CXX) -g $^ -o $@
+sramscope: $(ARCH)-sramscope
+$(ARCH)-sramscope: $(OBJDIR)/sramscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
 zipload: $(OBJDIR)/zipload.o $(OBJDIR)/flashdrvr.o $(BUSOBJS) $(OBJDIR)/zipelf.o
 	$(CXX) -g $^ -lelf -o $@

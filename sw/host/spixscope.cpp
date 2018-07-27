@@ -48,6 +48,8 @@
 #include "regdefs.h"
 #include "scopecls.h"
 
+#ifdef	R_SPIXSCOPE
+
 #define	WBSCOPE		R_SPIXSCOPE
 #define	WBSCOPEDATA	R_SPIXSCOPED
 
@@ -108,3 +110,9 @@ int main(int argc, char **argv) {
 	delete	m_fpga;
 }
 
+#else // SPIXSCOPE
+int main(int argc, char **argv) {
+	fprintf(stderr, "SPI Xpress scope not built, rebuild project with SPIX scope enabled to use this.\n");
+	exit(EXIT_FAILURE);
+}
+#endif
