@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-* Filename:	./board.ld
+* Filename:	./boardram.ld
 *
 * Project:	ICO Zip, iCE40 ZipCPU demonstration project
 *
@@ -52,26 +52,18 @@ MEMORY
 _bkram    = ORIGIN(bkram);
 _sram     = ORIGIN(sram);
 _flash    = ORIGIN(flash);
+_top_of_stack = ORIGIN(sram)+LENGTH(sram);
 SECTIONS
 {
-	.rocode 0x01000000 : ALIGN(4) {
+	.ramcode 0x00e00000 : ALIGN(4) {
 		_boot_address = .;
 		*(.start) *(.boot)
-	} > flash
-	_kernel_image_start = . ;
-	_kernel_image_end = . ;
-	_ram_image_start = . ;
-	.ramcode : ALIGN_WITH_INPUT {
 		*(.kernel)
 		*(.text.startup)
 		*(.text*)
 		*(.rodata*) *(.strings)
 		*(.data) *(COMMON)
-		}> sram AT> flash
-	_ram_image_end = . ;
-	.bss : ALIGN_WITH_INPUT {
 		*(.bss)
-		_bss_image_end = . ;
 		} > sram
 	_top_of_heap = .;
 }

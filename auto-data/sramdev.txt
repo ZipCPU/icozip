@@ -2,9 +2,10 @@
 ##
 ## Filename: 	sram.txt
 ##
-## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
+## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##
-## Purpose:	
+## Purpose:	Describes how an HDL project needs to be patched to include the
+##		SRAM device driver/controller.
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC

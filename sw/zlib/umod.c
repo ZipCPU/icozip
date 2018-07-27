@@ -1,19 +1,26 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	spio.v
+// Filename: 	umod.c
 //
 // Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
-// Purpose:	
+// Purpose:	This is a temporary file--a crutch if you will--until a similar
+//		capability is merged into GCC.  Right now, GCC has no way of
+//	taking the module of two 64-bit numbers, and this routine provides that
+//	capability.
 //
-//	With the USB cord on top, the board facing you, LED[0] is on the left.
+//	This routine is required by and used by newlib's printf in order to
+//	print decimal numbers (%d) to an IO stream.
+//
+//	Once gcc is properly patched, this will be removed from the 
+//	repository.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2016, Gisselquist Technology, LLC
+// Copyright (C) 2017-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -37,32 +44,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
+#include <stdint.h>
 
-module	spio(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_data, o_wb_data,
-		i_btn, i_led, o_led);
-	parameter	NLED = 2, NBTN = 2;
-	//
-	input			i_clk;
-	//
-	input			i_wb_cyc, i_wb_stb, i_wb_we;
-	input		[31:0]	i_wb_data;
-	output	wire	[31:0]	o_wb_data;
-	//
-	input		[(NBTN-1):0]	i_btn;
-	input				i_led;
-	output	reg	[(NLED-1):0]	o_led;
 
-	genvar	k;
+unsigned long __udivdi3(unsigned long, unsigned long);
 
-	initial	o_led    = 2'h0;
-	generate
-	for(k=0; k<NLED; k=k+1)
-		always @(posedge i_clk)
-			if ((i_wb_stb)&&(i_wb_we))
-				o_led[k] <= (i_wb_data[k+8])?i_wb_data[k]:o_led[k];
-	endgenerate
+__attribute((noinline))
+unsigned long __umoddi3(unsigned long a, unsigned long b) {
+	unsigned long	r;
 
-	assign	o_wb_data = { 24'h00, {(4-NBTN){1'b0}}, i_btn,
-				{(3-NLED){1'b0}}, i_led, o_led};
+	// Return a modulo b, or a%b in C syntax
+	r = __udivdi3(a, b);
+	r = r * b;
+	r = a - r;
+	return r;
+}
 
-endmodule

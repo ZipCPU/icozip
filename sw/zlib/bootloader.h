@@ -1,19 +1,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	spio.v
+// Filename:	bootloader.h
 //
 // Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
 // Purpose:	
 //
-//	With the USB cord on top, the board facing you, LED[0] is on the left.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2016, Gisselquist Technology, LLC
+// Copyright (C) 2015-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -37,32 +36,34 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
+#ifndef	BOOTLOADER_H
+#define	BOOTLOADER_H
 
-module	spio(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_data, o_wb_data,
-		i_btn, i_led, o_led);
-	parameter	NLED = 2, NBTN = 2;
-	//
-	input			i_clk;
-	//
-	input			i_wb_cyc, i_wb_stb, i_wb_we;
-	input		[31:0]	i_wb_data;
-	output	wire	[31:0]	o_wb_data;
-	//
-	input		[(NBTN-1):0]	i_btn;
-	input				i_led;
-	output	reg	[(NLED-1):0]	o_led;
+extern	int	_top_of_heap[1], _top_of_stack[1];
+extern	int	_boot_address[1];
 
-	genvar	k;
+#ifdef	_BOARD_HAS_BKRAM
+#ifdef	_BOARD_HAS_SDRAM
+extern	int	_kernel_image_start[1], _kernel_image_end[1],
+#define	_BOARD_HAS_KERNEL_SPACE
+#endif
+#endif
 
-	initial	o_led    = 2'h0;
-	generate
-	for(k=0; k<NLED; k=k+1)
-		always @(posedge i_clk)
-			if ((i_wb_stb)&&(i_wb_we))
-				o_led[k] <= (i_wb_data[k+8])?i_wb_data[k]:o_led[k];
-	endgenerate
 
-	assign	o_wb_data = { 24'h00, {(4-NBTN){1'b0}}, i_btn,
-				{(3-NLED){1'b0}}, i_led, o_led};
+#ifndef	_BOARD_HAS_KERNEL_SPACE
+#ifndef	_ram
 
-endmodule
+#ifdef	_BOARD_HAS_BKRAM
+#define	_ram	_bkram
+#elif	defined(_BOARD_HAS_SDRAM)
+#define	_ram	_sdram
+#endif
+
+#endif	// _ram
+#endif	// _BOARD_HAS_KERNEL_SPACE
+
+
+extern	int	_ram_image_start[1], _ram_image_end[1],
+		_bss_image_end[1];
+
+#endif

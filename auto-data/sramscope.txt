@@ -1,17 +1,17 @@
 ################################################################################
 ##
-## Filename: 	pic.txt
+## Filename: 	sramscope.txt
 ##
-## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
+## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##
-## Purpose:	
+## Purpose:	Provides a scope for testing the SRAM driver on the ICO board.
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2017, Gisselquist Technology, LLC
+## Copyright (C) 2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -35,32 +35,43 @@
 ################################################################################
 ##
 ##
-@PREFIX=buspic
-@DEVID=BUSPIC
-@NADDR=1
-@ACCESS=BUSPIC_ACCESS
-@SLAVE.TYPE=SINGLE
+@PREFIX=sramscope
+@$NADDR=2
+@ACCESS= FLASH_SCOPE
+@SLAVE.TYPE=OTHER
 @SLAVE.BUS=wb
-@DEVID=BUSPIC
-@PIC.BUS= bus_int_vector
-@PIC.MAX= 15
-@INT.BUS.WIRE= w_bus_int
-@INT.BUS.PIC=
-@BDEF.DEFN=
-#define BUSPIC(X) (1<<X)
 @MAIN.INSERT=
-	//
-	// The BUS Interrupt controller
-	//
-	icontrol #(15)	@$(PREFIX)i(i_clk, 1'b0, (wb_stb)&&(@$(PREFIX)_sel),
-			wb_data, @$(PREFIX)_data, bus_int_vector, w_bus_int);
-@MAIN.ALT=
-@REGS.N=1
-@REGS.0= 0 R_PIC PIC
-@BDEF.IONAME= _@$(PREFIX)
-@BDEF.IOTYPE= unsigned
-@BDEF.OSDEF= _BOARD_HAS_@$(DEVID)
-@BDEF.OSVAL= static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$REGBASE);
-@RTL.MAKE.GROUP=PIC
-@RTL.MAKE.SUBD=cpu
-@RTL.MAKE.FILES=icontrol.v
+	wire	[31:0]	sram_debug;
+	wire		sramscope_int;
+
+	assign	sram_debug = { (!o_ram_ce_n),
+			wb_cyc, (wb_stb)&&(sram_sel), wb_we,
+				sram_stall,sram_ack,
+				o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_sel,
+				o_ram_addr[4:0],
+				(!o_ram_oe_n) ? i_ram_data[15:0]
+						: o_ram_data[15:0]
+				};
+	wbscope #(.LGMEM(4), .SYNCHRONOUS(1), .HOLDOFFBITS(4))
+		@$(PREFIX)i(i_clk, 1'b1, (!o_ram_ce_n), sram_debug,
+			i_clk, wb_cyc, (wb_stb)&&(@$(PREFIX)_sel),
+			wb_we, wb_addr[0], wb_data,
+			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data,
+			@$(PREFIX)_int);
+@REGS.N= 1
+@DEVID=RAMSCOPE
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@REGS.1= 1 R_@$(DEVID)D @$(DEVID)D
+#
+@RTL.MAKE.GROUP= SCOPE
+@RTL.MAKE.FILES= wbscope.v
+#
+@PREFIX=externalscope
+@TOP.PORTLIST=
+	o_dbgwires
+@TOP.IODECL=
+	output	wire	[7:0]	o_dbgwires;
+@TOP.INSERT=
+	assign	o_dbgwires[7:3] = { o_ram_ce_n, o_ram_oe_n, o_ram_we_n,
+					o_ram_sel };
+	assign	o_dbgwires[2:0] = (o_ram_we_n)? i_ram_data[2:0] : o_ram_data[2:0];

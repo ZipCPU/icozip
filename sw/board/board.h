@@ -53,6 +53,9 @@
 
 
 
+#define BUSPIC(X) (1<<X)
+
+
 //
 // GPIO input wires
 //
