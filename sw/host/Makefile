@@ -40,7 +40,7 @@
 all:
 CROSS ?=
 ARCH  ?= $(shell bash ./arch.sh)
-SHARED := wbregs flashid dumpflash spixscope sramscope
+SHARED := wbregs flashid dumpflash spixscope sramscope zipload zipstate
 #
 ifeq ($(ARCH),arm)
 PROGRAMS   := $(SHARED) netpport
@@ -68,7 +68,7 @@ SOURCES := wbregs.cpp netpport.cpp flashid.cpp $(BUSSRCS)
 HEADERS := llcomms.h port.h hexbus.h devbus.h
 OBJECTS := $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(SOURCES)))
 BUSOBJS := $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(BUSSRCS)))
-CFLAGS := -g -Wall -I. -I../../rtl
+CFLAGS := -g -Wall -I. -I../../rtl/icozip
 LIBS :=
 SUBMAKE := $(MAKE) --no-print-directory
 
@@ -115,7 +115,7 @@ $(ARCH)-dumpflash: $(OBJDIR)/dumpflash.o $(BUSOBJS)
 # as well.
 wbprogram: $(OBJDIR)/wbprogram.o $(OBJDIR)/flashdrvr.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
-.PHONY: flashid sramscope spixscope
+.PHONY: flashid sramscope spixscope zipstate zipload
 flashid: $(ARCH)-flashid
 $(ARCH)-flashid: $(OBJDIR)/flashid.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
@@ -125,7 +125,12 @@ $(ARCH)-spixscope: $(OBJDIR)/spixscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 sramscope: $(ARCH)-sramscope
 $(ARCH)-sramscope: $(OBJDIR)/sramscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
-zipload: $(OBJDIR)/zipload.o $(OBJDIR)/flashdrvr.o $(BUSOBJS) $(OBJDIR)/zipelf.o
+zipstate: $(ARCH)-zipstate
+$(ARCH)-zipstate: $(OBJDIR)/zipstate.o $(BUSOBJS)
+	$(CXX) -g $^ -o $@
+zipload: $(ARCH)-zipload
+$(ARCH)-zipload: $(OBJDIR)/zipload.o $(OBJDIR)/flashdrvr.o
+$(ARCH)-zipload: $(BUSOBJS) $(OBJDIR)/zipelf.o
 	$(CXX) -g $^ -lelf -o $@
 
 

@@ -1,18 +1,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	flashdrvr.h
+// Filename:	zipelf.h
 //
-// Project:	OpenArty, an entirely open SoC based upon the Arty platform
+// Project:	ZBasic, a generic toplevel impl using the full ZipCPU
 //
-// Purpose:	Flash driver.  Encapsulates writing, both erasing sectors and
-//		the programming pages, to the flash device.
+// Purpose:	
+//
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2015-2017, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -36,26 +36,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-#ifndef	FLASHDRVR_H
-#define	FLASHDRVR_H
+#ifndef	ZIPELF_H
+#define	ZIPELF_H
 
-#include "regdefs.h"
+#include <stdint.h>
 
-class	FLASHDRVR {
-private:
-	DEVBUS	*m_fpga;
-	bool	m_debug;
-
-	bool	verify_config(void);
-	void	set_config(void);
-	void	flwait(void);
+class	ELFSECTION {
 public:
-	FLASHDRVR(DEVBUS *fpga) : m_fpga(fpga) { m_debug = false; }
-	bool	erase_sector(const unsigned sector, const bool verify_erase=true);
-	bool	page_program(const unsigned addr, const unsigned len,
-			const char *data, const bool verify_write=true);
-	bool	write(const unsigned addr, const unsigned len,
-			const char *data, const bool verify=false);
+	uint32_t	m_start, m_len;
+	char		m_data[4];
 };
+
+bool	iself(const char *fname);
+void	elfread(const char *fname, uint32_t &entry, ELFSECTION **&sections);
 
 #endif
