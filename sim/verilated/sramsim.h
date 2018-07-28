@@ -47,6 +47,7 @@ public:
 	BUSW	*m_mem, m_len, m_mask;
 	int	m_nxt_ack;
 	BUSW	m_nxt_data;
+	static	const	bool	m_debug;
 	
 
 	SRAMSIM(const unsigned int nwords);

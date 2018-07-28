@@ -51,6 +51,13 @@
 #define	UARTTX		_uart->u_tx
 #define	PIC		*_buspic
 #define	TIMER		*_bustimer
+
+// #define	HAVE_SCOPE
+// #define	SCOPEc			_sys->io_scope[0].s_ctrl
+// #define	SCOPE_DELAY		4
+// #define	TRIGGER_SCOPE_NOW	(WBSCOPE_TRIGGER|SCOPE_DELAY)
+// #define	PREPARE_SCOPE		SCOPE_DELAY
+
 unsigned	zip_ucc(void);
 unsigned	zip_cc(void);
 void		zip_save_context(int *);
@@ -601,7 +608,7 @@ void	debugmpy(char *str, int a, int b, int s, int r) {
 #ifdef	HAVE_SCOPE
 	// Trigger the scope, if it hasn't been triggered yet
 	// but ... dont reset it if it has been.
-	SCOPE.s_ctrl = TRIGGER_SCOPE_NOW;
+	SCOPEc = TRIGGER_SCOPE_NOW;
 #endif
 	txstr("\r\n"); txstr(str); txhex(a);
 	txstr(" x "); txhex(b);
@@ -1245,7 +1252,7 @@ void entry(void) {
 	// Check whether or not this CPU correctly identifies SIM instructions
 	// as illegal instructions
 	testid("SIM Instructions"); MARKSTART;
-	cc_fail = CC_MMUERR|CC_FPUERR|CC_DIVERR|CC_BUSERR|CC_TRAP|CC_STEP|CC_SLEEP;
+	cc_fail = CC_MMUERR|CC_FPUERR|CC_DIVERR|CC_BUSERR|CC_STEP|CC_SLEEP;
 	if ((run_test(sim_test, user_stack_ptr))||(zip_ucc()&cc_fail))
 		test_fails(start_time, &testlist[tnum]);
 	else if (zip_ucc() & CC_ILL) {
@@ -1430,29 +1437,42 @@ void entry(void) {
 
 	// MPY_TEST
 	testid("Multiply test"); MARKSTART;
-	if ((run_test(mpy_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
+	cc_fail = CC_MMUERR|CC_FPUERR|CC_DIVERR|CC_BUSERR|CC_STEP|CC_SLEEP;
+	if ((run_test(mpy_test, user_stack_ptr))||(zip_ucc()&cc_fail))
 		test_fails(start_time, &testlist[tnum]);
-	txstr("Pass\r\n"); testlist[tnum++] = 0;	// #22
+	else if (zip_ucc() & CC_ILL)
+		txstr("No Multiply Implemented\r\n");
+	else
+		txstr("Pass\r\n");
+	testlist[tnum++] = 0;	// #22
 
 	// MPYxHI_TEST
-	testid("Multiply HI-word test"); MARKSTART;
-	if ((run_test(mpyhi_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
-		test_fails(start_time, &testlist[tnum]);
-	txstr("Pass\r\n"); testlist[tnum++] = 0;	// #23
+	if ((zip_ucc() & CC_ILL)==0) {
+		testid("Multiply HI-word test"); MARKSTART;
+		if ((run_test(mpyhi_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
+			test_fails(start_time, &testlist[tnum]);
+		txstr("Pass\r\n"); testlist[tnum++] = 0;	// #23
+	}
 
 	// DIV_TEST
 	testid("Divide test");
 	if ((zip_cc() & 0x20000000)==0) {
 		txstr("No divide unit installed\r\n");
-	} else { MARKSTART;
-	if ((run_test(div_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
-		test_fails(start_time, &testlist[tnum]);
-	} txstr("Pass\r\n"); testlist[tnum++] = 0;	// #24
+	} else {
+		MARKSTART;
+		if ((run_test(div_test, user_stack_ptr))||(zip_ucc()&cc_fail))
+			test_fails(start_time, &testlist[tnum]);
+		else if (zip_ucc() & CC_ILL) {
+			txstr("No Divide Implemented (" "?" "?)\r\n");
+		} txstr("Pass\r\n"); testlist[tnum++] = 0;	// #24
+	}
 
 
 	txstr("\r\n");
 	txstr("-----------------------------------\r\n");
 	txstr("All tests passed.  Halting CPU.\r\n");
+	wait_for_uart_idle();
+	txstr("\r\n");
 	wait_for_uart_idle();
 	for(int k=0; k<50000; k++)
 		asm("NOOP");

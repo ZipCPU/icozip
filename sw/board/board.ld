@@ -54,7 +54,7 @@ _sram     = ORIGIN(sram);
 _flash    = ORIGIN(flash);
 SECTIONS
 {
-	.rocode 0x01000000 : ALIGN(4) {
+	.rocode 0x01020000 : ALIGN(4) {
 		_boot_address = .;
 		*(.start) *(.boot)
 	} > flash

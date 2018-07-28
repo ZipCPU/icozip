@@ -70,8 +70,8 @@ module	cpuops(i_clk,i_reset, i_stb, i_op, i_a, i_b, o_c, o_f, o_valid,
 		assign	w_pre_shift_input = (i_op[0]) 
 				? { (i_op[1])&&(i_a[31]), i_a, 1'b0 }
 				: { 1'b0, brev_shift_pre, 1'b0 };
-		assign	w_pre_asr_shifted = w_pre_shift_input >>> i_b[4:0];
-		assign	w_shift_result = (|i_b[31:5])
+		assign	w_pre_asr_shifted = w_pre_shift_input >>> i_b[5:0];
+		assign	w_shift_result = ((|i_b[31:6])||(i_b[5:0]>6'd32))
 				? {(34){w_pre_shift_input[33]}}
 				: w_pre_asr_shifted;// ASR
 

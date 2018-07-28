@@ -132,6 +132,8 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 			o_ram_oe_n <=  (write);
 			o_ram_we_n <= (!write);
 			o_ram_sel  <= sel[3:2];
+			//
+			o_wb_stall <= 1'b1;
 			end
 		3'b011: begin
 			o_ram_ce_n    <= 1'b1;
@@ -141,24 +143,32 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 			o_ram_data    <= data[15:0];
 			o_ram_addr[0] <= 1'b1;
 			o_wb_data[31:16] <= i_ram_data;
+			//
+			o_wb_stall <= 1'b1;
 			end
 		3'b100: begin
 			o_ram_ce_n <= 1'b0;
 			o_ram_oe_n <=  (write);
 			o_ram_we_n <= (!write);
 			o_ram_sel  <= 2'b11;
+			//
+			o_wb_stall <= 1'b1;
 			end
 		3'b101: begin
 			o_ram_ce_n <= 1'b0;
 			o_ram_oe_n <=  (write);
 			o_ram_we_n <= (!write);
 			o_ram_sel  <= sel[1:0];
+			//
+			o_wb_stall <= 1'b1;
 			end
 		3'b110: begin
 			o_ram_ce_n <= 1'b0;
 			o_ram_oe_n <=  (write);
 			o_ram_we_n <= (!write);
 			o_ram_sel  <= sel[1:0];
+			//
+			o_wb_stall <= 1'b1;
 			end
 		3'b111: begin
 			o_ram_ce_n <= 1'b1;
@@ -250,6 +260,78 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 		if (!o_ram_sel[0])
 			f_data[7:0] <= o_ram_data[7:0];
 	end
+
+	always @(*)
+	case(ram_state)
+	3'b000: begin
+		assert(!o_wb_stall);
+		end
+	3'b001: begin
+		assert(o_wb_stall);
+		assert(!o_wb_ack);
+		//
+		assert(!o_ram_ce_n);
+		assert(o_ram_we_n == !o_ram_oe_n);
+		assert(o_ram_sel == 2'b11);
+		assert(o_addr[0] == 1'b0);
+		end
+	3'b010: begin
+		assert(o_wb_stall);
+		assert(!o_wb_ack);
+		//
+		assert(!o_ram_ce_n);
+		assert(o_ram_we_n == !o_ram_oe_n);
+		assert(o_ram_oe_n == write);
+		assert(o_addr[0] == 1'b0);
+		end
+	3'b011: begin
+		assert(o_wb_stall);
+		assert(!o_wb_ack);
+		//
+		assert(!o_ram_ce_n);
+		assert(o_ram_we_n == !o_ram_oe_n);
+		assert(o_ram_oe_n == write);
+		assert(o_addr[0] == 1'b0);
+		end
+	3'b100: begin
+		assert(o_wb_stall);
+		assert(!o_wb_ack);
+		//
+		assert(o_ram_ce_n);
+		assert(o_ram_we_n);
+		assert(o_ram_oe_n);
+		assert(o_ram_sel == 2'b11);
+		end
+	3'b101: begin
+		assert(o_wb_stall);
+		assert(!o_wb_ack);
+		//
+		assert(!o_ram_ce_n);
+		assert(o_ram_we_n == !o_ram_oe_n);
+		assert(o_ram_oe_n == write);
+		assert(o_ram_sel == 2'b11);
+		assert(o_addr[0] == 1'b1);
+		end
+	3'b110: begin
+		assert(o_wb_stall);
+		assert(!o_wb_ack);
+		//
+		assert(!o_ram_ce_n);
+		assert(o_ram_we_n == !o_ram_oe_n);
+		assert(o_ram_oe_n == write);
+		assert(o_addr[0] == 1'b1);
+		end
+	3'b111: begin
+		assert(o_wb_stall);
+		assert(!o_wb_ack);
+		//
+		assert(!o_ram_ce_n);
+		assert(o_ram_we_n == !o_ram_oe_n);
+		assert(o_ram_oe_n == write);
+		assert(o_addr[0] == 1'b1);
+		end
+	endcase
+
 `endif
 `ifdef	VERIFIC
 	reg	[31:0]	f_tx_data;

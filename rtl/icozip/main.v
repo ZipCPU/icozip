@@ -100,7 +100,7 @@ module	main(i_clk, i_reset,
 	//
 	// A 32-bit address indicating where teh ZipCPU should start running
 	// from
-	localparam	RESET_ADDRESS = 32'h00c00000;
+	localparam	RESET_ADDRESS = 32'h01020000;
 	//
 	// The number of valid bits on the bus
 	localparam	ZIP_ADDRESS_WIDTH = 23; // Zip-CPU address width

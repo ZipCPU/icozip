@@ -44,6 +44,8 @@
 #include "byteswap.h"
 #include "sramsim.h"
 
+const bool SRAMSIM::m_debug = false;
+
 SRAMSIM::SRAMSIM(const unsigned int nwords) {
 	unsigned int	nxt;
 
@@ -111,10 +113,10 @@ SRAMSIM::BUSW SRAMSIM::apply(const uchar ce_n, const uchar oe_n, const uchar we_
 
 	if (!we_n) {
 		assert(oe_n);
-		printf("SRAM WR[%04x] = %04x ", addr, data);
+		if (m_debug) printf("SRAM WR[%04x] = %04x ", addr, data);
 		m_mem[lcladdr & m_mask] = (m_mem[lcladdr&m_mask]&(~selmsk))
 				|(lcldata&selmsk);
-		printf(" ([%05x] = %08x), sel=%08x\n",
+		if (m_debug) printf(" ([%05x] = %08x), sel=%08x\n",
 					lcladdr & m_mask, lcldata, selmsk);
 		// assert(oe_n);
 		return data;
@@ -122,10 +124,10 @@ SRAMSIM::BUSW SRAMSIM::apply(const uchar ce_n, const uchar oe_n, const uchar we_
 		assert(!oe_n);
 		unsigned	result = m_mem[lcladdr & m_mask];
 		result = (result & selmsk) | (lcldata & ~selmsk);
-		printf("SRAM RD[%08x] = %08x ", lcladdr & m_mask, result);
+		if (m_debug) printf("SRAM RD[%08x] = %08x ", lcladdr & m_mask, result);
 		if ((addr&1)==0)
 			result >>= 16;
-		printf(" (%08x -> %04x)\n", addr, result);
+		if (m_debug) printf(" (%08x -> %04x)\n", addr, result);
 		return result;
 	}
 }

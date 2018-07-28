@@ -81,6 +81,7 @@
 #define	cpu_cmd_halt	VVAR(_swic__DOT__cmd_halt)
 #define	cpu_reset	VVAR(_swic__DOT__cmd_reset)
 #define	cpu_ipc		VVAR(_swic__DOT__thecpu__DOT__ipc)
+#define	cpu_pf_pc	VVAR(_swic__DOT__thecpu__DOT__pf_pc)
 #define	cpu_upc		CPUVAR(_SET_USER_PC__DOT__r_upc)
 #define	cpu_gie		CPUVAR(_SET_GIE__DOT__r_gie)
 #define	cpu_iflags	CPUVAR(_w_iflags)
@@ -97,6 +98,9 @@
 #define	cpu_new_pc	CPUVAR(_new_pc)
 #define	cpu_op_sim	CPUVAR(_op_sim)
 #define	cpu_sim_immv	CPUVAR(_op_sim_immv)
+#define	cpu_wr_ce	CPUVAR(_wr_reg_ce)
+#define	cpu_wr_reg_id	CPUVAR(_wr_reg_id)
+#define	cpu_wr_gpreg	CPUVAR(_wr_gpreg_vl)
 
 #define	block_ram	VVAR(_bkrami__DOT__mem)
 class	MAINTB : public TESTB<Vmain> {
@@ -170,8 +174,20 @@ public:
 	void	tick(void) {
 		if (done())
 			return;
-		// KYSIM.TICK tags
-// Looking for string: SIM.TICK
+		TESTB<Vmain>::tick(); // Clock.size = 1
+	}
+
+
+	// Evaluating clock clk
+
+	// sim_clk_tick() will be called from TESTB<Vmain>::tick()
+	//   following any falling edge of clock clk
+	virtual	void	sim_clk_tick(void) {
+		// Default clock tick
+		//
+		// SIM.TICK tags go here for SIM.CLOCK=clk
+		//
+		// SIM.TICK from sram
 #ifdef	SRAM_ACCESS
 		m_core->i_ram_data = (*m_sram)(m_core->o_ram_ce_n,
 			m_core->o_ram_oe_n,
@@ -180,6 +196,7 @@ public:
 			m_core->o_ram_data,
 			m_core->o_ram_sel);
 #endif // SRAM_ACCESS
+		// SIM.TICK from zip
 #ifdef	INCLUDE_ZIPCPU
 		// ZipCPU Sim instruction support
 		if ((m_core->cpu_op_sim)
@@ -190,24 +207,26 @@ public:
 			execsim(m_core->cpu_sim_immv);
 		}
 
-		if (m_core->cpu_break) {
+		if (m_cpu_bombed) {
+			if (m_cpu_bombed++ > 12)
+				m_done = true;
+		} else if (m_core->cpu_break) {
 			printf("\n\nBOMB : CPU BREAK RECEIVED\n");
 			m_cpu_bombed++;
 			dump(m_core->cpu_regs);
-		} else if (m_cpu_bombed) {
-			if (m_cpu_bombed++ > 12)
-				m_done = true;
 		}
 #endif	// INCLUDE_ZIPCPU
 
+		// SIM.TICK from flash
 #ifdef	FLASH_ACCESS
 		if (m_flash_last_sck) {
 			(*m_flash)(m_core->o_spi_cs_n, 0,
 						m_core->o_spi_mosi);
-		} m_core->i_spi_miso = (*m_flash)(m_core->o_spi_cs_n, 1,
-						m_core->o_spi_mosi);
+		} m_core->i_spi_miso = ((*m_flash)(m_core->o_spi_cs_n, 1,
+						m_core->o_spi_mosi))?1:0;
 		m_flash_last_sck = m_core->o_spi_sck;
 #endif
+		// SIM.TICK from hb
 		int	pp_clk = m_core->i_pp_clk,
 			pp_dir = m_core->i_pp_dir;
 		m_core->i_pp_data = (*m_hb)(
@@ -215,37 +234,8 @@ public:
 			m_core->o_pp_clkfb);
 		m_core->i_pp_clk = pp_clk;
 		m_core->i_pp_dir = pp_dir;
-		TESTB<Vmain>::tick();
-
-		bool	writeout = false;
-
-			// KYSIM.DBGCONDITION tags
-			//
-			// SIM.DBGCONDITION
-			// Set writeout to true here for debug by printf access
-			// to this routine
-			//
-// Looking for string: SIM.DBGCONDITION
-
-			if (writeout) {
-				// SIM.DEBUG tags can print here, supporting
-				// any attempts to debug by printf.  Following any
-				// code you place here, a newline will close the
-				// debug section.
-		//
-// Looking for string: SIM.DEBUG
-		}
 	}
-
-	//
-	// Step until clock clk ticks
-	//
-	virtual	void	tick_clk(void) {
-		// Advance until the default clock ticks
-		do {
-			tick();
-		} while(!m_clk.rising_edge());
-	}
+	inline	void	tick_clk(void) {	tick();	}
 
 	//
 	// The load function
@@ -455,14 +445,20 @@ public:
 			exit(0);
 		} else if ((imm & 0x0ffff0)==0x00310) {
 			// SIM Exit(User-Reg)
-			int	rcode;
-			rcode = regp[(imm&0x0f)+16] & 0x0ff;
+			int	rcode, rnum;
+			rnum  = (imm&0x0f)+16;
+			rcode = regp[rnum] & 0x0ff;
+			if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
+				rcode = m_core->cpu_wr_gpreg;
 			close();
 			exit(rcode);
 		} else if ((imm & 0x0ffff0)==0x00300) {
 			// SIM Exit(Reg)
-			int	rcode;
-			rcode = regp[(imm&0x0f)+rbase] & 0x0ff;
+			int	rcode, rnum;
+			rnum  = (imm&0x0f)+rbase;
+			rcode = regp[rnum] & 0x0ff;
+			if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
+				rcode = m_core->cpu_wr_gpreg;
 			close();
 			exit(rcode);
 		} else if ((imm & 0x0fff00)==0x00100) {
@@ -477,23 +473,38 @@ public:
 			dump(regp);
 		} else if ((imm & 0x0ffff0)==0x00200) {
 			// Dump a register
-			int rid = (imm&0x0f)+rbase;
+			int	rcode, rnum;
+			rnum  = (imm&0x0f)+rbase;
+			rcode = regp[rnum];
+			if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
+				rcode = m_core->cpu_wr_gpreg;
 			printf("%8lu @%08x R[%2d] = 0x%08x\n", m_time_ps/1000,
-			m_core->cpu_ipc, rid, regp[rid]);
+				m_core->cpu_ipc, rnum, rcode);
 		} else if ((imm & 0x0ffff0)==0x00210) {
 			// Dump a user register
-			int rid = (imm&0x0f);
+			int	rcode, rnum;
+			rnum  = (imm&0x0f)+16;
+			rcode = regp[rnum] & 0x0ff;
+			if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
+				rcode = m_core->cpu_wr_gpreg;
 			printf("%8lu @%08x uR[%2d] = 0x%08x\n", m_time_ps/1000,
-				m_core->cpu_ipc,
-				rid, regp[rid+16]);
+				m_core->cpu_ipc, rnum, rcode);
 		} else if ((imm & 0x0ffff0)==0x00230) {
 			// SOUT[User Reg]
-			int rid = (imm&0x0f)+16;
-			printf("%c", regp[rid]&0x0ff);
+			int	rcode, rnum;
+			rnum  = (imm&0x0f)+16;
+			rcode = regp[rnum];
+			if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
+				rcode = m_core->cpu_wr_gpreg;
+			printf("%c", rcode&0x0ff);
 		} else if ((imm & 0x0fffe0)==0x00220) {
 			// SOUT[User Reg]
-			int rid = (imm&0x0f)+rbase;
-			printf("%c", regp[rid]&0x0ff);
+			int	rcode, rnum;
+			rnum  = (imm&0x0f)+rbase;
+			rcode = regp[rnum];
+			if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
+				rcode = m_core->cpu_wr_gpreg;
+			printf("%c", rcode&0x0ff);
 		} else if ((imm & 0x0fff00)==0x00400) {
 			// SOUT[Imm]
 			printf("%c", imm&0x0ff);

@@ -131,7 +131,7 @@
 // I recommend only defining this if you "need" to, if area is tight and
 // speed isn't as important.  Otherwise, just leave this undefined.
 //
-`define	OPT_SINGLE_FETCH // 2047 total LUTs (savings of 181 from before)
+// `define	OPT_SINGLE_FETCH // 2047 total LUTs (savings of 181 from before)
 //
 //
 // OPT_DOUBLE_FETCH is an alternative to OPT_SINGLE_FETCH.  It is designed to
@@ -153,7 +153,7 @@
 //
 //
 `ifndef	OPT_SINGLE_FETCH
-//`define	OPT_DOUBLE_FETCH
+`define	OPT_DOUBLE_FETCH
 `endif
 //
 //

@@ -46,6 +46,8 @@ VDIRFB:= $(FBDIR)/obj-$(ARCH)
 VOBJ := obj-$(ARCH)
 include auto.mk
 PCFFILE := icozip.pcf
+VERILATOR := verilator
+# VERILATOR := VERILATOR_ROOT=/home/dan/tmp/verilator.git /home/dan/tmp/verilator.git/bin/verilator
 # toplevel.v rxuart.v txuart.v
 # rtcdate.v wbubus.v
 ICOSRCS := toplevel.v main.v $(WBUBUS) $(PPBUS) $(PPORT) cpu/icontrol.v memdev.v ufifo.v
@@ -63,12 +65,12 @@ verilated: $(VDIRFB)/Vmain__ALL.a
 # $(VDIRFB)/V%.cpp: $(VDIRFB)/V%.h
 # $(VDIRFB)/V%.mk:  $(VDIRFB)/V%.h
 # $(VDIRFB)/V%.h: $(FBDIR)/%.v
-#	verilator -O3 -Mdir $(VDIRFB) -trace -cc $(AUTOVDIRS) $*.v
+#	$(VERILATOR) -O3 -Mdir $(VDIRFB) -trace -cc $(AUTOVDIRS) $*.v
 
 $(VDIRFB)/Vmain.cpp: $(VDIRFB)/Vmain.h
 $(VDIRFB)/Vmain.mk:  $(VDIRFB)/Vmain.h
 $(VDIRFB)/Vmain.h: main.v $(VFLIST)
-	verilator -O3 -Mdir $(VDIRFB) -trace -cc $(AUTOVDIRS) main.v
+	$(VERILATOR) -O3 -Mdir $(VDIRFB) -trace -cc $(AUTOVDIRS) main.v
 
 cpudefs.h: cpu/cpudefs.v
 	@echo "Building cpudefs.h"
@@ -123,16 +125,6 @@ icozip.bin: icozip.asc
 #
 #
 #
-#
-#
-simple.blif: simple.ys simplefirst.v
-	yosys -p 'synth_ice40 -blif simple.blif' simplefirst.v |tee simple.log
-simple.asc: icozip.pcf simple.blif
-	arachne-pnr -d 8k -p icozip.pcf simple.blif -o simple.asc
-simple.bin: simple.asc
-	icetime -d hx8k -c 100 simple.asc
-	icepack simple.asc simple.bin
-
 .PHONY: clean
 clean:
 	rm -rf $(VOBJ) cpudefs.h design.h
@@ -141,8 +133,6 @@ clean:
 	rm -rf $(VDIRFB)/*.cpp
 	rm -rf $(VDIRFB)/*.h
 	rm -rf $(VDIRFB)/
-
-
 
 # yosys -p synth_ice40 -blif icozip.blif toplevel.v main.v wbubus/wbconsole.v wbubus/wbubus.v wbubus/wbucompactlines.v wbubus/wbucompress.v wbubus/wbuconsole.v wbubus/wbudecompress.v wbubus/wbudeword.v wbubus/wbuexec.v wbubus/wbufifo.v wbubus/wbuidleint.v wbubus/wbuinput.v wbubus/wbuoutput.v wbubus/wbureadcw.v wbubus/wbusixchar.v wbubus/wbutohex.v cpu/busdelay.v cpu/cpudefs.v cpu/cpuops.v cpu/dblfetch.v cpu/div.v cpu/icontrol.v cpu/idecode.v cpu/memops.v cpu/pfcache.v cpu/pipefetch.v cpu/pipemem.v cpu/prefetch.v cpu/wbarbiter.v cpu/wbdblpriarb.v cpu/wbdmac.v cpu/wbpriarbiter.v cpu/wbwatchdog.v cpu/zipbones.v cpu/zipcounter.v cpu/zipcpu.v cpu/zipjiffies.v cpu/zipsystem.v cpu/ziptimer.v ../pport/ppio.v ../pport/pport.v ../pport/wbpport.v memdev.v ufifo.v
 # arachne-pnr -d 8k -p icozip.pcf icozip.blif -o icozip.asc
