@@ -1688,13 +1688,12 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	//	FPU operation.
 	generate if (OPT_NO_USERMODE)
 	begin
-		assign	wr_reg_id[3:0] = (alu_wR|div_valid|fpu_valid)
-				? alu_reg[3:0]:mem_wreg[3:0];
+		assign	wr_reg_id[3:0] = (mem_valid)
+					? mem_wreg[3:0] : alu_reg[3:0];
 
 		assign	wr_reg_id[4] = 1'b0;
 	end else begin
-		assign	wr_reg_id = (alu_wR|div_valid|fpu_valid)
-				? alu_reg : mem_wreg;
+		assign	wr_reg_id = (mem_valid) ? mem_wreg : alu_reg;
 	end endgenerate
 
 	// Are we writing to the CC register?
@@ -2216,6 +2215,8 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	always @(posedge i_clk)
 	if (i_reset)
 		pf_pc <= { RESET_BUS_ADDRESS, 2'b00 };
+	else if ((dbgv)&&(wr_reg_id[4] == gie)&&(wr_write_pc))
+		pf_pc <= { wr_spreg_vl[(AW+1):2], 2'b00 };
 	else if ((w_switch_to_interrupt)
 			||((!gie)&&((w_clear_icache)||(dbg_clear_pipe))))
 		pf_pc <= { ipc[(AW+1):2], 2'b00 };
@@ -2364,7 +2365,11 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	end else begin
 
 		always @(posedge i_clk)
-			r_halted <= (i_halt)&&(!alu_phase)&&((op_valid)||(i_reset));
+			r_halted <= (i_halt)&&(!alu_phase)
+				// To be halted, any long lasting instruction
+				// must be completed.
+				&&(!pf_cyc)&&(!mem_busy)&&(!alu_busy)
+					&&(!div_busy)&&(!fpu_busy);
 	end endgenerate
 	assign	o_dbg_stall = !r_halted;
 	//}}}

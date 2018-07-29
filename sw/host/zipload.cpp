@@ -4,9 +4,9 @@
 //
 // Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
-// Purpose:	To load a program for the ZipCPU into memory, whether flash
-//		or SDRAM.  This requires a working/running configuration
-//	in order to successfully load.
+// Purpose:	To load a program for the ZipCPU into memory, whether flash,
+//		SRAM, or block RAM.  This requires a working/running
+//	configuration in order to successfully load.
 //
 //
 // Creator:	Dan Gisselquist, Ph.D.
@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2017, Gisselquist Technology, LLC
+// Copyright (C) 2015-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -214,16 +214,15 @@ int main(int argc, char **argv) {
 		}
 
 		printf("Loading: %s\n", codef);
-		// assert(secpp[1]->m_len = 0);
 		for(int i=0; secpp[i]->m_len; i++) {
 			bool	valid = false;
 			secp=  secpp[i];
 
 			// Make sure our section is either within block RAM
-#ifdef	BLKRAM_ACCESS
-			if ((secp->m_start >= BKMEMBASE)
+#ifdef	BKRAM_ACCESS
+			if ((secp->m_start >= BKRAMBASE)
 				&&(secp->m_start+secp->m_len
-						<= BKMEMBASE+BKMEMLEN))
+						<= BKRAMBASE+BKRAMLEN))
 				valid = true;
 #endif
 
@@ -235,11 +234,11 @@ int main(int argc, char **argv) {
 				valid = true;
 #endif
 
-#ifdef	SDRAM_ACCESS
-			// Or SDRAM
-			if ((secp->m_start >= RAMBASE)
+#ifdef	SRAM_ACCESS
+			// Or SRAM
+			if ((secp->m_start >= SRAMBASE)
 				&&(secp->m_start+secp->m_len
-						<= RAMBASE+RAMLEN))
+						<= SRAMBASE+SRAMLEN))
 				valid = true;
 #endif
 			if (!valid) {
@@ -253,10 +252,10 @@ int main(int argc, char **argv) {
 		for(int i=0; secpp[i]->m_len; i++) {
 			secp = secpp[i];
 
-#ifdef	SDRAM_ACCESS
-			if ((secp->m_start >= RAMBASE)
+#ifdef	SRAM_ACCESS
+			if ((secp->m_start >= SRAMBASE)
 				&&(secp->m_start+secp->m_len
-						<= RAMBASE+RAMLEN)) {
+						<= SRAMBASE+SRAMLEN)) {
 				if (verbose)
 					printf("Writing to MEM: %08x-%08x\n",
 						secp->m_start,
@@ -273,10 +272,10 @@ int main(int argc, char **argv) {
 			}
 #endif
 
-#ifdef	BLKRAM_ACCESS
-			if ((secp->m_start >= BKMEMBASE)
+#ifdef	BKRAM_ACCESS
+			if ((secp->m_start >= BKRAMBASE)
 				  &&(secp->m_start+secp->m_len
-						<= BKMEMBASE+BKMEMLEN)) {
+						<= BKRAMBASE+BKRAMLEN)) {
 				if (verbose)
 					printf("Writing to MEM: %08x-%08x\n",
 						secp->m_start,

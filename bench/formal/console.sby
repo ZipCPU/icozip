@@ -1,0 +1,14 @@
+[options]
+mode prove
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -formal fwb_slave.v
+read_verilog -formal console.v
+prep -top console
+
+[files]
+fwb_slave.v
+../../rtl/hexbus/console.v
