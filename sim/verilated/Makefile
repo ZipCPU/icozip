@@ -52,8 +52,6 @@ hostcheck:
 CXX	:= $(CROSS)g++
 OBJDIR  := obj-$(ARCH)
 RTLD	:= ../../rtl/icozip
-# VERILATOR_ROOT := /home/dan/tmp/verilator.git
-# VDEFS := -DNEW_VERILATOR
 VERILATOR_ROOT ?= $(shell bash -c 'verilator -V|grep VERILATOR_ROOT | head -1 | sed -e " s/^.*=\s*//"')
 VROOT	:= $(VERILATOR_ROOT)
 VDEFS   := $(shell ./vversion.sh)

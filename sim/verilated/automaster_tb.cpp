@@ -165,14 +165,14 @@ int	main(int argc, char **argv) {
 		tb->m_core->cpu_ipc = entry;
 
 		tb->m_core->cpu_cmd_halt = 0;
-		tb->m_core->cpu_reset = 0;
+		tb->m_core->cpu_reset    = 0;
 		tb->tick();
 
 		tb->m_core->cpu_ipc = entry;
-		tb->m_core->cpu_new_pc = 1;
-		tb->m_core->cpu_pf_pc  = entry;
+		tb->m_core->cpu_new_pc   = 1;
+		tb->m_core->cpu_pf_pc    = entry;
 		tb->m_core->cpu_cmd_halt = 0;
-		tb->m_core->VVAR(_swic__DOT__cmd_reset) = 0;
+		tb->m_core->cpu_reset    = 0;
 		tb->tick();
 #else
 		fprintf(stderr, "ERR: Design has no ZipCPU\n");
