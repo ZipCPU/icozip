@@ -1,0 +1,19 @@
+[options]
+mode prove
+# mode cover
+multiclock on
+depth 40
+
+[engines]
+smtbmc yices
+# smtbmc boolector
+# smtbmc z3
+
+[script]
+# read -sv pport.v
+read_verilog -formal pport.v
+prep -top pport
+
+[files]
+../../rtl/pport/pport.v
+

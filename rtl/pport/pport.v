@@ -84,6 +84,8 @@ module	pport(i_clk,
 	initial	pp_stb = 0;
 	always @(posedge i_clk)
 		pp_clk_transfer <= { pp_clk_transfer[(SCLKS-2):0], i_pp_clk };
+
+	initial o_pp_clkfb = 1'b0;
 	always @(posedge i_clk)
 		if (&pp_clk_transfer[(SCLKS-1):1])
 			o_pp_clkfb <= 1'b1;
@@ -94,9 +96,11 @@ module	pport(i_clk,
 
 	reg	[7:0]	ck_pp_data;
 	always @(posedge i_clk)
+	if (!o_pp_clkfb)
 		ck_pp_data <= i_pp_data;
 
 	always @(posedge i_clk)
+	if (!o_pp_clkfb)
 		stb_pp_dir <= i_pp_dir;
 	always @(posedge i_clk)
 		ck_pp_dir <= stb_pp_dir;
@@ -106,6 +110,7 @@ module	pport(i_clk,
 	assign	ck_rd_dir  =  ck_pp_dir;
 	assign	ck_wr_dir  = !ck_rd_dir;
 
+	initial	o_rx_stb = 1'b0;
 	always @(posedge i_clk)
 		o_rx_stb <= (pp_stb)&&(stb_rd_dir);
 
@@ -114,12 +119,14 @@ module	pport(i_clk,
 			o_rx_data <= ck_pp_data;
 
 	reg	loaded;
+	initial	loaded = 1'b0;
 	always @(posedge i_clk)
 		if ((i_tx_wr)&&(!o_tx_busy))
 			loaded <= 1'b1;
 		else if ((pp_stb)&&(stb_wr_dir))
 			loaded <= 1'b0;
 
+	initial	o_tx_busy = 1'b0;
 	always @(posedge i_clk)
 		// We are busy if ...
 		//	1. We have a word loaded and ready to transmit
@@ -130,19 +137,226 @@ module	pport(i_clk,
 			// 3. We are in the middle of a read transaction.
 			// During transactions, things cannot be changed, so
 			// ... we are hence busy
-			||((|pp_clk_transfer[(SCLKS-1):1])&&(ck_wr_dir));
+			||(((|pp_clk_transfer[(SCLKS-1):1])||(o_pp_clkfb))
+						&&(ck_wr_dir));
 
+	initial	o_pp_data = 8'hff;
 	always @(posedge i_clk)
-		if (!o_tx_busy)
-		begin
-			if (i_tx_wr)
-				o_pp_data <= i_tx_data[7:0];
-			else
-				o_pp_data <= 8'hff;
-		end
+	if (!o_tx_busy)
+	begin
+		if (i_tx_wr)
+			o_pp_data <= i_tx_data[7:0];
+		else
+			o_pp_data <= 8'hff;
+	end
 
 reg	r_dbg;
 always @(posedge i_clk)
 	r_dbg <= (i_tx_wr)&&(!o_tx_busy);
 assign	o_dbg = r_dbg; // (o_rx_stb);
+`ifdef	FORMAL
+	reg	f_past_valid_gbl, f_past_valid;
+
+	initial	f_past_valid_gbl = 1'b0;
+	always @(posedge i_clk)
+		f_past_valid_gbl <= 1'b1;
+
+	initial	f_past_valid = 1'b0;
+	always @(posedge i_clk)
+		f_past_valid <= 1'b1;
+
+	//////////////////////
+	// Clock generation
+	reg	[1:0]	f_ckreg;
+	always @($global_clock)
+		f_ckreg <= f_ckreg + 1'b1;
+	always @(*)
+		assume(i_clk == f_ckreg[1]);
+
+	reg	f_past_pp_clk;
+	initial	f_past_pp_clk = 1'b0;
+	always @($global_clock)
+		f_past_pp_clk <= i_pp_clk;
+
+	always @(*)
+	if ((f_past_pp_clk)&&(!o_pp_clkfb))
+		assume(i_pp_clk == f_past_pp_clk);
+
+	always @(*)
+	if ((!f_past_pp_clk)&&(o_pp_clkfb))
+		assume(i_pp_clk == f_past_pp_clk);
+
+	always @($global_clock)
+	begin
+		if ((f_past_valid_gbl)&&(!$rose(i_clk)))
+		begin
+			assume($stable(i_tx_wr));
+			assume($stable(i_tx_data));
+
+			assert($stable(o_tx_busy));
+			assert($stable(o_rx_stb));
+			assert($stable(o_rx_data));
+		end
+
+		if ($past(i_pp_clk != o_pp_clkfb))
+			assume($stable(i_pp_clk));
+		if (!$stable(o_pp_clkfb))
+			assume($stable(i_pp_clk));
+		if (i_pp_clk)
+		begin
+			assume($stable(i_pp_dir));
+			assume($stable(i_pp_data));
+		end
+	end
+
+	///////////////////////
+	// Input assumptions
+	initial	assume(!i_pp_clk);
+	always @(posedge i_clk)
+	if ((f_past_valid)&&($past(i_tx_wr))&&($past(o_tx_busy)))
+		assume(($stable(i_tx_wr))&&($stable(i_tx_data)));
+	always @(*)
+	if (!i_pp_dir)
+		assume(i_pp_data === o_pp_data);
+
+	reg	[2:0]	pp_clk_count;
+	initial	pp_clk_count = 0;
+	always @($global_clock)
+	if ((i_pp_clk != o_pp_clkfb)||(!i_pp_clk))
+		pp_clk_count <= 0;
+	else
+		pp_clk_count <= pp_clk_count + 1;
+	always @(*)
+		assume(pp_clk_count < 3'h7);
+
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&($past(o_rx_stb)))
+		assert(!o_rx_stb);
+
+	reg		f_rx_stb,  f_tx_stb;
+	reg	[7:0]	f_rx_data, f_tx_data;
+
+	initial	f_rx_stb = 1'b0;
+	always @($global_clock)
+	if (($rose(i_pp_clk))&&(i_pp_dir))
+	begin
+		assert(!o_pp_clkfb);
+		assert(!f_rx_stb);
+		f_rx_stb <= 1'b1;
+		f_rx_data <= i_pp_data;
+	end else if ((o_rx_stb)&&(o_rx_data == f_rx_data))
+		f_rx_stb <= 1'b0;
+
+	always @(*)
+	if ((!i_pp_clk)&&(!o_pp_clkfb))
+		assert(!f_rx_stb);
+
+	always @($global_clock)
+	if ($rose(o_rx_stb))
+		assert(f_rx_stb);
+
+	always @($global_clock)
+	if (f_rx_stb)
+	begin
+		if (i_pp_clk)
+			assert(i_pp_data == f_rx_data);
+		if (f_past_valid_gbl)
+		begin
+			if ($rose(o_pp_clkfb))
+				assert(ck_pp_data == f_rx_data);
+			else if (pp_stb)
+				assert(ck_pp_data == f_rx_data);
+			else if (o_pp_clkfb)
+				assert(o_rx_data == f_rx_data);
+		end
+		if (o_rx_stb)
+			assert(o_rx_data == f_rx_data);
+	end
+
+	always @($global_clock)
+	if ((f_past_valid_gbl)
+			&&(!i_pp_dir)&&(i_pp_clk)&&($stable(i_pp_clk))
+			&&(o_pp_clkfb)&&($stable(o_pp_clkfb)))
+		assert($stable(o_pp_data));
+
+	always @(posedge i_clk)
+	if ((f_tx_stb)&&(i_pp_clk)&&(o_pp_clkfb)&&(!i_pp_dir))
+		assert(o_pp_data == f_tx_data);
+
+	always @($global_clock)
+	if ((f_past_valid_gbl)&&($rose(o_pp_clkfb))&&(!f_tx_stb))
+		assert(o_pp_data == 8'hff);
+
+	always @($global_clock)
+	if ((pp_clk_transfer != 0)&&(!(&pp_clk_transfer)))
+		assert($stable(i_pp_clk));
+
+	always @($global_clock)
+	if ((pp_clk_transfer != 0)&&(!(&pp_clk_transfer)))
+		assert($stable(o_pp_clkfb));
+
+	always @($global_clock)
+	if ((f_past_valid_gbl)&&($rose(o_pp_clkfb)))
+		assert(f_tx_stb == loaded);
+	initial	f_tx_stb = 1'b0;
+	always @(posedge i_clk)
+	if ((i_tx_wr)&&(!o_tx_busy))
+	begin
+		assert(!f_tx_stb);
+		f_tx_stb <= 1'b1;
+		f_tx_data <= i_tx_data;
+	end else if (($fell(i_pp_clk))&&(!$past(i_pp_dir))
+				&&($past(o_pp_data==f_tx_data)))
+		f_tx_stb <= 1'b0;
+	always @(*)
+	if (loaded)
+		assert((f_tx_stb)&&(f_tx_data == o_pp_data));
+
+	always @(*)
+	if ((f_tx_stb)&&(!o_pp_clkfb))
+		assert(o_tx_busy);
+
+	always @(*)
+	if ((f_tx_stb)&&(!o_pp_clkfb)&&(!i_pp_dir))
+		assert(o_tx_busy);
+
+	always @($global_clock)
+	if ((i_pp_clk == o_pp_clkfb)&&(i_pp_clk))
+		assert(i_pp_dir == stb_pp_dir);
+	always @($global_clock)
+	if ((i_pp_clk == o_pp_clkfb)&&(i_pp_clk))
+		assert(ck_pp_dir == stb_pp_dir);
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&(!$past(o_pp_clkfb))&&(o_pp_clkfb))
+		assert(pp_stb);
+
+	always @($global_clock)
+	if ((f_past_valid)&&($past(o_pp_clkfb))&&(o_pp_clkfb))
+		assert($stable(ck_pp_data));
+
+	always @(posedge i_clk)
+		cover((f_tx_stb)&&(!i_pp_dir)&&(o_pp_clkfb)
+				&&(o_pp_data == f_tx_data));
+
+	always @(posedge i_clk)
+		cover(o_rx_stb);
+
+	always @($global_clock)
+	if (f_past_valid_gbl)
+		cover($rose(i_pp_clk));
+	always @($global_clock)
+	if (f_past_valid_gbl)
+		cover($fell(i_pp_clk));
+	always @($global_clock)
+	if (f_past_valid_gbl)
+		cover(i_pp_clk);
+
+//module	pport(i_clk,
+//		o_rx_stb, o_rx_data,
+//		i_tx_wr, i_tx_data, o_tx_busy,
+//		i_pp_dir, i_pp_clk, i_pp_data, o_pp_data,
+//			o_pp_clkfb, o_dbg);
+`endif
 endmodule
