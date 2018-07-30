@@ -57,7 +57,7 @@
 #define	PP_FROM_FPGA	0
 
 #define	DBLPIPEBUFLEN	256
-
+const unsigned int PP_DELAY = 1200;
 
 int	PPORTSIM::setup_listener(const int port) {
 	struct	sockaddr_in	my_addr;
@@ -112,6 +112,7 @@ PPORTSIM::PPORTSIM(const int port, const bool copy_to_stdout)
 	m_pp_phase = 0;
 	m_tx_busy   = 0; // Flow control out of the FPGA
 	m_intransit_data = 0x0ff;
+	m_delay = PP_DELAY;
 }
 
 void	PPORTSIM::kill(void) {
@@ -319,8 +320,13 @@ int	PPORTSIM::operator()(int &pp_clk, int &pp_dir, int pp_data, int pp_clkfb) {
 	// We need to hold the clock in either condition until the board
 	// responds that it has seen our clock.  
 
-	if (pp_clk != pp_clkfb)
+	if (m_delay > 0) {
+		m_delay--;
 		return r;
+	} if (pp_clk != pp_clkfb) {
+		m_delay = PP_DELAY;
+		return r;
+	}
 
 	if (pp_clk) {
 		pp_clk = 0;
@@ -328,7 +334,7 @@ int	PPORTSIM::operator()(int &pp_clk, int &pp_dir, int pp_data, int pp_clkfb) {
 		// Check if we just read something
 		if ((pp_dir == PP_FROM_FPGA)&&(pp_data != 0x0ff))
 			received(pp_data);
-
+		m_delay = PP_DELAY;
 		return r;
 	}
 
@@ -340,6 +346,7 @@ int	PPORTSIM::operator()(int &pp_clk, int &pp_dir, int pp_data, int pp_clkfb) {
 			m_intransit_data = vl&0x0ff;
 			pp_dir = PP_TO_FPGA;
 			pp_clk = 1;
+			m_delay = PP_DELAY;
 			return m_intransit_data;
 		}
 	}
@@ -350,6 +357,7 @@ int	PPORTSIM::operator()(int &pp_clk, int &pp_dir, int pp_data, int pp_clkfb) {
 	// send to us.
 	pp_clk = 1;
 	pp_dir = PP_FROM_FPGA;
+	m_delay = PP_DELAY;
 
 	return pp_data;
 }

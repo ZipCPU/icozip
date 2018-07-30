@@ -101,11 +101,11 @@ public:
 		// evaluation, and then record that in the
 		// trace.
 		eval();
-		if (m_trace) m_trace->dump(m_time_ps+5000);
+		if (m_trace) m_trace->dump(m_time_ps+10000);
 
 		// Advance the one simulation clock, clk
 		m_core->i_clk = 1;
-		m_time_ps+= 10000;
+		m_time_ps+= 20000;
 		eval();
 		// If we are keeping a trace, dump the current state to that
 		// trace now
@@ -117,7 +117,7 @@ public:
 		// <SINGLE CLOCK ONLY>:
 		// Advance the clock again, so that it has its negative edge
 		m_core->i_clk = 0;
-		m_time_ps+= 10000;
+		m_time_ps+= 20000;
 		eval();
 		if (m_trace) m_trace->dump(m_time_ps);
 

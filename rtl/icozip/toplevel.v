@@ -172,13 +172,18 @@ module	toplevel(i_clk,
 `ifdef	VERILATOR
 	assign	s_clk = i_clk;
 `else
-	reg	clk_50mhz;
+	reg	[1:0]	clkgen;
+	reg		clk_25mhz;
 
-	initial	clk_50mhz = 1'b0;
+	initial clkgen = 2'b00;
 	always @(posedge i_clk)
-		clk_50mhz <= !clk_50mhz;
+		clkgen <= clkgen + 1'b1;
 
-	SB_GB global_buffer(clk_50mhz, s_clk);
+	initial	clk_25mhz = 1'b0;
+	always @(posedge i_clk)
+		clk_25mhz <= clkgen[1];
+
+	SB_GB global_buffer(clk_25mhz, s_clk);
 `endif
 
 

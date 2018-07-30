@@ -1080,8 +1080,11 @@ int	multiarg_test(void) {
 
 __attribute__((noinline))
 void	wait(unsigned int msk) {
-	PIC = 0x7fff0000|msk;
+	// Clear/Disable all interrupts
+	PIC = 0x7fff7fff;
+	// Enable only our interrupt
 	PIC = 0x80000000|(msk<<16);
+	PIC;
 	asm("WAIT\n");
 	PIC = 0; // Turn interrupts back off, lest they confuse the test
 }
@@ -1090,7 +1093,7 @@ asm("\n\t.text\nidle_task:\n\tWAIT\n\tBRA\tidle_task\n");
 
 __attribute__((noinline))
 void	txchr(char v) {
-	if (zip_cc() & CC_GIE) {
+	if ((1)||(zip_cc() & CC_GIE)) {
 		while(UARTTX & 0x100)
 			;
 	} else
@@ -1442,16 +1445,17 @@ void entry(void) {
 		test_fails(start_time, &testlist[tnum]);
 	else if (zip_ucc() & CC_ILL)
 		txstr("No Multiply Implemented\r\n");
-	else
+	else {
 		txstr("Pass\r\n");
-	testlist[tnum++] = 0;	// #22
+		testlist[tnum++] = 0;	// #22
 
-	// MPYxHI_TEST
-	if ((zip_ucc() & CC_ILL)==0) {
-		testid("Multiply HI-word test"); MARKSTART;
-		if ((run_test(mpyhi_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
-			test_fails(start_time, &testlist[tnum]);
-		txstr("Pass\r\n"); testlist[tnum++] = 0;	// #23
+		// MPYxHI_TEST
+		if ((zip_ucc() & CC_ILL)==0) {
+			testid("Multiply HI-word test"); MARKSTART;
+			if ((run_test(mpyhi_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
+				test_fails(start_time, &testlist[tnum]);
+			txstr("Pass\r\n"); testlist[tnum++] = 0;	// #23
+		}
 	}
 
 	// DIV_TEST

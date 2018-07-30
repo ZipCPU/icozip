@@ -81,7 +81,7 @@
 #define	GPIO_LEDG1_CLR	GPIO_CLR(GPIO_LEDG1)
 
 
-#define	CLKFREQHZ	50000000
+#define	CLKFREQHZ	25000000
 
 
 typedef struct  CONSOLE_S {

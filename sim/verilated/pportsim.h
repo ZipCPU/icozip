@@ -87,6 +87,7 @@
 
 class	PPORTSIM {
 	bool	m_debug;
+	unsigned m_delay;
 
 	// setup_listener is an attempt to encapsulate all of the network
 	// related setup stuff.

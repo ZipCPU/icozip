@@ -927,7 +927,7 @@ module	main(i_clk, i_reset,
 	// And an arbiter to decide who gets access to the bus
 	//
 	//
-	// Clock speed = 50000000 Hz
+	// Clock speed = 25000000 Hz
 	wbpriarbiter #(32,23)	bus_arbiter(i_clk,
 		// The Zip CPU bus master --- gets the priority slot
 		zip_cyc, zip_stb, zip_we, zip_addr, zip_data, zip_sel,

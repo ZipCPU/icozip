@@ -244,11 +244,11 @@ private:
 	}
 
 	void	pp_dump(void) {
-		unsigned	datab = 0, clk=0, clkfb=0, dir=0;
+		unsigned	datab = 0; // , clk=0, clkfb=0, dir=0;
 
-		dir   = digitalRead(RASPI_DIR);
-		clk   = digitalRead(RASPI_CLK);
-		clkfb = digitalRead(RASPI_CLKFB);
+		// dir   = digitalRead(RASPI_DIR);
+		// clk   = digitalRead(RASPI_CLK);
+		// clkfb = digitalRead(RASPI_CLKFB);
 
 		if (digitalRead(RASPI_D7))	datab |= 0x80;
 		if (digitalRead(RASPI_D6))	datab |= 0x40;
@@ -259,12 +259,13 @@ private:
 		if (digitalRead(RASPI_D1))	datab |= 0x02;
 		if (digitalRead(RASPI_D0))	datab |= 0x01;
 
-
+/*
 		printf("%s %s/%s %02x\n",
 			(dir)?"OUT":" IN",
 			(clk)?"CLK":" ( )",
 			(clkfb)?"FB":" ()",
 			datab & 0x0ff);
+*/
 	}
 
 	void	pp_init(void) {
