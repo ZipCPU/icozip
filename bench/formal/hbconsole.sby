@@ -1,0 +1,35 @@
+[options]
+mode prove
+depth 40
+
+[engines]
+smtbmc yices
+# smtbmc boolector
+# smtbmc z3
+
+[script]
+# read -sv pport.v
+read_verilog -formal fwb_master.v
+read_verilog -formal hbdechex.v
+read_verilog -formal hbdeword.v
+read_verilog -formal hbexec.v
+read_verilog -formal hbgenhex.v
+read_verilog -formal hbidle.v
+read_verilog -formal hbints.v
+read_verilog -formal hbnewline.v
+read_verilog -formal hbpack.v
+read_verilog -formal hbconsole.v
+prep -top hbconsole
+
+[files]
+fwb_master.v
+../../rtl/hexbus/hbbus.v
+../../rtl/hexbus/hbdechex.v
+../../rtl/hexbus/hbdeword.v
+../../rtl/hexbus/hbexec.v
+../../rtl/hexbus/hbgenhex.v
+../../rtl/hexbus/hbidle.v
+../../rtl/hexbus/hbints.v
+../../rtl/hexbus/hbnewline.v
+../../rtl/hexbus/hbpack.v
+../../rtl/hexbus/hbconsole.v

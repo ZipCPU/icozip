@@ -1,17 +1,17 @@
 ################################################################################
 ##
-## Filename: 	clock.txt
+## Filename: 	dbgscope.txt
 ##
-## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
+## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##
-## Purpose:	
+## Purpose:	An ad-hoc scope to dig into what's going on
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2017, Gisselquist Technology, LLC
+## Copyright (C) 2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -35,29 +35,35 @@
 ################################################################################
 ##
 ##
-@$CLKFREQHZ=50000000
-@PREFIX=clk
-@CLOCK.NAME=clk
-@TOP.DEFNS=
-	wire		s_clk, s_reset;
-@TOP.INSERT=
-	assign	s_reset = 1'b0; // This design requires local, not global resets
+@PREFIX=dbgscope
+@$NADDR=2
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=wb
+@MAIN.INSERT=
+	wire		dbgscope_int;
+	wire	[31:0]	dbgscoped;
 
-`ifdef	VERILATOR
-	assign	s_clk = i_clk;
-`else
-	reg	clk_50mhz;
-
-	initial	clk_50mhz = 1'b0;
-	always @(posedge i_clk)
-		clk_50mhz <= !clk_50mhz;
-
-	SB_GB global_buffer(clk_50mhz, s_clk);
-`endif
-
-@REGDEFS.H.DEFNS=
-#define	CLKFREQHZ	@$CLKFREQHZ
-@BDEF.DEFN=
-#define	CLKFREQHZ	@$CLKFREQHZ
-@CLOCK.NAME=clk
-@CLOCK.FREQUENCY= @$CLKFREQHZ
+	assign	dbgscoped = { console_dbg[31], 5'h0,
+			zip_debug[13], zip_debug[24:23],
+			console_dbg[22:0] };
+	wbscope #(.LGMEM(6), .SYNCHRONOUS(1), .HOLDOFFBITS(3))
+		@$(PREFIX)i(i_clk, 1'b1, dbgscoped[31], dbgscoped,
+			i_clk, wb_cyc, (wb_stb)&&(@$(PREFIX)_sel),
+			wb_we, wb_addr[0], wb_data,
+			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data,
+			@$(PREFIX)_int);
+@REGS.N= 1
+@DEVID=DBGSCOPE
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
+@REGS.1= 1 R_@$(DEVID)D @$(DEVID)D
+#
+@RTL.MAKE.GROUP= SCOPE
+@RTL.MAKE.FILES= wbscope.v
+#
+@PREFIX=externalscope
+@MAIN.PORTLIST=
+	o_dbgwires
+@MAIN.IODECL=
+	output	wire	[7:0]	o_dbgwires;
+@MAIN.INSERT=
+	assign	o_dbgwires = console_dbg[7:0];

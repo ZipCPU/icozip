@@ -91,9 +91,10 @@
 	// Definitions for the WB-UART converter.  We really only need one
 	// (more) non-bus wire--one to use to select if we are interacting
 	// with the ZipCPU or not.
-	wire	[0:0]	wbubus_dbg;
 	wire		pp_rx_stb,  pp_tx_stb,  pp_tx_busy;
 	wire	[7:0]	pp_rx_data, pp_tx_data;
+//
+	wire	[31:0]	console_dbg;
 @$ZIP_ADDRESS_BIT=@$BUS_ADDRESS_WIDTH-1
 @$ZIP_ADDRESS=(1<<(@$.ZIP_ADDRESS_BIT+2))
 @ZIP_ADDRESS.FORMAT= 0x%08x
@@ -169,7 +170,8 @@
  			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data,
 			w_console_tx_stb, w_console_tx_data, w_console_busy,
 			w_console_rx_stb, w_console_rx_data,
-			uartrx_int, uarttx_int, uartrxf_int, uarttxf_int);
+			uartrx_int, uarttx_int, uartrxf_int, uarttxf_int,
+			console_dbg);
 @MAIN.ALT=
 	assign	w_console_tx_stb  = 1'b0;
 	assign	w_console_tx_data = 7'h7f;

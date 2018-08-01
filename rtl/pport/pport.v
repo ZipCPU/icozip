@@ -72,7 +72,7 @@ module	pport(i_clk,
 	//
 	//
 
-	localparam	SCLKS = 3; // 3 is the minimum
+	localparam	SCLKS = 6; // 3 is the minimum
 
 	// First, sycnrhonize the clock and generate a clock strobe
 	reg		stb_pp_dir, ck_pp_dir;

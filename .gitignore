@@ -26,3 +26,6 @@ design.h
 201*-ico.tjz
 201*-build.v
 autofpga.dbg
+ppsim
+exbus
+pptest

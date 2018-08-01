@@ -58,7 +58,7 @@
 	// Variables/definitions needed by the ZipCPU BUS master
 	//
 	//
-	// A 32-bit address indicating where teh ZipCPU should start running
+	// A 32-bit address indicating where the ZipCPU should start running
 	// from
 	localparam	RESET_ADDRESS = @$RESET_ADDRESS;
 	//

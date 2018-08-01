@@ -608,7 +608,7 @@ int main(int argc, char **argv)
 		if (nr > 0) {
 			unsigned iterations = 0;
 			last_busy  = (nr == sizeof(rawbuf));
-			while((nr > 0)&&(iterations++ < 16)) {
+			while(nr > 0) {
 				int	ncmd = 0, ncon = 0;
 				for(unsigned i=0; i<nr; i++) {
 					if (rawbuf[i] & 0x80)
@@ -651,6 +651,8 @@ int main(int argc, char **argv)
 				if (ncon > 0)
 					lbcon.print_in(stdout, ncon, (lbcon.m_fd >= 0)?") ":". ");
 
+				if (iterations++ > 16)
+					break;
 				nr = pport->read(sizeof(rawbuf), rawbuf);
 			}
 		}

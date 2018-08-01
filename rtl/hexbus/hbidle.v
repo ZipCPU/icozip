@@ -62,7 +62,7 @@ module	hbidle(i_clk, i_reset, i_cmd_stb, i_cmd_word, o_idl_busy,
 	//
 	reg		idle_stb;
 `ifdef	VERILATOR
-	reg	[22:0]	idle_counter;
+	reg	[18:0]	idle_counter;
 `else
 	reg	[29:0]	idle_counter;
 `endif

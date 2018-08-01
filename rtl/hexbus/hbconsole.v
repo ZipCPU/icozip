@@ -142,13 +142,13 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 			hb_stb, hb_bits, hx_busy);
 
 	wire		hx_stb, nl_busy;
-	wire	[7:0]	hx_byte;
+	wire	[6:0]	hx_byte;
 	// ... that can then be transmitted back down the channel
-	hbgenhex genhex(i_clk, hb_stb, hb_bits, hx_busy,
+	hbgenhex genhex(i_clk, w_reset, hb_stb, hb_bits, hx_busy,
 			hx_stb, hx_byte, nl_busy);
 
 	wire		hb_tx_stb;
-	wire	[7:0]	hb_tx_byte;
+	wire	[6:0]	hb_tx_byte;
 	//
 	// We'll also add carriage return newline pairs any time the channel
 	// goes idle
@@ -180,10 +180,41 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 	assign	o_tx_data = ps_data;
 	assign	o_console_busy = (hb_tx_stb)||(ps_full);
 
-	// Make verilator happy
-	// verilator lint_off UNUSED
-	wire	unused;
-	assign	unused = hb_tx_byte[7];
-	// verilator lint_on  UNUSED
+`ifdef	FORMAL
+	reg	f_past_valid;
+	initial	f_past_valid = 1'b0;
+	always @(posedge i_clk)
+		f_past_valid <= 1'b1;
+
+	always @(*)
+	if (int_busy)
+		assume(!ow_stb);
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&(!$past(w_reset)))
+	begin
+		//if (($past(int_stb))&&($past(idl_busy)))
+		//	assert(($stable(int_stb))&&($stable(int_word)));
+
+		if (($past(idl_stb))&&($past(hb_busy)))
+			assert(($stable(idl_stb))&&($stable(idl_word)));
+
+		if (($past(hb_stb))&&($past(hx_busy)))
+			assert(($stable(hb_stb))&&($stable(hb_bits)));
+
+		if (($past(hx_stb))&&($past(nl_busy)))
+			assert(($stable(hx_stb))&&($stable(hx_byte)));
+
+		// if (($past(hb_tx_stb))&&(!$past(w_reset))&&($past(ps_full)))
+			// assert(($stable(hb_tx_stb))&&($stable(hb_tx_byte)));
+
+		if (($past(i_console_stb))&&($past(o_console_busy)))
+			assume(($stable(i_console_stb))
+					&&($stable(i_console_data)));
+
+		if (($past(o_tx_stb))&&($past(i_tx_busy)))
+			assert(($stable(o_tx_stb))&&($stable(o_tx_data)));
+	end
+`endif
 endmodule
 

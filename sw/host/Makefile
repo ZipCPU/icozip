@@ -40,7 +40,7 @@
 all:
 CROSS ?=
 ARCH  ?= $(shell bash ./arch.sh)
-SHARED := wbregs flashid dumpflash spixscope sramscope zipload zipstate
+SHARED := wbregs flashid dumpflash spixscope sramscope zipload zipstate dbgscope
 #
 ifeq ($(ARCH),arm)
 PROGRAMS   := $(SHARED) netpport
@@ -59,7 +59,8 @@ hostcheck:
 CXX := $(CROSS)g++
 OBJDIR := obj-$(ARCH)
 BUSSRCS := hexbus.cpp llcomms.cpp regdefs.cpp byteswap.cpp
-SOURCES := wbregs.cpp netpport.cpp flashid.cpp $(BUSSRCS)
+SCOPESRC:= spixscope.cpp sramscope.cpp dbgscope.cpp
+SOURCES := wbregs.cpp netpport.cpp flashid.cpp $(BUSSRCS) $(SCOPESRC)
 # rdclocks.cpp flashdrvr.cpp		\
 #	 mkedid.cpp $(BUSSRCS)	edidrxscope.cpp	edidtxscope.cpp		\
 #	zipload.cpp zipstate.cpp zipdbg.cpp cpedid.cpp readhist.cpp	\
@@ -115,7 +116,7 @@ $(ARCH)-dumpflash: $(OBJDIR)/dumpflash.o $(BUSOBJS)
 # as well.
 wbprogram: $(OBJDIR)/wbprogram.o $(OBJDIR)/flashdrvr.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
-.PHONY: flashid sramscope spixscope zipstate zipload
+.PHONY: flashid sramscope spixscope zipstate zipload dbgscope
 flashid: $(ARCH)-flashid
 $(ARCH)-flashid: $(OBJDIR)/flashid.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
@@ -124,6 +125,9 @@ $(ARCH)-spixscope: $(OBJDIR)/spixscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
 sramscope: $(ARCH)-sramscope
 $(ARCH)-sramscope: $(OBJDIR)/sramscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
+	$(CXX) -g $^ -o $@
+dbgscope: $(ARCH)-dbgscope
+$(ARCH)-dbgscope: $(OBJDIR)/dbgscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
 zipstate: $(ARCH)-zipstate
 $(ARCH)-zipstate: $(OBJDIR)/zipstate.o $(BUSOBJS)

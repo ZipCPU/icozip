@@ -5,4 +5,7 @@ spixpress_safety_nocfg
 spixpress_safety_pipe
 spixpress_safety_pipe_nocfg
 console
+hbconsole
+hbints
+hbnewline
 sramdev

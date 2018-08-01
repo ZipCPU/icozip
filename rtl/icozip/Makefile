@@ -107,7 +107,7 @@ bin: icozip.bin
 #
 icozip.blif: toplevel.v $(VFLIST)
 	@echo yosys -ql yosys.log -p 'synth_ice40 -blif icozip.blif -top toplevel' ...
-	@yosys -ql yosys.log -p 'synth_ice40 -blif icozip.blif -top toplevel' $^
+	@yosys -ql yosys.log -p 'synth_ice40 -blif icozip.blif -json icozip.json -top toplevel' $^
 
 .PHONY: yosys
 yosys: icozip.blif

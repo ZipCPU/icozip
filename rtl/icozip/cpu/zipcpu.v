@@ -2435,6 +2435,7 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 
 	always @(posedge i_clk)
 	begin
+		/*
 		if ((i_halt)||(!master_ce)||(debug_trigger)||(o_break))
 			o_debug <= debug_flags;
 		else if ((mem_valid)||((!clear_pipeline)&&(!alu_illegal)
@@ -2449,6 +2450,8 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 		else
 			o_debug <= debug_flags;
 		// o_debug[25:0] <= bus_debug;
+		*/
+		o_debug <= debug_flags;
 	end
 	//}}}
 `endif

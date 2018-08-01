@@ -57,7 +57,7 @@
 #define	PP_FROM_FPGA	0
 
 #define	DBLPIPEBUFLEN	256
-const unsigned int PP_DELAY = 1200;
+const unsigned int PP_DELAY = 5;
 
 int	PPORTSIM::setup_listener(const int port) {
 	struct	sockaddr_in	my_addr;
