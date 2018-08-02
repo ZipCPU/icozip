@@ -43,35 +43,29 @@ While much work has taken place on the parallel port testing modules
 
 2. The CPU test runs.  Steps to running the CPU test include:
 
- - Adjusting sw/host/port.h to contain the network name of your
+ - Adjusting [sw/host/port.h](sw/host/port.h) to contain the network name of your
       [Raspberry Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
       This can be 'localhost' if you intend to do all your work on the
       [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
 
  - To build the design, you'll need to have [verilator](https://www.veripool.org/wiki/verilator), [yosys](https://www.clifford.at/yosys), arachne-pnr,
-      icestorm, and the icotools installed.  You'll also need the [ZipCPU toolchain](http://zipcpu.com/zipcpu/2018/01/31/cpu-build.html) and [AutoFPGA](https://github.com/ZipCPU/autofpga) installed and in your path
+      icestorm, [wiringPi](https://wiringpi.com) and the [icotools](https://github.com/cliffordwolf/icotools) installed.  (wiringPi and icotools are ARM-based packages, to be installed on the Pi.)  You'll also need the [ZipCPU toolchain](http://zipcpu.com/zipcpu/2018/01/31/cpu-build.html) and [AutoFPGA](https://github.com/ZipCPU/autofpga) installed and in your path
 
  - Once the prerequisites have been installed, type 'make' from the main directory.
 
- - Repeat the build in the sw/host directory from your [Raspberry
-      Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/), if this wasn't your build host.
+ - Repeat the build in the sw/host directory from your [Raspberry Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/), if this wasn't your build host.
 
- - Copy the arm-netpport program to the main directory of the
-      [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
+ - Copy the [arm-netpport program](sw/host/netpport.cpp) to the main directory of the [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
 
- - Using icoprog, load the design to the board. ```icoprog -p < icozip.bin```
+ - Using icoprog from the [icotools package](https://github.com/cliffordwolf/icotools), load the design to the board. `icoprog -p < icozip.bin`  You may need to use `sudo` depending on how your [wiringPi library](http://wiringpi.com) is set up on your [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
 
- - From the [RPi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/),
-      run [arm-netpport](sw/host/netpport.cpp).
+ - From the [RPi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/), run [arm-netpport](sw/host/netpport.cpp).  Again, you may need to use `sudo` for this, depending on your setup.
 
- - You can then interact with the FPGA using [arm-wbregs](sw/host/wbregs.cpp) from another ARM terminal, or [pc-wbregs](sw/host/wbregs.cpp) from a PC based host connected over the network.
-      For example, ```pc-wbregs version``` will return the date of the build.
+ - You can then interact with the FPGA using [arm-wbregs](sw/host/wbregs.cpp) from another ARM terminal, or [pc-wbregs](sw/host/wbregs.cpp) from a PC based host connected over the network.  For example, `pc-wbregs version` will return the date of the build.
+
  - To run the [CPU test](sw/board/cputest.c), telnet into the [RPi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/) at port 8364 to get access to the CPU's console, as in `telnet rpi 8364`.
- - In another window, type `pc-zipload -n rpi -r sw/board/cputest` where
-      `rpi` is the network name/address of your
-      [Raspberry Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
-      Alternatively, you can type `arm-zipload -r sw/board/cputest` from a
-      [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
+
+ - In another window, type `pc-zipload -n rpi -r sw/board/cputest` where `rpi` is the network name/address of your [Raspberry Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).  Alternatively, you can type `arm-zipload -r sw/board/cputest` from a [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
 
  - Look for the results of the [CPU test](sw/board/cputest.c) in the console window where you telnet'ed into the CPU on port 8364.
 
