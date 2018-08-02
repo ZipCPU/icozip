@@ -48,15 +48,13 @@ While much work has taken place on the parallel port testing modules
       This can be 'localhost' if you intend to do all your work on the
       [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
 
- - To build the design, you'll need to have verilator, yosys, arachne-pnr,
-      icestorm, and the icotools installed.  You'll also need the ZipCPU
-      toolchain and AutoFPGA installed and in your path
+ - To build the design, you'll need to have [verilator](https://www.veripool.org/wiki/verilator), [yosys](https://www.clifford.at/yosys), arachne-pnr,
+      icestorm, and the icotools installed.  You'll also need the [ZipCPU toolchain](http://zipcpu.com/zipcpu/2018/01/31/cpu-build.html) and [AutoFPGA](https://github.com/ZipCPU/autofpga) installed and in your path
 
- - Once the prerequisites have been installed, type 'make' from the
-      main directory.
+ - Once the prerequisites have been installed, type 'make' from the main directory.
 
  - Repeat the build in the sw/host directory from your [Raspberry
-      Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
+      Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/), if this wasn't your build host.
 
  - Copy the arm-netpport program to the main directory of the
       [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
@@ -66,21 +64,18 @@ While much work has taken place on the parallel port testing modules
  - From the [RPi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/),
       run [arm-netpport](sw/host/netpport.cpp).
 
- - You can then interact with the FPGA using [arm-wbregs](sw/host/wbregs.cpp) from another ARM
-      terminal, or [pc-wbregs](sw/host/wbregs.cpp) from a PC based host connected over the network.
+ - You can then interact with the FPGA using [arm-wbregs](sw/host/wbregs.cpp) from another ARM terminal, or [pc-wbregs](sw/host/wbregs.cpp) from a PC based host connected over the network.
       For example, ```pc-wbregs version``` will return the date of the build.
- - To run the CPU test design, telnet into the pi at port 8364 to get access
-      to the console, as in `telnet rpi 8364`.
- - In another window, type ```pc-zipload -n rpi -r sw/board/cputest``` where
-      `rpu` is the network name/address of your raspberry pi.
+ - To run the [CPU test](sw/board/cputest.c), telnet into the [RPi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/) at port 8364 to get access to the CPU's console, as in `telnet rpi 8364`.
+ - In another window, type `pc-zipload -n rpi -r sw/board/cputest` where
+      `rpi` is the network name/address of your
       [Raspberry Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
-      Alternatively, you can type ```arm-zipload -r sw/board/cputest``` from a
-      [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/)
-      PI.
+      Alternatively, you can type `arm-zipload -r sw/board/cputest` from a
+      [Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/).
 
  - Look for the results of the [CPU test](sw/board/cputest.c) in the console window where you telnet'ed into the CPU on port 8364.
 
-3. Building the design will also build a simulation in sim/verilated.  The
+3. Building the design will also build a simulation in the [sim/verilated](sim/verilated) directory.  The
    main program file for this simulation is [automaster_tb.cpp](sim/verilated/automaster_tb.cpp).  (The [main_tb.cpp](sim/verilated/main_tb.cpp) file is created by AutoFPGA, and so [automaster_tb.cpp](sim/verilated/automaster_tb.cpp) is the actual top level program.) You
    can interact with this simulation just as you would with the CPU.  The
    name of the simulation will either be `pc-main_tb` or `arm-main_tb`
@@ -96,17 +91,17 @@ While much work has taken place on the parallel port testing modules
 
 1. Flash based programs now run
 
-2. The debugger has been ported to this architecture
+2. The [ZipCPU debugger](sw/host/zipdbg) has been ported to this architecture
 
-3. The CPU can now run "Hello, World!" using the newlib C-library, and even starting by copying the program from flash to SRAM
+3. The CPU can now run "Hello, World!" using the [newlib C-library](https://sourceware.org/newlib), and even starting by copying the program from flash to SRAM
 
 4. After running [cputest](sw/board/cputest.c), the following are the additional steps necessary to run [hello world](sw/board/hello.c):
 
   - The default Makefile should cause a build in [sw/zlib](sw/zlib), then [sw/board](sw/board)
 
-  - This will build [hello][sw/board/hello.c]
+  - This will build [hello](sw/board/hello.c)
 
-  - To run it, as before, load the board and start [arm-netpport](sim/host/netpport.cpp)
+  - To run it, load the board and start [arm-netpport](sim/host/netpport.cpp) as you did with the [cputest](sw/board/cputest.c) above
 
   - To capture the output, `telnet rpi 8364`, or whatever the network address of your [Raspberry Pi](https://www.raspberrypi.org/products/raspberry-pi-2-model-b/) is.
 
@@ -114,5 +109,5 @@ While much work has taken place on the parallel port testing modules
 
   - Watch your telnet session to see the result
 
-4. You can also run this in a simulation, but running either `pc-main_tb path/to/hello`, or `pc-main_tb` and then running `pc-zipload -r path/to/hello`.  You may need to add a `-n localhost` parameter to your `zipload` command, and you will need to telnet into your local simulation host, but otherwise running from simulation is the same as from the hardware.
+5. You can also run this in a simulation, by running either `pc-main_tb path/to/hello`, or `pc-main_tb` and then running `pc-zipload -r path/to/hello`.  You may need to add a `-n localhost` parameter to your `zipload` command, and you will need to telnet into your local simulation host, but otherwise running from simulation is the same as from the hardware.
 
