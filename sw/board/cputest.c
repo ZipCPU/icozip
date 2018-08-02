@@ -42,7 +42,6 @@
 #include "board.h"
 #include "zipcpu.h"
 #include "cpudefs.h"
-#include "zipsys.h"
 
 #ifndef	NULL
 #define NULL	(void *)0
@@ -1093,7 +1092,7 @@ asm("\n\t.text\nidle_task:\n\tWAIT\n\tBRA\tidle_task\n");
 
 __attribute__((noinline))
 void	txchr(char v) {
-	if ((1)||(zip_cc() & CC_GIE)) {
+	if (zip_cc() & CC_GIE) {
 		while(UARTTX & 0x100)
 			;
 	} else

@@ -49,10 +49,10 @@ all:	data install
 DATA := global.txt bkram.txt buserr.txt clock50.txt		\
 	pic.txt pwrcount.txt version.txt			\
 	hbconsole.txt gpio.txt dlyarbiter.txt zipbones.txt	\
-	spixpress.txt sramdev.txt dbgscope.txt
+	spixpress.txt sramdev.txt spixscope.txt
 	# nodelay.txt
 	# Not used: rtclite.txt watchdog.txt
-	# Not used (scopes conflict with each other): spixscope
+	# Scopes, pick only one: spixscope sramscope dbgscope
 
 AUTOFPGA := autofpga
 .PHONY: data

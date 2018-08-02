@@ -86,7 +86,7 @@ bool	FLASHDRVR::erase_sector(const unsigned sector, const bool verify_erase) {
 	DEVBUS::BUSW	page[SZPAGEW];
 
 	// printf("EREG before   : %08x\n", m_fpga->readio(R_QSPI_EREG));
-	printf("Erasing sector: %08x\n", sector);
+	printf("Erasing sector: %06x\n", flashaddr);
 
 	m_fpga->writeio(R_FLASHCFG, F_SE);
 	m_fpga->writeio(R_FLASHCFG, (flashaddr>>16)&0x0ff);
@@ -99,12 +99,24 @@ bool	FLASHDRVR::erase_sector(const unsigned sector, const bool verify_erase) {
 
 	// Now, let's verify that we erased the sector properly
 	if (verify_erase) {
+		if (m_debug)
+			printf("Verifying the erase\n");
 		for(int i=0; i<NPAGES; i++) {
-			m_fpga->readi(sector+i*SZPAGEW, SZPAGEW, page);
-			for(int i=0; i<SZPAGEW; i++)
-				if (page[i] != 0xffffffff)
+			printf("READI[%08x + %04x]\n", R_FLASH+flashaddr+i*SZPAGEB, SZPAGEW);
+			m_fpga->readi(R_FLASH+flashaddr+i*SZPAGEB, SZPAGEW, page);
+			for(int j=0; j<SZPAGEW; j++)
+				if (page[j] != 0xffffffff) {
+					unsigned rdaddr = R_FLASH+flashaddr+i*SZPAGEB;
+					
+					if (m_debug)
+						printf("FLASH[%07x] = %08x, not 0xffffffff as desired (%06x + %d)\n",
+							R_FLASH+flashaddr+i*SZPAGEB+(j<<2),
+							page[j], rdaddr,(j<<2));
 					return false;
+				}
 		}
+		if (m_debug)
+			printf("Erase verified\n");
 	}
 
 	return true;
@@ -152,7 +164,11 @@ bool	FLASHDRVR::page_program(const unsigned addr, const unsigned len,
 			m_fpga->writeio(R_FLASHCFG, data[i] & 0x0ff);
 		m_fpga->writeio(R_FLASHCFG, F_END);
 
-		printf("Writing page: 0x%08x - 0x%08x\n", addr, addr+len-1);
+		printf("Writing page: 0x%08x - 0x%08x", addr, addr+len-1);
+		if ((m_debug)&&(verify_write))
+			fflush(stdout);
+		else
+			printf("\n");
 
 		flwait();
 	}
@@ -167,7 +183,8 @@ bool	FLASHDRVR::page_program(const unsigned addr, const unsigned len,
 					(i<<2), buf[i], bswapd[i], (i<<2)+addr);
 				return false;
 			}
-		} // printf("\nVerify success\n");
+		} if (m_debug)
+			printf(" -- Successfully verified\n");
 	} return true;
 }
 
@@ -239,6 +256,7 @@ bool	FLASHDRVR::write(const unsigned addr, const unsigned len,
 	}
 
 	m_fpga->writeio(R_FLASHCFG, F_WRDI);
+	m_fpga->writeio(R_FLASHCFG, F_END);
 
 	return true;
 }

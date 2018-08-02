@@ -138,6 +138,7 @@ autodata: check-autofpga
 	$(call copyif-changed,auto-data/regdefs.h,sw/host/regdefs.h)
 	$(call copyif-changed,auto-data/regdefs.cpp,sw/host/regdefs.cpp)
 	$(call copyif-changed,auto-data/board.h,sw/board/board.h)
+	$(call copyif-changed,auto-data/board.h,sw/zlib/board.h)
 	$(call copyif-changed,auto-data/board.ld,sw/board/board.ld)
 	$(call copyif-changed,auto-data/rtl.make.inc,rtl/icozip/auto.mk)
 	$(call copyif-changed,auto-data/main_tb.cpp,sim/verilated/main_tb.cpp)
@@ -167,7 +168,7 @@ sim: rtl
 # A master target to build all of the support software
 #
 .PHONY: sw
-sw: sw-host # sw-zlib sw-board
+sw: sw-host sw-zlib sw-board
 
 #
 #
@@ -182,7 +183,7 @@ sw-zlib: autodata check-zip-gcc
 # Build the board software.  This may (or may not) use the software library
 #
 .PHONY: sw-board
-sw-board: check-zip-gcc # sw-zlib
+sw-board: check-zip-gcc sw-zlib
 	$(SUBMAKE) sw/board
 
 #

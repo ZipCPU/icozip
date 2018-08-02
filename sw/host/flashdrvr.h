@@ -50,7 +50,7 @@ private:
 	void	set_config(void);
 	void	flwait(void);
 public:
-	FLASHDRVR(DEVBUS *fpga) : m_fpga(fpga) { m_debug = false; }
+	FLASHDRVR(DEVBUS *fpga) : m_fpga(fpga) { m_debug = true; }
 	bool	erase_sector(const unsigned sector, const bool verify_erase=true);
 	bool	page_program(const unsigned addr, const unsigned len,
 			const char *data, const bool verify_write=true);

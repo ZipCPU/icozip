@@ -40,7 +40,7 @@
 all:
 CROSS ?=
 ARCH  ?= $(shell bash ./arch.sh)
-SHARED := wbregs flashid dumpflash spixscope sramscope zipload zipstate dbgscope
+SHARED := wbregs flashid dumpflash spixscope sramscope zipload zipstate dbgscope zipdbg
 #
 ifeq ($(ARCH),arm)
 PROGRAMS   := $(SHARED) netpport
@@ -60,7 +60,7 @@ CXX := $(CROSS)g++
 OBJDIR := obj-$(ARCH)
 BUSSRCS := hexbus.cpp llcomms.cpp regdefs.cpp byteswap.cpp
 SCOPESRC:= spixscope.cpp sramscope.cpp dbgscope.cpp
-SOURCES := wbregs.cpp netpport.cpp flashid.cpp $(BUSSRCS) $(SCOPESRC)
+SOURCES := wbregs.cpp netpport.cpp flashid.cpp flashdrvr.cpp $(BUSSRCS) $(SCOPESRC)
 # rdclocks.cpp flashdrvr.cpp		\
 #	 mkedid.cpp $(BUSSRCS)	edidrxscope.cpp	edidtxscope.cpp		\
 #	zipload.cpp zipstate.cpp zipdbg.cpp cpedid.cpp readhist.cpp	\
@@ -116,18 +116,9 @@ $(ARCH)-dumpflash: $(OBJDIR)/dumpflash.o $(BUSOBJS)
 # as well.
 wbprogram: $(OBJDIR)/wbprogram.o $(OBJDIR)/flashdrvr.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
-.PHONY: flashid sramscope spixscope zipstate zipload dbgscope
+.PHONY: flashid sramscope spixscope zipstate zipload dbgscope zipdbg
 flashid: $(ARCH)-flashid
 $(ARCH)-flashid: $(OBJDIR)/flashid.o $(BUSOBJS)
-	$(CXX) -g $^ -o $@
-spixscope: $(ARCH)-spixscope
-$(ARCH)-spixscope: $(OBJDIR)/spixscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) -g $^ -o $@
-sramscope: $(ARCH)-sramscope
-$(ARCH)-sramscope: $(OBJDIR)/sramscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
-	$(CXX) -g $^ -o $@
-dbgscope: $(ARCH)-dbgscope
-$(ARCH)-dbgscope: $(OBJDIR)/dbgscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
 	$(CXX) -g $^ -o $@
 zipstate: $(ARCH)-zipstate
 $(ARCH)-zipstate: $(OBJDIR)/zipstate.o $(BUSOBJS)
@@ -137,21 +128,32 @@ $(ARCH)-zipload: $(OBJDIR)/zipload.o $(OBJDIR)/flashdrvr.o
 $(ARCH)-zipload: $(BUSOBJS) $(OBJDIR)/zipelf.o
 	$(CXX) -g $^ -lelf -o $@
 
-
 ## SCOPES
 # These depend upon the scopecls.o, the bus objects, as well as their
 # main file(s).
 #
-# No scopes defined
+spixscope: $(ARCH)-spixscope
+$(ARCH)-spixscope: $(OBJDIR)/spixscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
+	$(CXX) -g $^ -o $@
+sramscope: $(ARCH)-sramscope
+$(ARCH)-sramscope: $(OBJDIR)/sramscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
+	$(CXX) -g $^ -o $@
+dbgscope: $(ARCH)-dbgscope
+$(ARCH)-dbgscope: $(OBJDIR)/dbgscope.o $(OBJDIR)/scopecls.o $(BUSOBJS)
+	$(CXX) -g $^ -o $@
 #
 #
 
 
 #
-DBGSRCS  := zopcodes.cpp twoc.cpp
+.PHONY: zipdbg
+DBGSRCS := zopcodes.cpp twoc.cpp
 DBGOBJS := $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(DBGSRCS)))
+zipdbg: $(ARCH)-zipdbg
 $(ARCH)-zipdbg: $(OBJDIR)/zipdbg.o $(BUSOBJS) $(DBGOBJS)
 	$(CXX) -g $^ -lcurses -o $@
+#
+#
 
 define	mk-objdir
 	@bash -c "if [ ! -e $(OBJDIR) ]; then mkdir -p $(OBJDIR); fi"

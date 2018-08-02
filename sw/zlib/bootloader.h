@@ -43,7 +43,7 @@ extern	int	_top_of_heap[1], _top_of_stack[1];
 extern	int	_boot_address[1];
 
 #ifdef	_BOARD_HAS_BKRAM
-#ifdef	_BOARD_HAS_SDRAM
+#ifdef	_BOARD_HAS_SRAM
 extern	int	_kernel_image_start[1], _kernel_image_end[1],
 #define	_BOARD_HAS_KERNEL_SPACE
 #endif
@@ -55,8 +55,8 @@ extern	int	_kernel_image_start[1], _kernel_image_end[1],
 
 #ifdef	_BOARD_HAS_BKRAM
 #define	_ram	_bkram
-#elif	defined(_BOARD_HAS_SDRAM)
-#define	_ram	_sdram
+#elif	defined(_BOARD_HAS_SRAM)
+#define	_ram	_sram
 #endif
 
 #endif	// _ram

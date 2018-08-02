@@ -80,7 +80,6 @@ FLASHSIM::FLASHSIM(const int lglen, bool debug) {
 	m_mode_byte = 0;
 
 	memset(m_mem, 0x0ff, m_membytes);
-m_debug = true;
 }
 
 void	FLASHSIM::load(const unsigned addr, const char *fname) {

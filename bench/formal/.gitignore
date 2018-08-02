@@ -9,3 +9,5 @@ hbconsole
 hbints
 hbnewline
 sramdev
+hbgenhex
+hbbuffer

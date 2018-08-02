@@ -4,14 +4,21 @@
 //
 // Project:	FPGA library
 //
-// Purpose:
+// Purpose:	This is a replacement wrapper to the original hbbus.v debugging
+//		bus module.  It is intended to provide all of the functionality
+//	of hbbus, while ...
+//
+//	1. Keeping the debugging bus within the lower 7-bits of the byte
+//	2. Muxing a 7-bit (ascii) console also in the lower 7-bits of the byte
+//	3. Using the top bit to indicate which channel is being referenced.
+//		1'b1 for dbgbus, 1'b0 for the console.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2017, Gisselquist Technology, LLC
+// Copyright (C) 2015-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -147,13 +154,13 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 	hbgenhex genhex(i_clk, w_reset, hb_stb, hb_bits, hx_busy,
 			hx_stb, hx_byte, nl_busy);
 
-	wire		hb_tx_stb;
-	wire	[6:0]	hb_tx_byte;
+	wire		fnl_stb;
+	wire	[6:0]	fnl_byte;
 	//
 	// We'll also add carriage return newline pairs any time the channel
 	// goes idle
 	hbnewline addnl(i_clk, w_reset, hx_stb, hx_byte, nl_busy,
-			hb_tx_stb, hb_tx_byte, ps_full);
+			fnl_stb, fnl_byte, (i_tx_busy)&&(ps_full));
 
 	reg		ps_full;
 	reg	[7:0]	ps_data;
@@ -164,21 +171,24 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 	always @(posedge i_clk)
 		if (!ps_full)
 		begin
-			if (hb_tx_stb)
+			if (fnl_stb)
 			begin
 				ps_full <= 1'b1;
-				ps_data <= { 1'b1, hb_tx_byte[6:0] };
+				ps_data <= { 1'b1, fnl_byte[6:0] };
 			end else if (i_console_stb)
 			begin
 				ps_full <= 1'b1;
 				ps_data <= { 1'b0, i_console_data[6:0] };
 			end
 		end else if (!i_tx_busy)
-			ps_full <= 1'b0;
+		begin
+			ps_full <= fnl_stb;
+			ps_data <= { 1'b1, fnl_byte[6:0] };
+		end
 
 	assign	o_tx_stb = ps_full;
 	assign	o_tx_data = ps_data;
-	assign	o_console_busy = (hb_tx_stb)||(ps_full);
+	assign	o_console_busy = (fnl_stb)||(ps_full);
 
 `ifdef	FORMAL
 	reg	f_past_valid;
@@ -205,8 +215,8 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 		if (($past(hx_stb))&&($past(nl_busy)))
 			assert(($stable(hx_stb))&&($stable(hx_byte)));
 
-		// if (($past(hb_tx_stb))&&(!$past(w_reset))&&($past(ps_full)))
-			// assert(($stable(hb_tx_stb))&&($stable(hb_tx_byte)));
+		// if (($past(fnl_stb))&&(!$past(w_reset))&&($past(ps_full)))
+			// assert(($stable(fnl_stb))&&($stable(fnl_byte)));
 
 		if (($past(i_console_stb))&&($past(o_console_busy)))
 			assume(($stable(i_console_stb))
@@ -215,6 +225,12 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 		if (($past(o_tx_stb))&&($past(i_tx_busy)))
 			assert(($stable(o_tx_stb))&&($stable(o_tx_data)));
 	end
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&(!$past(w_reset))
+			&&($past(fnl_stb))&&($past(fnl_byte==7'ha)))
+		assert((!fnl_stb)||(fnl_byte != 7'h30));
+
 `endif
 endmodule
 

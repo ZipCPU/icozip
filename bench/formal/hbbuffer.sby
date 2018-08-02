@@ -1,0 +1,13 @@
+[options]
+mode prove
+depth 40
+
+[engines]
+smtbmc yices
+
+[script]
+read_verilog -DHBBUFFER -formal hbbuffer.v
+prep -top hbbuffer
+
+[files]
+../../rtl/hexbus/hbbuffer.v

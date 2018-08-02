@@ -1,0 +1,13 @@
+[options]
+mode prove
+depth 40
+
+[engines]
+smtbmc yices
+
+[script]
+read_verilog -DHBGENHEX -formal hbgenhex.v
+prep -top hbgenhex
+
+[files]
+../../rtl/hexbus/hbgenhex.v
