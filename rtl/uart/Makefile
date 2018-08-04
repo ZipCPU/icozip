@@ -45,7 +45,7 @@ all: helloworld speechfifo
 %.blif: %.v
 	yosys -p 'synth_ice40 -blif $@' $<
 %.asc: %.blif %.pcf
-	arachne-pnr -d 8k -p $*.pcf -o $@ $<
+	arachne-pnr -d 8k -r -P ct256 -p $*.pcf -o $@ $<
 %.bin: %.asc
 	icetime -d hx8k -c 100 $<
 	icepack $< $@

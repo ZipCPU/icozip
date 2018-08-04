@@ -119,68 +119,32 @@ module	helloworld(i_clk,
 		else if ((tx_stb)&&(!tx_busy)&&(tx_index==4'hf))
 			tx_stb <= 1'b0;
 
-	txuart	transmitter(i_clk, pwr_reset, i_setup, tx_break,
-			tx_stb, tx_data, o_uart_tx, tx_busy);
+	// 868 is 115200 Baud, based upon a 100MHz clock
+	txuartlite #(.TIMING_BITS(10), .CLOCKS_PER_BAUD(868))
+		transmitter(i_clk, tx_stb, tx_data, o_uart_tx, tx_busy);
 
 endmodule
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	txuart.v
+// Filename: 	txuartlite.v
 //
 // Project:	wbuart32, a full featured UART with simulator
 //
-// Purpose:	Transmit outputs over a single UART line.
+// Purpose:	Transmit outputs over a single UART line.  This particular UART
+//		implementation has been extremely simplified: it does not handle
+//	generating break conditions, nor does it handle anything other than the
+//	8N1 (8 data bits, no parity, 1 stop bit) UART sub-protocol.
 //
-//	To interface with this module, connect it to your system clock,
-//	pass it the 32 bit setup register (defined below) and the byte
-//	of data you wish to transmit.  Strobe the i_wr line high for one
-//	clock cycle, and your data will be off.  Wait until the 'o_busy'
+//	To interface with this module, connect it to your system clock, and
+//	pass it the byte of data you wish to transmit.  Strobe the i_wr line
+//	high for one cycle, and your data will be off.  Wait until the 'o_busy'
 //	line is low before strobing the i_wr line again--this implementation
 //	has NO BUFFER, so strobing i_wr while the core is busy will just
-//	cause your data to be lost.  The output will be placed on the o_txuart
-//	output line.  If you wish to set/send a break condition, assert the
-//	i_break line otherwise leave it low.
+//	get ignored.  The output will be placed on the o_txuart output line.
 //
-//	There is a synchronous reset line, logic high.
-//
-//	Now for the setup register.  The register is 32 bits, so that this
-//	UART may be set up over a 32-bit bus.
-//
-//	i_setup[29:28]	Indicates the number of data bits per word.  This will
-//	either be 2'b00 for an 8-bit word, 2'b01 for a 7-bit word, 2'b10
-//	for a six bit word, or 2'b11 for a five bit word.
-//
-//	i_setup[27]	Indicates whether or not to use one or two stop bits.
-//		Set this to one to expect two stop bits, zero for one.
-//
-//	i_setup[26]	Indicates whether or not a parity bit exists.  Set this
-//		to 1'b1 to include parity.
-//
-//	i_setup[25]	Indicates whether or not the parity bit is fixed.  Set
-//		to 1'b1 to include a fixed bit of parity, 1'b0 to allow the
-//		parity to be set based upon data.  (Both assume the parity
-//		enable value is set.)
-//
-//	i_setup[24]	This bit is ignored if parity is not used.  Otherwise,
-//		in the case of a fixed parity bit, this bit indicates whether
-//		mark (1'b1) or space (1'b0) parity is used.  Likewise if the
-//		parity is not fixed, a 1'b1 selects even parity, and 1'b0
-//		selects odd.
-//
-//	i_setup[23:0]	Indicates the speed of the UART in terms of clocks.
-//		So, for example, if you have a 200 MHz clock and wish to
-//		run your UART at 9600 baud, you would take 200 MHz and divide
-//		by 9600 to set this value to 24'd20834.  Likewise if you wished
-//		to run this serial port at 115200 baud from a 200 MHz clock,
-//		you would set the value to 24'd1736
-//
-//	Thus, to set the UART for the common setting of an 8-bit word, 
-//	one stop bit, no parity, and 115200 baud over a 200 MHz clock, you
-//	would want to set the setup value to:
-//
-//	32'h0006c8		// For 115,200 baud, 8 bit, no parity
-//	32'h005161		// For 9600 baud, 8 bit, no parity
-//	
+//	(I often set both data and strobe on the same clock, and then just leave
+//	them set until the busy line is low.  Then I move on to the next piece
+//	of data.)
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -213,36 +177,26 @@ endmodule
 //
 `default_nettype	none
 //
-`define	TXU_BIT_ZERO	4'h0
-`define	TXU_BIT_ONE	4'h1
-`define	TXU_BIT_TWO	4'h2
-`define	TXU_BIT_THREE	4'h3
-`define	TXU_BIT_FOUR	4'h4
-`define	TXU_BIT_FIVE	4'h5
-`define	TXU_BIT_SIX	4'h6
-`define	TXU_BIT_SEVEN	4'h7
-`define	TXU_PARITY	4'h8	// Constant 1
-`define	TXU_STOP	4'h9	// Constant 1
-`define	TXU_SECOND_STOP	4'ha
-// 4'hb	// Unused
-// 4'hc	// Unused
-// `define	TXU_START	4'hd	// An unused state
-`define	TXU_BREAK	4'he
-`define	TXU_IDLE	4'hf
+`define	TXUL_BIT_ZERO	4'h0
+`define	TXUL_BIT_ONE	4'h1
+`define	TXUL_BIT_TWO	4'h2
+`define	TXUL_BIT_THREE	4'h3
+`define	TXUL_BIT_FOUR	4'h4
+`define	TXUL_BIT_FIVE	4'h5
+`define	TXUL_BIT_SIX	4'h6
+`define	TXUL_BIT_SEVEN	4'h7
+`define	TXUL_STOP	4'h8
+`define	TXUL_IDLE	4'hf
 //
 //
-module txuart(i_clk, i_reset, i_setup, i_break, i_wr, i_data,
-		i_cts_n, o_uart_tx, o_busy);
-	parameter	[30:0]	INITIAL_SETUP = 31'd868;
-	input	wire		i_clk, i_reset;
-	input	wire	[30:0]	i_setup;
-	input	wire		i_break;
+module txuartlite(i_clk, i_wr, i_data, o_uart_tx, o_busy);
+	parameter	[4:0]	TIMING_BITS = 5'd24;
+	localparam		TB = TIMING_BITS;
+	parameter	[(TB-1):0]	CLOCKS_PER_BAUD = 8; // 24'd868;
+	parameter	[0:0]	F_OPT_CLK2FFLOGIC = 1'b0;
+	input	wire		i_clk;
 	input	wire		i_wr;
 	input	wire	[7:0]	i_data;
-	// Hardware flow control Ready-To-Send bit.  Set this to one to use
-	// the core without flow control.  (A more appropriate name would be
-	// the Ready-To-Receive bit ...)
-	input	wire		i_cts_n;
 	// And the UART input line itself
 	output	reg		o_uart_tx;
 	// A line to tell others when we are ready to accept data.  If
@@ -250,113 +204,35 @@ module txuart(i_clk, i_reset, i_setup, i_break, i_wr, i_data,
 	// for transmission.
 	output	wire		o_busy;
 
-	wire	[27:0]	clocks_per_baud, break_condition;
-	wire	[1:0]	data_bits;
-	wire		use_parity, parity_even, dblstop, fixd_parity,
-			fixdp_value, hw_flow_control;
-	reg	[30:0]	r_setup;
-	assign	clocks_per_baud = { 4'h0, r_setup[23:0] };
-	assign	break_condition = { r_setup[23:0], 4'h0 };
-	assign	hw_flow_control = !r_setup[30];
-	assign	data_bits       =  r_setup[29:28];
-	assign	dblstop         =  r_setup[27];
-	assign	use_parity      =  r_setup[26];
-	assign	fixd_parity     =  r_setup[25];
-	assign	parity_even     =  r_setup[24];
-	assign	fixdp_value     =  r_setup[24];
-
-	reg	[27:0]	baud_counter;
+	reg	[(TB-1):0]	baud_counter;
 	reg	[3:0]	state;
 	reg	[7:0]	lcl_data;
-	reg		calc_parity, r_busy, zero_baud_counter;
+	reg		r_busy, zero_baud_counter;
 
-
-	// First step ... handle any hardware flow control, if so enabled.
-	//
-	// Clock in the flow control data, two clocks to avoid metastability
-	// Default to using hardware flow control (uart_setup[30]==0 to use it).
-	// Set this high order bit off if you do not wish to use it.
-	reg	q_cts_n, qq_cts_n, ck_cts;
-	// While we might wish to give initial values to q_rts and ck_cts,
-	// 1) it's not required since the transmitter starts in a long wait
-	// state, and 2) doing so will prevent the synthesizer from optimizing
-	// this pin in the case it is hard set to 1'b1 external to this
-	// peripheral.
-	//
-	// initial	q_cts_n  = 1'b1;
-	// initial	qq_cts_n = 1'b1;
-	// initial	ck_cts   = 1'b0;
-	always	@(posedge i_clk)
-		q_cts_n <= i_cts_n;
-	always	@(posedge i_clk)
-		qq_cts_n <= q_cts_n;
-	always	@(posedge i_clk)
-		ck_cts <= (!qq_cts_n)||(!hw_flow_control);
-
-	initial	o_uart_tx = 1'b1;
 	initial	r_busy = 1'b1;
-	initial	state  = `TXU_IDLE;
-	initial	lcl_data= 8'h0;
-	initial	calc_parity = 1'b0;
-	// initial	baud_counter = clocks_per_baud;//ILLEGAL--not constant
+	initial	state  = `TXUL_IDLE;
 	always @(posedge i_clk)
 	begin
-		if (i_reset)
-		begin
+		if (!zero_baud_counter)
+			// r_busy needs to be set coming into here
 			r_busy <= 1'b1;
-			state <= `TXU_IDLE;
-		end else if (i_break)
+		else if (state > `TXUL_STOP)	// STATE_IDLE
 		begin
-			state <= `TXU_BREAK;
-			r_busy <= 1'b1;
-		end else if (!zero_baud_counter)
-		begin // r_busy needs to be set coming into here
-			r_busy <= 1'b1;
-		end else if (state == `TXU_BREAK)
-		begin
-			state <= `TXU_IDLE;
-			r_busy <= 1'b1;
-		end else if (state == `TXU_IDLE)	// STATE_IDLE
-		begin
+			state <= `TXUL_IDLE;
+			r_busy <= 1'b0;
 			if ((i_wr)&&(!r_busy))
 			begin	// Immediately start us off with a start bit
 				r_busy <= 1'b1;
-				case(data_bits)
-				2'b00: state <= `TXU_BIT_ZERO;
-				2'b01: state <= `TXU_BIT_ONE;
-				2'b10: state <= `TXU_BIT_TWO;
-				2'b11: state <= `TXU_BIT_THREE;
-				endcase
-			end else begin // Stay in idle
-				r_busy <= !ck_cts;
+				state <= `TXUL_BIT_ZERO;
 			end
 		end else begin
 			// One clock tick in each of these states ...
-			// baud_counter <= clocks_per_baud - 28'h01;
 			r_busy <= 1'b1;
-			if (state[3] == 0) // First 8 bits
-			begin
-				if (state == `TXU_BIT_SEVEN)
-					state <= (use_parity)?`TXU_PARITY:`TXU_STOP;
-				else
-					state <= state + 1;
-			end else if (state == `TXU_PARITY)
-			begin
-				state <= `TXU_STOP;
-			end else if (state == `TXU_STOP)
-			begin // two stop bit(s)
-				if (dblstop)
-					state <= `TXU_SECOND_STOP;
-				else
-					state <= `TXU_IDLE;
-			end else // `TXU_SECOND_STOP and default:
-			begin
-				state <= `TXU_IDLE; // Go back to idle
-				// Still r_busy, since we need to wait
-				// for the baud clock to finish counting
-				// out this last bit.
-			end
-		end 
+			if (state <=`TXUL_STOP) // start bit, 8-d bits, stop-b
+				state <= state + 1'b1;
+			else
+				state <= `TXUL_IDLE;
+		end
 	end
 
 	// o_busy
@@ -368,18 +244,6 @@ module txuart(i_clk, i_reset, i_setup, i_break, i_wr, i_data,
 	assign	o_busy = (r_busy);
 
 
-	// r_setup
-	//
-	// Our setup register.  Accept changes between any pair of transmitted
-	// words.  The register itself has many fields to it.  These are
-	// broken out up top, and indicate what 1) our baud rate is, 2) our
-	// number of stop bits, 3) what type of parity we are using, and 4)
-	// the size of our data word.
-	initial	r_setup = INITIAL_SETUP;
-	always @(posedge i_clk)
-		if (state == `TXU_IDLE)
-			r_setup <= i_setup;
-
 	// lcl_data
 	//
 	// This is our working copy of the i_data register which we use
@@ -389,11 +253,12 @@ module txuart(i_clk, i_reset, i_setup, i_break, i_wr, i_data,
 	// true and i_wr is, we set it and r_busy is true thereafter.
 	// Then, on any zero_baud_counter (i.e. change between baud intervals)
 	// we simple logically shift the register right to grab the next bit.
+	initial	lcl_data = 8'hff;
 	always @(posedge i_clk)
-		if (!r_busy)
+		if ((i_wr)&&(!r_busy))
 			lcl_data <= i_data;
 		else if (zero_baud_counter)
-			lcl_data <= { 1'b0, lcl_data[7:1] };
+			lcl_data <= { 1'b1, lcl_data[7:1] };
 
 	// o_uart_tx
 	//
@@ -401,53 +266,20 @@ module txuart(i_clk, i_reset, i_setup, i_break, i_wr, i_data,
 	// centered about o_uart_tx.  This is what finally needs to follow
 	// the UART protocol.
 	//
-	// Ok, that said, our rules are:
-	//	1'b0 on any break condition
-	//	1'b0 on a start bit (IDLE, write, and not busy)
-	//	lcl_data[0] during any data transfer, but only at the baud
-	//		change
-	//	PARITY -- During the parity bit.  This depends upon whether or
-	//		not the parity bit is fixed, then what it's fixed to,
-	//		or changing, and hence what it's calculated value is.
-	//	1'b1 at all other times (stop bits, idle, etc)
+	initial	o_uart_tx = 1'b1;
 	always @(posedge i_clk)
-		if (i_reset)
-			o_uart_tx <= 1'b1;
-		else if ((i_break)||((i_wr)&&(!r_busy)))
-			o_uart_tx <= 1'b0;
-		else if (zero_baud_counter)
-			casez(state)
-			4'b0???:	o_uart_tx <= lcl_data[0];
-			`TXU_PARITY:	o_uart_tx <= calc_parity;
-			default:	o_uart_tx <= 1'b1;
-			endcase
-
-
-	// calc_parity
-	//
-	// Calculate the parity to be placed into the parity bit.  If the
-	// parity is fixed, then the parity bit is given by the fixed parity
-	// value (r_setup[24]).  Otherwise the parity is given by the GF2
-	// sum of all the data bits (plus one for even parity).
-	always @(posedge i_clk)
-		if (fixd_parity)
-			calc_parity <= fixdp_value;
-		else if (zero_baud_counter)
-		begin
-			if (state[3] == 0) // First 8 bits of msg
-				calc_parity <= calc_parity ^ lcl_data[0];
-			else
-				calc_parity <= parity_even;
-		end else if (!r_busy)
-			calc_parity <= parity_even;
+		if ((i_wr)&&(!r_busy))
+			o_uart_tx <= 1'b0;	// Set the start bit on writes
+		else if (zero_baud_counter)	// Set the data bit.
+			o_uart_tx <= lcl_data[0];
 
 
 	// All of the above logic is driven by the baud counter.  Bits must last
-	// clocks_per_baud in length, and this baud counter is what we use to
+	// CLOCKS_PER_BAUD in length, and this baud counter is what we use to
 	// make certain of that.
 	//
 	// The basic logic is this: at the beginning of a bit interval, start
-	// the baud counter and set it to count clocks_per_baud.  When it gets
+	// the baud counter and set it to count CLOCKS_PER_BAUD.  When it gets
 	// to zero, restart it.
 	//
 	// However, comparing a 28'bit number to zero can be rather complex--
@@ -474,41 +306,249 @@ module txuart(i_clk, i_reset, i_setup, i_break, i_wr, i_data,
 	// than waiting for the end of the next (fictitious and arbitrary) baud
 	// interval.
 	//
-	// When (i_wr)&&(!r_busy)&&(state == `TXU_IDLE) then we're not only in
+	// When (i_wr)&&(!r_busy)&&(state == `TXUL_IDLE) then we're not only in
 	// the idle state, but we also just accepted a command to start writing
 	// the next word.  At this point, the baud counter needs to be reset
-	// to the number of clocks per baud, and zero_baud_counter set to zero.
+	// to the number of CLOCKS_PER_BAUD, and zero_baud_counter set to zero.
 	//
 	// The logic is a bit twisted here, in that it will only check for the
 	// above condition when zero_baud_counter is false--so as to make
 	// certain the STOP bit is complete.
-	initial	zero_baud_counter = 1'b0;
-	initial	baud_counter = 28'h05;
+	initial	zero_baud_counter = 1'b1;
+	initial	baud_counter = 0;
 	always @(posedge i_clk)
 	begin
-		zero_baud_counter <= (baud_counter == 28'h01);
-		if ((i_reset)||(i_break))
+		zero_baud_counter <= (baud_counter == 24'h01);
+		if (state == `TXUL_IDLE)
 		begin
-			// Give ourselves 16 bauds before being ready
-			baud_counter <= break_condition;
-			zero_baud_counter <= 1'b0;
-		end else if (!zero_baud_counter)
-			baud_counter <= baud_counter - 28'h01;
-		else if (state == `TXU_BREAK)
-			// Give us four idle baud intervals before becoming
-			// available
-			baud_counter <= clocks_per_baud<<2;
-		else if (state == `TXU_IDLE)
-		begin
-			baud_counter <= 28'h0;
+			baud_counter <= 24'h0;
 			zero_baud_counter <= 1'b1;
 			if ((i_wr)&&(!r_busy))
 			begin
-				baud_counter <= clocks_per_baud - 28'h01;
+				baud_counter <= CLOCKS_PER_BAUD - 24'h01;
 				zero_baud_counter <= 1'b0;
 			end
-		end else
-			baud_counter <= clocks_per_baud - 28'h01;
+		end else if ((zero_baud_counter)&&(state == 4'h9))
+		begin
+			baud_counter <= 0;
+			zero_baud_counter <= 1'b1;
+		end else if (!zero_baud_counter)
+			baud_counter <= baud_counter - 24'h01;
+		else
+			baud_counter <= CLOCKS_PER_BAUD - 24'h01;
 	end
+
+//
+//
+// FORMAL METHODS
+//
+//
+//
+`ifdef	FORMAL
+
+`ifdef	TXUARTLITE
+`define	ASSUME	assume
+`else
+`define	ASSUME	assert
+`endif
+
+	// Setup
+
+	reg	f_past_valid, f_last_clk;
+
+	generate if (F_OPT_CLK2FFLOGIC)
+	begin
+
+		always @($global_clock)
+		begin
+			restrict(i_clk == !f_last_clk);
+			f_last_clk <= i_clk;
+			if (!$rose(i_clk))
+			begin
+				`ASSUME($stable(i_wr));
+				`ASSUME($stable(i_data));
+			end
+		end
+
+	end endgenerate
+
+	initial	f_past_valid = 1'b0;
+	always @(posedge i_clk)
+		f_past_valid <= 1'b1;
+
+	initial	`ASSUME(!i_wr);
+	always @(posedge i_clk)
+		if ((f_past_valid)&&($past(i_wr))&&($past(o_busy)))
+		begin
+			`ASSUME(i_wr   == $past(i_wr));
+			`ASSUME(i_data == $past(i_data));
+		end
+
+	// Check the baud counter
+	always @(posedge i_clk)
+		assert(zero_baud_counter == (baud_counter == 0));
+
+	always @(posedge i_clk)
+		if ((f_past_valid)&&($past(baud_counter != 0))&&($past(state != `TXUL_IDLE)))
+			assert(baud_counter == $past(baud_counter - 1'b1));
+
+	always @(posedge i_clk)
+		if ((f_past_valid)&&(!$past(zero_baud_counter))&&($past(state != `TXUL_IDLE)))
+			assert($stable(o_uart_tx));
+
+	reg	[(TB-1):0]	f_baud_count;
+	initial	f_baud_count = 1'b0;
+	always @(posedge i_clk)
+		if (zero_baud_counter)
+			f_baud_count <= 0;
+		else
+			f_baud_count <= f_baud_count + 1'b1;
+
+	always @(posedge i_clk)
+		assert(f_baud_count < CLOCKS_PER_BAUD);
+
+	always @(posedge i_clk)
+		if (baud_counter != 0)
+			assert(o_busy);
+
+	reg	[9:0]	f_txbits;
+	initial	f_txbits = 0;
+	always @(posedge i_clk)
+		if (zero_baud_counter)
+			f_txbits <= { o_uart_tx, f_txbits[9:1] };
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&(!$past(zero_baud_counter))
+			&&(!$past(state==`TXUL_IDLE)))
+		assert(state == $past(state));
+
+	reg	[3:0]	f_bitcount;
+	initial	f_bitcount = 0;
+	always @(posedge i_clk)
+		if ((!f_past_valid)||(!$past(f_past_valid)))
+			f_bitcount <= 0;
+		else if ((state == `TXUL_IDLE)&&(zero_baud_counter))
+			f_bitcount <= 0;
+		else if (zero_baud_counter)
+			f_bitcount <= f_bitcount + 1'b1;
+
+	always @(posedge i_clk)
+		assert(f_bitcount <= 4'ha);
+
+	reg	[7:0]	f_request_tx_data;
+	always @(posedge i_clk)
+		if ((i_wr)&&(!o_busy))
+			f_request_tx_data <= i_data;
+
+	wire	[3:0]	subcount;
+	assign	subcount = 10-f_bitcount;
+	always @(posedge i_clk)
+		if (f_bitcount > 0)
+			assert(!f_txbits[subcount]);
+
+	always @(posedge i_clk)
+		if (f_bitcount == 4'ha)
+		begin
+			assert(f_txbits[8:1] == f_request_tx_data);
+			assert( f_txbits[9]);
+		end
+
+	always @(posedge i_clk)
+		assert((state <= `TXUL_STOP + 1'b1)||(state == `TXUL_IDLE));
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&($past(f_past_valid))&&($past(o_busy)))
+		cover(!o_busy);
+
+`endif	// FORMAL
+`ifdef	VERIFIC_SVA
+	reg	[7:0]	fsv_data;
+
+	//
+	// Grab a copy of the data any time we are sent a new byte to transmit
+	// We'll use this in a moment to compare the item transmitted against
+	// what is supposed to be transmitted
+	//
+	always @(posedge i_clk)
+		if ((i_wr)&&(!o_busy))
+			fsv_data <= i_data;
+
+	//
+	// One baud interval
+	//
+	// 1. The UART output is constant at DAT
+	// 2. The internal state remains constant at ST
+	// 3. CKS = the number of clocks per bit.
+	//
+	// Everything stays constant during the CKS clocks with the exception
+	// of (zero_baud_counter), which is *only* raised on the last clock
+	// interval
+	sequence	BAUD_INTERVAL(CKS, DAT, SR, ST);
+		((o_uart_tx == DAT)&&(state == ST)
+			&&(lcl_data == SR)
+			&&(!zero_baud_counter))[*(CKS-1)]
+		##1 (o_uart_tx == DAT)&&(state == ST)
+			&&(lcl_data == SR)
+			&&(zero_baud_counter);
+	endsequence
+
+	//
+	// One byte transmitted
+	//
+	// DATA = the byte that is sent
+	// CKS  = the number of clocks per bit
+	//
+	sequence	SEND(CKS, DATA);
+		BAUD_INTERVAL(CKS, 1'b0, DATA, 4'h0)
+		##1 BAUD_INTERVAL(CKS, DATA[0], {{(1){1'b1}},DATA[7:1]}, 4'h1)
+		##1 BAUD_INTERVAL(CKS, DATA[1], {{(2){1'b1}},DATA[7:2]}, 4'h2)
+		##1 BAUD_INTERVAL(CKS, DATA[2], {{(3){1'b1}},DATA[7:3]}, 4'h3)
+		##1 BAUD_INTERVAL(CKS, DATA[3], {{(4){1'b1}},DATA[7:4]}, 4'h4)
+		##1 BAUD_INTERVAL(CKS, DATA[4], {{(5){1'b1}},DATA[7:5]}, 4'h5)
+		##1 BAUD_INTERVAL(CKS, DATA[5], {{(6){1'b1}},DATA[7:6]}, 4'h6)
+		##1 BAUD_INTERVAL(CKS, DATA[6], {{(7){1'b1}},DATA[7:7]}, 4'h7)
+		##1 BAUD_INTERVAL(CKS, DATA[7], 8'hff, 4'h8)
+		##1 BAUD_INTERVAL(CKS, 1'b1, 8'hff, 4'h9);
+	endsequence
+
+	//
+	// Transmit one byte
+	//
+	// Once the byte is transmitted, make certain we return to
+	// idle
+	//
+	assert property (
+		@(posedge i_clk)
+		(i_wr)&&(!o_busy)
+		|=> ((o_busy) throughout SEND(CLOCKS_PER_BAUD,fsv_data))
+		##1 (!o_busy)&&(o_uart_tx)&&(zero_baud_counter));
+
+	assume property (
+		@(posedge i_clk)
+		(i_wr)&&(o_busy) |=>
+			(i_wr)&&(o_busy)&&($stable(i_data)));
+
+	//
+	// Make certain that o_busy is true any time zero_baud_counter is
+	// non-zero
+	//
+	always @(*)
+		assert((o_busy)||(zero_baud_counter) );
+
+	// If and only if zero_baud_counter is true, baud_counter must be zero
+	// Insist on that relationship here.
+	always @(*)
+		assert(zero_baud_counter == (baud_counter == 0));
+
+	// To make certain baud_counter stays below CLOCKS_PER_BAUD
+	always @(*)
+		assert(baud_counter < CLOCKS_PER_BAUD);
+
+	//
+	// Insist that we are only ever in a valid state
+	always @(*)
+		assert((state <= `TXUL_STOP+1'b1)||(state == `TXUL_IDLE));
+
+`endif // Verific SVA
 endmodule
 
