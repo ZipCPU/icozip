@@ -83,7 +83,7 @@ module	speechpp(i_clk, o_ledg, o_ledr,
 		.FDA_RELATIVE(4'b1111),
 		.DIVR(4'd8),		// Divide by (DIVR+1)
 		.DIVQ(3'd3),		// Divide by 2^(DIVQ)
-		.DIVF(7'd47),		// Multiply by (DIVF+1)
+		.DIVF(7'd57),		// Multiply by (DIVF+1)
 		.FILTER_RANGE(3'b001)
 	) plli (
 		.PACKAGEPIN     (i_clk        ),

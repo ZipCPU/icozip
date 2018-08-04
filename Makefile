@@ -222,5 +222,9 @@ clean:
 	$(SUBMAKE) auto-data     clean
 	$(SUBMAKE) rtl           clean
 	$(SUBMAKE) doc           clean
+	$(SUBMAKE) sim/verilated clean
 	$(SUBMAKE) sw/host       clean
+	$(SUBMAKE) sw/zlib       clean
+	$(SUBMAKE) sw/board      clean
+	$(SUBMAKE) sw/pptest     clean
 

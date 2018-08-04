@@ -36,7 +36,8 @@
 ##
 ##
 all: blinky pmodtest clktest dimmer
-
+# PNRD := /home/dan/work/rnd/opencores/icozip/arachne-pnr/bin
+PNR := arachne-pnr -d 8k -r -P ct256
 # GNU Make automatic variables (since I can never remember these ...)
 # $@	- name of the target
 # $<	- Name of the first prerequisite
@@ -44,7 +45,7 @@ all: blinky pmodtest clktest dimmer
 %.blif: %.v
 	yosys -p 'synth_ice40 -blif $@' $<
 %.asc: %.blif %.pcf
-	arachne-pnr -d 8k -p $*.pcf -o $@ $<
+	$(PNR) -p $*.pcf -o $@ $<
 %.bin: %.asc
 	icetime -d hx8k -c 100 $<
 	icepack $< $@
@@ -57,7 +58,7 @@ dimmer:     dimmer.bin
 
 .PHONY: load
 load: blinky.bin
-	icoprog -p < blinky.bin # Needs sudo
+	echo "To load this, type: sudo icoprog -p < blinky.bin" # Needs sudo
 
 clean:
 	rm -f *.blif *.asc *.bin

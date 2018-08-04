@@ -64,7 +64,7 @@ icozip:
 
 
 .PHONY: clean
-clean:	clean-basic clean-uart clean-pptest clean-pmodleds
+clean:	clean-basic clean-uart clean-pptest clean-pmodleds clean-icozip
 
 .PHONY: clean-basic
 clean-basic:
