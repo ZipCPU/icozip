@@ -81,6 +81,7 @@ module	idecode(i_clk, i_reset, i_ce, i_stalled,
 	parameter	[0:0]	OPT_LOCK   = (OPT_PIPELINED);
 	parameter	[0:0]	OPT_OPIPE  = (OPT_PIPELINED);
 	parameter	[0:0]	OPT_SIM    = 1'b0;
+	parameter	[0:0]	OPT_NO_USERMODE = 1'b0;
 	localparam		AW = ADDRESS_WIDTH;
 	//
 	input	wire		i_clk, i_reset, i_ce, i_stalled;
@@ -229,12 +230,12 @@ module	idecode(i_clk, i_reset, i_ce, i_stalled,
 	// moves in iword[18] but only for the supervisor, and the other
 	// four bits encoded in the instruction.
 	//
-	assign	w_dcdR = { ((!iword[`CISBIT])&&(w_mov)&&(!i_gie))?iword[`IMMSEL]:i_gie,
+	assign	w_dcdR = { ((!iword[`CISBIT])&&(!OPT_NO_USERMODE)&&(w_mov)&&(!i_gie))?iword[`IMMSEL]:i_gie,
 				iword[30:27] };
 
 	// dcdB - What register is used in the opB?
 	//
-	assign w_dcdB[4] = ((!iword[`CISBIT])&&(w_mov)&&(!i_gie))?iword[13]:i_gie;
+	assign w_dcdB[4] = ((!iword[`CISBIT])&&(w_mov)&&(!OPT_NO_USERMODE)&&(!i_gie))?iword[13]:i_gie;
 	assign w_dcdB[3:0]= (iword[`CISBIT])
 				? (((!iword[`CISIMMSEL])&&(iword[26:25]==2'b10))
 					? `CPU_SP_REG : iword[22:19])
@@ -706,6 +707,6 @@ module	idecode(i_clk, i_reset, i_ce, i_stalled,
 	assign	possibly_unused = { w_lock, w_ljmp, w_ljmp_dly, w_cis_ljmp, i_pc[1:0] };
 	// verilator lint_on  UNUSED
 `ifdef	FORMAL
-// Formal properties for this module are maintained elsewhere
+// The formal properties for this module are maintained elsewhere
 `endif
 endmodule

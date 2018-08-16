@@ -6,8 +6,8 @@
 //
 // Purpose:	This library simulates the operation of a Quad-SPI commanded
 //		flash, such as the S25FL032P used on the Basys-3 development
-//		board by Digilent.  As such, it is defined by 32 Mbits of
-//		memory (4 Mbyte).
+//	board by Digilent.  As such, it is defined by 32 Mbits of memory
+//	(4 Mbyte).
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -63,8 +63,18 @@ class	FLASHSIM {
 		QSPIF_QPP,
 		QSPIF_BULK_ERASE,
 		QSPIF_DEEP_POWER_DOWN,
+		// Dual SPI states
+		QSPIF_DUAL_READ_IDLE,
+		QSPIF_DUAL_READ_CMD,
+		QSPIF_DUAL_READ,
 		QSPIF_INVALID
 	} QSPIF_STATE;
+
+	typedef	enum {
+		FM_SPI,
+		FM_DSPI,
+		FM_QSPI
+	} FLASH_MODE;
 
 	QSPIF_STATE	m_state;
 	char		*m_mem, *m_pmem;
@@ -72,13 +82,19 @@ class	FLASHSIM {
 	unsigned	m_write_count, m_ireg, m_oreg, m_sreg, m_addr,
 			m_count, m_config, m_mode_byte, m_creg, m_membytes,
 			m_memmask;
-	bool		m_quad_mode, m_debug;
+	bool		m_debug;
+	FLASH_MODE	m_mode;
 
 public:
 	FLASHSIM(const int lglen = 24, bool debug = false);
 	void	load(const char *fname) { load(0, fname); }
 	void	load(const unsigned addr, const char *fname);
 	void	load(const uint32_t offset, const char *data, const uint32_t len);
+	bool	write_protect(void) { return ((m_sreg & QSPIF_WEL_FLAG)==0); }
+	bool	write_in_progress(void) { return ((m_sreg | QSPIF_WIP_FLAG)!=0); }
+	bool	xip_mode(void) { return (QSPIF_QUAD_READ_IDLE == m_state); }
+	bool	dual_mode(void) { return (m_mode == FM_DSPI); }
+	bool	quad_mode(void) { return (m_mode == FM_QSPI); }
 	void	debug(const bool dbg) { m_debug = dbg; }
 	bool	debug(void) const { return m_debug; }
 	unsigned operator[](const int index) {

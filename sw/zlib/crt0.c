@@ -5,7 +5,7 @@
 // Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
 // Purpose:	To start a program from flash, loading its various components
-//		into on-chip block RAM, or off-chip DDR3 SRAM, as indicated
+//		into on-chip block RAM, or off-chip SRAM, as indicated
 //	by the symbols/pointers within the program itself.  As you will notice
 //	by the names of the symbols, it is assumed that a kernel will be placed
 //	into block RAM.
@@ -224,8 +224,8 @@ void	_bootloader(void) {
 #ifdef	_BOARD_HAS_KERNEL_SPACE
 	_zip->z_dma.d_rd = _kernel_image_start;
 	if (_kernel_image_end != _bkram) {
-		_zip->z_dma.d_len = _kernel_image_end - _bkram;
-		_zip->z_dma.d_wr  = _bkram;
+		_zip->z_dma.d_len = _kernel_image_end - (int *)_bkram;
+		_zip->z_dma.d_wr  = (int *)_bkram;
 		_zip->z_dma.d_ctrl= DMACCOPY;
 
 		_zip->z_pic = SYSINT_DMAC;
@@ -273,13 +273,13 @@ void	_bootloader(void) {
 	//
 #ifdef	_BOARD_HAS_KERNEL_SPACE
 	rdp = _kernel_image_start;
-	wrp = _bkram;
+	wrp = (int *)_bkram;
 	if (_kernel_image_end != _kernel_image_start) {
 		do {
 			*wrp++ = *rdp++;
 		} while(wrp < _kernel_image_end);
-		if (_kernel_image_end < _sram)
-			wrp = _sram;
+		if (_kernel_image_end < (int *)_sram)
+			wrp = (int *)_sram;
 	}
 #else
 	rdp = _ram_image_start;

@@ -53,10 +53,10 @@
 #include "byteswap.h"
 
 static const	int	F_EMPTY = 0,	// (No command)
-			F_PP   = 0x002,	// Page program
 			F_WRR  = 0x001,	// Write register (status or cfg)
-			F_WRDI = 0x003,	// Write disable
+			F_PP   = 0x002,	// Page program
 			F_READ = 0x003,	// Slow SPI (1-bit) read
+			F_WRDI = 0x004,	// Write disable
 			F_RDSR1= 0x005,	// Read status register 1
 			F_WREN = 0x006,	// Write Enable
 			F_SE   = 0x0d8,	// Sector erase

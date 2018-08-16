@@ -42,6 +42,7 @@
 @SLAVE.TYPE=BUS
 @SLAVE.BUS.NAME=zip
 @SLAVE.BUS.WIDTH=32
+@SLAVE.CLOCK=clk
 @BUS.NAME=wb
 ##
 @PREFIX=hb_dwb
@@ -140,4 +141,4 @@
 `endif
 @RTL.MAKE.GROUP= BUSDLY
 @RTL.MAKE.FILES= busdelay.v wbpriarbiter.v
-@RTL.MAKE.SUBD= cpu
+@RTL.MAKE.SUBD=cpu

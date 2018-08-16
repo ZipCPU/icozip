@@ -62,10 +62,18 @@
 FPGA	*m_fpga;
 
 void	usage(void) {
+#ifdef	INCLUDE_ZIPCPU
 	printf("USAGE: zipload [-hr] <zip-program-file>\n");
 	printf("\n"
 "\t-h\tDisplay this usage statement\n"
 "\t-r\tStart the ZipCPU running from the address in the program file\n");
+#else
+	printf(
+"This program is designed to load the ZipCPU into a design.  It depends upon\n"
+"the ZipCPU having been built into the design, as well as the registers\n"
+"within the design having known locations.  When this program was built,\n"
+"however, there was no ZiPCPU within the design.\n");
+#endif
 }
 
 int main(int argc, char **argv) {
@@ -202,6 +210,22 @@ int main(int argc, char **argv) {
 
 	flash = new FLASHDRVR(m_fpga);
 
+	if (verbose) {
+		printf("Memory regions:\n");
+#ifdef	BKRAM_ACCESS
+		printf("\tBlock RAM: %08x - %08x\n",
+			BKRAMBASE, BKRAMBASE+BKRAMLEN);
+#endif
+#ifdef	FLASH_ACCESS
+		printf("\tFlash (ROM): %08x - %08x\n",
+			FLASHBASE, FLASHBASE+FLASHLEN);
+#endif
+#ifdef	SRAM_ACCESS
+		printf("\tSRAM       : %08x - %08x\n",
+			SRAMBASE, SRAMBASE + SRAMLEN);
+#endif
+	}
+
 	if (codef) try {
 		ELFSECTION	**secpp = NULL, *secp;
 
@@ -218,6 +242,11 @@ int main(int argc, char **argv) {
 			bool	valid = false;
 			secp=  secpp[i];
 
+			if (verbose) {
+				printf("Section %d: %08x - %08x\n", i,
+					secp->m_start,
+					secp->m_start+secp->m_len);
+			}
 			// Make sure our section is either within block RAM
 #ifdef	BKRAM_ACCESS
 			if ((secp->m_start >= BKRAMBASE)

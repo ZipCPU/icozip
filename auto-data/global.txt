@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017, Gisselquist Technology, LLC
+## Copyright (C) 2017-2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -35,15 +35,13 @@
 ################################################################################
 ##
 ##
-
-#
 @LEGAL=legalgen.txt
 @PROJECT=ICO Zip, iCE40 ZipCPU demonstration project
+@PCF.FILE=icozip.pcf
 #
 @KEYS.INTLIST= BUS_ADDRESS_WIDTH NADDR NPIC NSCOPES PIC.MAX REGS.N ID
 @DEFAULT.BUS=wb
 @$RESET_ADDRESS=@$flash.BASE+131072
-# @$RESET_ADDRESS=@$sram.BASE
 @RESET_ADDRESS.FORMAT=32'h%08x
 @VERILATOR_PREFIX=v
 @REGDEFS.H.INSERT=
@@ -74,16 +72,16 @@ unsigned	addrdecode(const char *v) {
 		for(int i=0; i<NREGS; i++)
 			if (strcasecmp(v, bregs[i].m_name)==0)
 				return bregs[i].m_addr;
-		fprintf(stderr, "Unknown register: %s\n", v);
-		exit(-2);
 #ifdef	R_ZIPCTRL
-	} else if (strcasecmp(v, "CPU")==0) {
+	} if (strcasecmp(v, "CPU")==0) {
 		return R_ZIPCTRL;
 #endif	// R_ZIPCTRL
 #ifdef	R_ZIPDATA
 	} else if (strcasecmp(v, "CPUD")==0) {
 		return R_ZIPDATA;
 #endif	// R_ZIPDATA
+		fprintf(stderr, "Unknown register: %s\n", v);
+		exit(-2);
 	} else
 		return strtoul(v, NULL, 0);
 }

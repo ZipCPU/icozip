@@ -2,7 +2,7 @@
 //
 // Filename:	fwb_slave.v
 //
-// Project:	Zip CPU -- a small, lightweight, RISC CPU soft core
+// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
 // Purpose:	This file describes the rules of a wishbone interaction from the
 //		perspective of a wishbone slave.  These formal rules may be used
@@ -125,8 +125,7 @@ module	fwb_slave(i_clk, i_reset,
 	//
 	// Let's just make sure our parameters are set up right
 	//
-	always @(*)
-		assert(F_MAX_REQUESTS < {(F_LGDEPTH){1'b1}});
+	initial	assert(F_MAX_REQUESTS < {(F_LGDEPTH){1'b1}});
 
 	//
 	// Wrap the request line in a bundle.  The top bit, named STB_BIT,
@@ -173,6 +172,12 @@ module	fwb_slave(i_clk, i_reset,
 	end
 
 	// Things can only change on the positive edge of the clock
+`ifdef	VERIFIC
+	(* gclk *) wire gbl_clock;
+	global clocking @(posedge gbl_clock);
+	endclocking
+`endif
+
 	generate if (F_OPT_CLK2FFLOGIC)
 	begin : FORCE_POSEDGE_CLK
 		always @($global_clock)

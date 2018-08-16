@@ -70,8 +70,8 @@
 @MAIN.PORTLIST=
 		// GPIO ports
 		i_@$(PREFIX), o_@$(PREFIX)
-@MAIN.DEFNS=
-	localparam	NGPI = @$NUMINPUT, NGPO=@$NUMOUTPUT;
+@MAIN.IODECL=
+	localparam	NGPI = @$(NUMINPUT), NGPO=@$(NUMOUTPUT);
 	// @$(DEVID) ports
 	input		[(NGPI-1):0]	i_@$(PREFIX);
 	output	wire	[(NGPO-1):0]	o_@$(PREFIX);
@@ -83,9 +83,9 @@
 	// another 16 @$(DEVID) outputs.  The interrupt trips when any of the inputs
 	// changes.  (Sorry, which input isn't (yet) selectable.)
 	//
-	localparam	INITIAL_@$(DEVID) = @$NUMOUTPUT'h0;
+	localparam	INITIAL_@$(DEVID) = @$(NUMOUTPUT)'h0;
 	wbgpio	#(NGPI, NGPO, INITIAL_@$(DEVID))
-		@$(PREFIX)i(i_clk, 1'b1, (wb_stb)&&(@$(PREFIX)_sel), 1'b1,
+		@$(PREFIX)i(i_clk, 1'b1, (wb_stb)&&(@$(PREFIX)_sel), wb_we,
 			wb_data, @$(PREFIX)_data, i_@$(PREFIX), o_@$(PREFIX),
 			@$(PREFIX)_int);
 @REGS.N=1
@@ -94,13 +94,12 @@
 //
 // @$(DEVID) input wires
 //
-#define	@$(DEVID)_IN(WIRE)	((WIRE)<<16)
+#define	@$(DEVID)_IN(WIRE)	(((WIRE)>>16)&1)
 #define	@$(DEVID)_BTN_0	0x00001
 #define	@$(DEVID)_BTN_1	0x00002
 //
 // @$(DEVID) output wires
 //
-#define	@$(DEVID)_IN(WIRE)	((WIRE)<<16)
 #define	@$(DEVID)_SET(WIRE)	(((WIRE)<<16)|(WIRE))
 #define	@$(DEVID)_CLR(WIRE)	 ((WIRE)<<16)
 //
@@ -117,6 +116,6 @@
 @BDEF.IONAME=	i_@$(PREFIX)
 @BDEF.IOTYPE=	unsigned
 @BDEF.OSDEF=	_BOARD_HAS_@$(DEVID)
-@BDEF.OSVAL=	static volatile @$.BDEF.IOTYPE *const _@$(PREFIX) = ((@$.BDEF.IOTYPE *)@$.BASE);
+@BDEF.OSVAL=	static volatile @$.BDEF.IOTYPE *const _@$(PREFIX) = ((@$.BDEF.IOTYPE *)@$REGBASE);
 @RTL.MAKE.FILES=wbgpio.v
-@RTL.MAKE.GROUP=GPIO
+@RTL.MAKE.GROUP=@$(DEVID)

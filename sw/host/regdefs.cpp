@@ -89,16 +89,16 @@ unsigned	addrdecode(const char *v) {
 		for(int i=0; i<NREGS; i++)
 			if (strcasecmp(v, bregs[i].m_name)==0)
 				return bregs[i].m_addr;
-		fprintf(stderr, "Unknown register: %s\n", v);
-		exit(-2);
 #ifdef	R_ZIPCTRL
-	} else if (strcasecmp(v, "CPU")==0) {
+	} if (strcasecmp(v, "CPU")==0) {
 		return R_ZIPCTRL;
 #endif	// R_ZIPCTRL
 #ifdef	R_ZIPDATA
 	} else if (strcasecmp(v, "CPUD")==0) {
 		return R_ZIPDATA;
 #endif	// R_ZIPDATA
+		fprintf(stderr, "Unknown register: %s\n", v);
+		exit(-2);
 	} else
 		return strtoul(v, NULL, 0);
 }

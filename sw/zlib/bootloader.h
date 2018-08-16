@@ -44,7 +44,7 @@ extern	int	_boot_address[1];
 
 #ifdef	_BOARD_HAS_BKRAM
 #ifdef	_BOARD_HAS_SRAM
-extern	int	_kernel_image_start[1], _kernel_image_end[1],
+extern	int	_kernel_image_start[1], _kernel_image_end[1];
 #define	_BOARD_HAS_KERNEL_SPACE
 #endif
 #endif

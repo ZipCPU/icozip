@@ -76,4 +76,3 @@ clean:
 	rm -f toplevel.v main.v regdefs.h regdefs.cpp board.h board.ld
 	rm -f rtl.make.inc main_tb.cpp
 	rm -f dump.txt
-

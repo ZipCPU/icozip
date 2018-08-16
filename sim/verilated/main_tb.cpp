@@ -91,8 +91,9 @@
 #define	cpu_bus_err	CPUVAR(_bus_err)
 #define	cpu_ibus_err	CPUVAR(_ibus_err_flag)
 #define	cpu_ubus_err	CPUVAR(_r_ubus_err_flag)
-#define	cpu_mem_rdaddr	CPUVAR(_swic__DOT__thecpu__DOT__domem__DOT__rdaddr)
-#define	cpu_mem_wraddr	VVAR(_swic__DOT__thecpu__DOT__domem__DOT__wraddr)
+#define	cpu_mem_rdaddr	CPUVAR(_domem__DOT__rdaddr)
+#define	cpu_mem_wraddr	CPUVAR(_domem__DOT__wraddr)
+#define	cpu_op_sim	CPUVAR(_op_sim)
 #define	cpu_op_valid	VVAR(_swic__DOT__thecpu__DOT__op_valid)
 #define	cpu_alu_ce	CPUVAR(_alu_ce)
 #define	cpu_new_pc	CPUVAR(_new_pc)
@@ -281,7 +282,7 @@ public:
 		// Loading the bkram component
 		//
 		base  = 0x00c00000;
-		naddr = 0x00000040;
+		naddr = 0x00000800;
 
 		if ((addr >= base)&&(addr < base + naddr)) {
 			// If the start access is in bkram

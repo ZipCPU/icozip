@@ -59,13 +59,12 @@
 //
 // GPIO input wires
 //
-#define	GPIO_IN(WIRE)	((WIRE)<<16)
+#define	GPIO_IN(WIRE)	(((WIRE)>>16)&1)
 #define	GPIO_BTN_0	0x00001
 #define	GPIO_BTN_1	0x00002
 //
 // GPIO output wires
 //
-#define	GPIO_IN(WIRE)	((WIRE)<<16)
 #define	GPIO_SET(WIRE)	(((WIRE)<<16)|(WIRE))
 #define	GPIO_CLR(WIRE)	 ((WIRE)<<16)
 //
@@ -108,10 +107,11 @@ static volatile unsigned *const _buspic = ((unsigned *)10485764);
 #endif	// BUSPIC_ACCESS
 #ifdef	GPIO_ACCESS
 #define	_BOARD_HAS_GPIO
-static volatile unsigned *const _gpio = ((unsigned *)8);
+static volatile unsigned *const _gpio = ((unsigned *)10485768);
 #endif	// GPIO_ACCESS
 #ifdef	BKRAM_ACCESS
-extern char	_bkram[0x00000100];
+#define	_BOARD_HAS_BKRAM
+extern char	_bkram[0x00002000];
 #endif	// BKRAM_ACCESS
 #define	_BOARD_HAS_VERSION
 #ifdef	BUSCONSOLE_ACCESS

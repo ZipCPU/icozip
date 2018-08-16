@@ -132,18 +132,10 @@ module	main(i_clk, i_reset,
 	// The number of valid bits on the bus
 	localparam	ZIP_ADDRESS_WIDTH = 23; // Zip-CPU address width
 	//
-	// Number of ZipCPU interrupts
-	localparam	ZIP_INTS = 16;
-	//
 	// ZIP_START_HALTED
 	//
 	// A boolean, indicating whether or not the ZipCPU be halted on startup?
 	localparam	ZIP_START_HALTED=1'b1;
-	//
-	// ZIP_LGCACHE_SZ
-	//
-	// The cache, if present, will hold 2^ZIP_LGCACHE_SZ values
-	localparam	ZIP_LGCACHE_SZ=8;
 //
 // The next step is to declare all of the various ports that were just
 // listed above.  
@@ -161,6 +153,10 @@ module	main(i_clk, i_reset,
 	output	wire	[1:0]	o_ram_sel;
 	output	wire	[15:0]	o_ram_data;
 	input	wire	[15:0]	i_ram_data;
+	localparam	NGPI = 2, NGPO=11;
+	// GPIO ports
+	input		[(NGPI-1):0]	i_gpio;
+	output	wire	[(NGPO-1):0]	o_gpio;
 	// The SPI flash
 	output	wire		o_spi_cs_n;
 	output	wire		o_spi_sck;
@@ -211,10 +207,6 @@ module	main(i_clk, i_reset,
 	wire		zip_halted;
 	reg	[23-1:0]	r_buserr_addr;
 	reg	[31:0]	r_pwrcount_data;
-	localparam	NGPI = 2, NGPO=11;
-	// GPIO ports
-	input		[(NGPI-1):0]	i_gpio;
-	output	wire	[(NGPO-1):0]	o_gpio;
 `include "builddate.v"
 	// Console definitions
 	wire	w_console_rx_stb, w_console_tx_stb, w_console_busy;
@@ -388,7 +380,7 @@ module	main(i_clk, i_reset,
 	assign	     console_sel = ((wb_addr[22:19] &  4'hf) ==  4'h4); // 0x800000 - 0x80000f
 	assign	      wb_sio_sel = ((wb_addr[22:19] &  4'hf) ==  4'h5); // 0xa00000 - 0xa0001f
 //x2	Was a master bus as well
-	assign	       bkram_sel = ((wb_addr[22:19] &  4'hf) ==  4'h6); // 0xc00000 - 0xc000ff
+	assign	       bkram_sel = ((wb_addr[22:19] &  4'hf) ==  4'h6); // 0xc00000 - 0xc01fff
 	assign	        sram_sel = ((wb_addr[22:19] &  4'hf) ==  4'h7); // 0xe00000 - 0xe1ffff
 	assign	       flash_sel = ((wb_addr[22:19] &  4'h8) ==  4'h8); // 0x1000000 - 0x1ffffff
 	//
@@ -816,9 +808,9 @@ module	main(i_clk, i_reset,
 	// The ZipCPU/ZipSystem BUS master
 	//
 	//
-	zipbones #(RESET_ADDRESS,ZIP_ADDRESS_WIDTH,ZIP_LGCACHE_SZ,
-			ZIP_START_HALTED)
-		swic(i_clk, cpu_reset,
+	zipbones #(.RESET_ADDRESS(RESET_ADDRESS),.ADDRESS_WIDTH(ZIP_ADDRESS_WIDTH),
+			.START_HALTED(ZIP_START_HALTED))
+		swic(i_clk, (cpu_reset),
 			// Zippys wishbone interface
 			zip_cyc, zip_stb, zip_we, zip_addr, zip_data, zip_sel,
 					zip_ack, zip_stall, zip_idata, zip_err,
@@ -887,7 +879,7 @@ module	main(i_clk, i_reset,
 	//
 	localparam	INITIAL_GPIO = 11'h0;
 	wbgpio	#(NGPI, NGPO, INITIAL_GPIO)
-		gpioi(i_clk, 1'b1, (wb_stb)&&(gpio_sel), 1'b1,
+		gpioi(i_clk, 1'b1, (wb_stb)&&(gpio_sel), wb_we,
 			wb_data, gpio_data, i_gpio, o_gpio,
 			gpio_int);
 `else	// GPIO_ACCESS
@@ -904,10 +896,10 @@ module	main(i_clk, i_reset,
 `endif	// GPIO_ACCESS
 
 `ifdef	BKRAM_ACCESS
-	memdev #(.LGMEMSZ(8), .EXTRACLOCK(1))
+	memdev #(.LGMEMSZ(13), .EXTRACLOCK(1))
 		bkrami(i_clk, 1'b0,
 			(wb_cyc), (wb_stb)&&(bkram_sel), wb_we,
-				wb_addr[(8-3):0], wb_data, wb_sel,
+				wb_addr[(13-3):0], wb_data, wb_sel,
 				bkram_ack, bkram_stall, bkram_data);
 `else	// BKRAM_ACCESS
 
@@ -1082,9 +1074,6 @@ module	main(i_clk, i_reset,
 
 `endif	// WBUBUS_MASTER
 
-	//
-	//
-	//
 
 
 endmodule // main.v

@@ -5,8 +5,10 @@ safety_nocfg		nopipe		noconfig
 safety_pipe_nocfg	pipe		noconfig
 cover			nopipe		wconfig
 cover_pipe		pipe		wconfig
+verific
 
 [options]
+verific: mode prove
 safety:            mode prove
 safety_pipe:       mode prove
 safety_nocfg:      mode prove
@@ -19,8 +21,9 @@ depth 74
 smtbmc
 
 [script]
-read_verilog -formal fwb_slave.v
-read_verilog -formal spixpress.v
+read -define FORMAL
+read -sv fwb_slave.v
+read -sv spixpress.v
 cover:		chparam -set F_OPT_COVER 1 spixpress
 cover_pipe:	chparam -set F_OPT_COVER 1 spixpress
 nopipe:		chparam -set OPT_PIPE   0 spixpress

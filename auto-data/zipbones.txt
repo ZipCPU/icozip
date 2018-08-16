@@ -65,18 +65,10 @@
 	// The number of valid bits on the bus
 	localparam	ZIP_ADDRESS_WIDTH = @$(BUS.AWID); // Zip-CPU address width
 	//
-	// Number of ZipCPU interrupts
-	localparam	ZIP_INTS = 16;
-	//
 	// ZIP_START_HALTED
 	//
 	// A boolean, indicating whether or not the ZipCPU be halted on startup?
 	localparam	ZIP_START_HALTED=1'b1;
-	//
-	// ZIP_LGCACHE_SZ
-	//
-	// The cache, if present, will hold 2^ZIP_LGCACHE_SZ values
-	localparam	ZIP_LGCACHE_SZ=8;
 @MAIN.DEFNS=
 	// ZipSystem/ZipCPU connection definitions
 	// All we define here is a set of scope wires
@@ -89,9 +81,9 @@
 	// The ZipCPU/ZipSystem BUS master
 	//
 	//
-	zipbones #(RESET_ADDRESS,ZIP_ADDRESS_WIDTH,ZIP_LGCACHE_SZ,
-			ZIP_START_HALTED)
-		swic(i_clk, cpu_reset,
+	zipbones #(.RESET_ADDRESS(RESET_ADDRESS),.ADDRESS_WIDTH(ZIP_ADDRESS_WIDTH),
+			.START_HALTED(ZIP_START_HALTED))
+		swic(i_clk, (cpu_reset),
 			// Zippys wishbone interface
 			zip_cyc, zip_stb, zip_we, zip_addr, zip_data, zip_sel,
 					zip_ack, zip_stall, zip_idata, zip_err,
@@ -154,8 +146,9 @@
 #define	cpu_bus_err	CPUVAR(_bus_err)
 #define	cpu_ibus_err	CPUVAR(_ibus_err_flag)
 #define	cpu_ubus_err	CPUVAR(_r_ubus_err_flag)
-#define	cpu_mem_rdaddr	CPUVAR(_swic__DOT__thecpu__DOT__domem__DOT__rdaddr)
-#define	cpu_mem_wraddr	VVAR(_swic__DOT__thecpu__DOT__domem__DOT__wraddr)
+#define	cpu_mem_rdaddr	CPUVAR(_domem__DOT__rdaddr)
+#define	cpu_mem_wraddr	CPUVAR(_domem__DOT__wraddr)
+#define	cpu_op_sim	CPUVAR(_op_sim)
 #define	cpu_op_valid	VVAR(_swic__DOT__thecpu__DOT__op_valid)
 #define	cpu_alu_ce	CPUVAR(_alu_ce)
 #define	cpu_new_pc	CPUVAR(_new_pc)

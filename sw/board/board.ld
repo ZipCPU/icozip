@@ -44,10 +44,12 @@ ENTRY(_start)
 
 MEMORY
 {
+	   bkram(wx) : ORIGIN = 0x00c00000, LENGTH = 0x00002000
 	    sram(wx) : ORIGIN = 0x00e00000, LENGTH = 0x00020000
 	   flash(rx) : ORIGIN = 0x01000000, LENGTH = 0x01000000
 }
 
+_bkram    = ORIGIN(bkram);
 _sram     = ORIGIN(sram);
 _flash    = ORIGIN(flash);
 SECTIONS

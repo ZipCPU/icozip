@@ -8,9 +8,8 @@
 //		flash, such as the S25FL032P used on the Basys-3 development
 //		board by Digilent.
 //
-//		This simulator is useful for testing in a Verilator/C++
-//		environment, where this simulator can be used in place of
-//		the actual hardware.
+//	This simulator is useful for testing in a Verilator/C++ environment,
+//	where this simulator can be used in place of actual hardware.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -76,7 +75,7 @@ FLASHSIM::FLASHSIM(const int lglen, bool debug) {
 	m_ireg = m_oreg = 0;
 	m_sreg = 0x01c;
 	m_creg = 0x001;	// Iinitial creg on delivery
-	m_quad_mode = false;
+	m_mode = FM_SPI;
 	m_mode_byte = 0;
 
 	memset(m_mem, 0x0ff, m_membytes);
@@ -109,7 +108,8 @@ void	FLASHSIM::load(const unsigned addr, const char *fname) {
 		m_mem[i] = 0x0ff;
 }
 
-void	FLASHSIM::load(const uint32_t offset, const char *data, const uint32_t len) {
+void	FLASHSIM::load(const uint32_t offset, const char *data,
+		const uint32_t len) {
 	uint32_t	moff = (offset & (m_memmask));
 
 	memcpy(&m_mem[moff], data, len);
@@ -151,7 +151,7 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 				*/
 				m_mem[(m_addr&(~0x0ff))+i] &= m_pmem[i];
 			}
-			m_quad_mode = false;
+			m_mode = FM_SPI;
 		} else if (m_state == QSPIF_SECTOR_ERASE) {
 			if (m_debug) printf("Actually Erasing sector, from %08x\n", m_addr);
 			m_write_count = tSE;
@@ -165,9 +165,9 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 		} else if (QSPIF_WRSR == m_state) {
 			if (m_debug) printf("Actually writing status register\n");
 			m_write_count = tW;
-			m_state = QSPIF_IDLE;
-			m_sreg &= (~QSPIF_WEL_FLAG);
-			m_sreg |= (QSPIF_WIP_FLAG);
+			m_state  = QSPIF_IDLE;
+			m_sreg  &= (~QSPIF_WEL_FLAG);
+			m_sreg  |= (QSPIF_WIP_FLAG);
 		} else if (QSPIF_CLSR == m_state) {
 			if (m_debug) printf("Actually clearing the status register bits\n");
 			m_state = QSPIF_IDLE;
@@ -187,14 +187,20 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 			m_state = QSPIF_IDLE;
 		} else if (m_state == QSPIF_QUAD_READ_CMD) {
 			if ((m_mode_byte & 0x0f0)!=0x0a0)
-				m_quad_mode = false;
+				m_mode = FM_SPI;
 			else
 				m_state = QSPIF_QUAD_READ_IDLE;
+		} else if (m_state == QSPIF_DUAL_READ_CMD) {
+			if ((m_mode_byte & 0x0f0)!=0x0a0)
+				m_mode = FM_SPI;
+			else
+				m_state = QSPIF_DUAL_READ_IDLE;
 		} else if (m_state == QSPIF_QUAD_READ) {
 			if ((m_mode_byte & 0x0f0)!=0x0a0)
-				m_quad_mode = false;
+				m_mode = FM_SPI;
 			else
 				m_state = QSPIF_QUAD_READ_IDLE;
+		} else if (m_state == QSPIF_DUAL_READ_IDLE) {
 		} else if (m_state == QSPIF_QUAD_READ_IDLE) {
 		}
 
@@ -204,20 +210,25 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 		// Only change on the falling clock edge
 		// printf("SFLASH-SKIP, CLK=%d -> %d\n", m_last_sck, sck);
 		m_last_sck = sck;
-		if (m_quad_mode)
+		if (m_mode == FM_QSPI)
 			return (m_oreg>>8)&0x0f;
+		else if (m_mode == FM_DSPI)
+			return ((m_oreg>>8)&0x03)|(dat & 0x0c);
 		else
-			// return ((m_oreg & 0x0100)?2:0) | (dat & 0x0d);
-			return (m_oreg & 0x0100)?2:0;
+			return ((m_oreg & 0x0100)?2:0) | (dat & 0x0d);
 	}
 
 	// We'll only get here if ...
 	//	last_sck = 1, and sck = 0, thus transitioning on the
 	//	negative edge as with everything else in this interface
-	if (m_quad_mode) {
-		m_ireg = (m_ireg << 4) | (dat & 0x0f);
-		m_count+=4;
+	if (m_mode == FM_QSPI) {
+		m_ireg   = (m_ireg << 4) | (dat & 0x0f);
+		m_count += 4;
 		m_oreg <<= 4;
+	} else if (m_mode == FM_DSPI) {
+		m_ireg   = (m_ireg << 2) | (dat & 0x03);
+		m_count += 2;
+		m_oreg <<= 2;
 	} else {
 		m_ireg = (m_ireg << 1) | (dat & 1);
 		m_count++;
@@ -227,13 +238,22 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 
 	// printf("PROCESS, COUNT = %d, IREG = %02x\n", m_count, m_ireg);
 	if (m_state == QSPIF_QUAD_READ_IDLE) {
-		assert(m_quad_mode);
+		assert(quad_mode());
 		if (m_count == 24) {
 			if (m_debug) printf("QSPI: Entering from Quad-Read Idle to Quad-Read\n");
 			if (m_debug) printf("QSPI: QI/O Idle Addr = %02x\n", m_ireg&0x0ffffff);
 			m_addr = (m_ireg) & m_memmask;
 			assert((m_addr & (~(m_memmask)))==0);
 			m_state = QSPIF_QUAD_READ;
+		} m_oreg = 0;
+	} else if (m_state == QSPIF_DUAL_READ_IDLE) {
+		assert(dual_mode());
+		if (m_count == 24) {
+			if (m_debug) printf("DSPI: Entering from Dual-Read Idle to Dual-Read\n");
+			if (m_debug) printf("DSPI: DI/O Idle Addr = %02x\n", m_ireg&0x0ffffff);
+			m_addr = (m_ireg) & m_memmask;
+			assert((m_addr & (~(m_memmask)))==0);
+			m_state = QSPIF_DUAL_READ;
 		} m_oreg = 0;
 	} else if (m_count == 8) {
 		QOREG(0x0a5);
@@ -321,6 +341,12 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 				m_state  = QSPIF_IDLE;
 			}
 			break;
+		case 0xbb: // Fast Read Dual I/O
+			// printf("QSPI: DUAL-I/O-READ\n");
+			m_state = QSPIF_DUAL_READ_CMD;
+			m_mode = FM_DSPI;
+			break;
+			
 		case 0xc7: // Bulk Erase
 			if (2 != (m_sreg & 0x203)) {
 				if (m_debug) printf("QSPI: WEL not set, cannot erase device\n");
@@ -340,7 +366,7 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 		case 0x0eb: // Here's the (other) read that we support
 			// printf("QSPI: QUAD-I/O-READ\n");
 			m_state = QSPIF_QUAD_READ_CMD;
-			m_quad_mode = true;
+			m_mode = FM_QSPI;
 			break;
 		default:
 			printf("QSPI: UNRECOGNIZED SPI FLASH CMD: %02x\n", m_ireg&0x0ff);
@@ -364,8 +390,8 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 				if (m_debug) printf("Request to set creg to 0x%02x\n",
 					m_ireg&0x0ff);
 			} else {
-				printf("TOO MANY CLOCKS FOR WRR!!!\n");
-				exit(-2);
+				fprintf(stderr, "QSPIFLASH-ERR: TOO MANY CLOCKS FOR WRR!!!\n");
+				exit(EXIT_FAILURE);
 				m_state = QSPIF_IDLE;
 			}
 			break;
@@ -419,6 +445,23 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 				// if (m_debug) printf("SPIF[%08x] = %02x\n", m_addr-1, m_oreg);
 			} else m_oreg = 0;
 			break;
+		case QSPIF_DUAL_READ_CMD:
+			// The command to go into quad read mode took 8 bits
+			// that changes the timings, else we'd use quad_Read
+			// below
+			if (m_count == 32) {
+				m_addr = m_ireg & m_memmask;
+				if (m_debug) printf("DSPI: DUAL READ, ADDR = %06x\n", m_addr);
+				assert((m_addr & (~(m_memmask)))==0);
+			} else if (m_count == 32+24) {
+				m_mode_byte = (m_ireg>>16) & 0x0ff;
+				if (m_debug) printf("DSPI: MODE BYTE = %02x\n", m_mode_byte);
+			} else if ((m_count > 32+24)&&(0 == (m_sreg&0x01))) {
+				QOREG(m_mem[m_addr++]);
+				if (m_debug) printf("QSPIF[%08x]/DR = %02x\n",
+					m_addr-1, m_oreg);
+			} else m_oreg = 0;
+			break;
 		case QSPIF_QUAD_READ_CMD:
 			// The command to go into quad read mode took 8 bits
 			// that changes the timings, else we'd use quad_Read
@@ -435,6 +478,15 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 				QOREG(m_mem[m_addr++]);
 				// printf("QSPIF[%08x]/QR = %02x\n",
 					// m_addr-1, m_oreg);
+			} else m_oreg = 0;
+			break;
+		case QSPIF_DUAL_READ:
+			if (m_count == 32) {
+				m_mode_byte = (m_ireg & 0x0ff);
+				if (m_debug) printf("DSPI/DR: MODE BYTE = %02x\n", m_mode_byte);
+			} else if ((m_count >= 32+16)&&(0 == (m_sreg&0x01))) {
+				QOREG(m_mem[m_addr++]);
+				if (m_debug) printf("DSPIF[%08x]/DR = %02x\n", m_addr-1, m_oreg & 0x0ff);
 			} else m_oreg = 0;
 			break;
 		case QSPIF_QUAD_READ:
@@ -462,7 +514,7 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 		case QSPIF_QPP:
 			if (m_count == 32) {
 				m_addr = m_ireg & m_memmask;
-				m_quad_mode = true;
+				m_mode = FM_QSPI;
 				if (m_debug) printf("QSPI/QR: PAGE-PROGRAM ADDR = %06x\n", m_addr);
 				assert((m_addr & (~(m_memmask)))==0);
 				// m_page = m_addr >> 8;
@@ -489,10 +541,11 @@ int	FLASHSIM::operator()(const int csn, const int sck, const int dat) {
 	} // else printf("SFLASH->count = %d\n", m_count);
 
 	m_last_sck = sck;
-	if (m_quad_mode)
+	if (m_mode == FM_QSPI)
 		return (m_oreg>>8)&0x0f;
+	else if (m_mode == FM_DSPI)
+		return ((m_oreg>>8)&0x03)|(dat & 0x0c);
 	else
-		// return ((m_oreg & 0x0100)?2:0) | (dat & 0x0d);
-		return (m_oreg & 0x0100)?2:0;
+		return ((m_oreg & 0x0100)?2:0)|(dat & 0x0d);
 }
 

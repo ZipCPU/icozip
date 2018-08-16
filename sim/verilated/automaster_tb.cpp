@@ -64,9 +64,6 @@ void	usage(void) {
 
 int	main(int argc, char **argv) {
 	const	char *elfload = NULL,
-#ifdef	SDSPI_ACCESS
-			*sdimage_file = NULL,
-#endif
 			*trace_file = NULL; // "trace.vcd";
 	bool	debug_flag = false, willexit = false;
 //	int	fpga_port = FPGAPORT, serial_port = -(FPGAPORT+1);
@@ -78,9 +75,6 @@ int	main(int argc, char **argv) {
 		if (argv[argn][0] == '-') for(int j=1;
 					(j<512)&&(argv[argn][j]);j++) {
 			switch(tolower(argv[argn][j])) {
-#ifdef	SDSPI_ACCESS
-			case 'c': sdimage_file = argv[++argn]; j = 1000; break;
-#endif
 			case 'd': debug_flag = true;
 				if (trace_file == NULL)
 					trace_file = "trace.vcd";
@@ -88,7 +82,7 @@ int	main(int argc, char **argv) {
 			// case 'p': fpga_port = atoi(argv[++argn]); j=1000; break;
 			// case 's': serial_port=atoi(argv[++argn]); j=1000; break;
 			case 't': trace_file = argv[++argn]; j=1000; break;
-			case 'h': usage(); break;
+			case 'h': usage(); exit(0); break;
 			default:
 				fprintf(stderr, "ERR: Unexpected flag, -%c\n\n",
 					argv[argn][j]);
@@ -97,10 +91,6 @@ int	main(int argc, char **argv) {
 			}
 		} else if (iself(argv[argn])) {
 			elfload = argv[argn];
-#ifdef	SDSPI_ACCESS
-		} else if (0 == access(argv[argn], R_OK)) {
-			sdimage_file = argv[argn];
-#endif
 		} else {
 			fprintf(stderr, "ERR: Cannot read %s\n", argv[argn]);
 			perror("O/S Err:");
@@ -146,9 +136,6 @@ int	main(int argc, char **argv) {
 		tb->opentrace(trace_file);
 
 	tb->reset();
-#ifdef	SDSPI_ACCESS
-	tb->setsdcard(sdimage_file);
-#endif
 
 	if (elfload) {
 #ifdef	INCLUDE_ZIPCPU

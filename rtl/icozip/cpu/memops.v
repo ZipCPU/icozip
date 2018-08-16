@@ -293,6 +293,6 @@ module	memops(i_clk, i_reset, i_stb, i_lock,
 	// verilator lint_on  UNUSED
 
 `ifdef	FORMAL
-// Formal properties for this module are maintained elsewhere
+// The formal properties for this module are maintained elsewhere
 `endif
 endmodule
