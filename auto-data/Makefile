@@ -49,7 +49,8 @@ all:	data install
 DATA := global.txt bkram.txt buserr.txt clock50.txt		\
 	pic.txt pwrcount.txt version.txt			\
 	hbconsole.txt gpio.txt dlyarbiter.txt zipbones.txt	\
-	spixpress.txt sramdev.txt spixscope.txt
+	spixpress.txt sramdev.txt spixscope.txt \
+	mem_flash_sram_bkram.txt
 	# nodelay.txt
 	# Not used: rtclite.txt watchdog.txt
 	# Scopes, pick only one: spixscope sramscope dbgscope

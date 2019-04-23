@@ -37,7 +37,7 @@
 ##
 @LEGAL=legalgen.txt
 @PROJECT=ICO Zip, iCE40 ZipCPU demonstration project
-@PCF.FILE=icozip.pcf
+@PCF.FILE=../rtl/icozip/icozip.pcf
 #
 @KEYS.INTLIST= BUS_ADDRESS_WIDTH NADDR NPIC NSCOPES PIC.MAX REGS.N ID
 @DEFAULT.BUS=wb
