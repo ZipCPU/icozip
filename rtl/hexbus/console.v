@@ -266,23 +266,22 @@ module	console(i_clk, i_reset,
 			else
 				tx_console_reset <= 1'b0;
 	end else begin : TX_NOFIFO
-		reg	[6:0]	r_txf_wb_data;
-		reg		r_txf_err, r_txf_wb_write;
+		reg		r_txf_err, txf_wb_write;
 
-		initial	r_txf_wb_write = 1'b0;
+		initial	txf_wb_write = 1'b0;
 		always @(posedge i_clk)
 		begin
 			if (i_reset)
-				r_txf_wb_write <= 1'b0;
+				txf_wb_write <= 1'b0;
 			else if ((i_wb_stb)&&(i_wb_we)
 					&&(i_wb_addr == `CONSOLE_TXREG))
-				r_txf_wb_write <= 1'b1;
+				txf_wb_write <= 1'b1;
 			else if (!i_console_busy)
-				r_txf_wb_write <= 1'b0;
+				txf_wb_write <= 1'b0;
 
 			if((i_wb_stb)&&(i_wb_we)&&(!o_console_stb)
 					&&(i_wb_addr == `CONSOLE_TXREG))
-				r_txf_wb_data  <= i_wb_data[6:0];
+				txf_wb_data  <= i_wb_data[6:0];
 		end
 
 		initial	r_txf_err = 1'b0;
@@ -298,8 +297,6 @@ module	console(i_clk, i_reset,
 				&&(o_console_stb)&&(i_console_busy))
 				r_txf_err <= 1'b1;
 
-		assign	txf_wb_write = r_txf_wb_write;
-		assign	txf_wb_data  = r_txf_wb_data;
 		assign	txf_err = r_txf_err;
 		assign	o_console_txfifo_int = !txf_wb_write;
 		assign	o_console_tx_int     = !txf_wb_write;

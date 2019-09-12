@@ -1,11 +1,13 @@
 ################################################################################
 ##
-## Filename: 	clock50.txt
+## Filename: 	mem_flash_bkram.txt
 ##
-## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
+## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##
-## Purpose:	Creates and defines a 50MHz clock for the rest of the design to
-##		use as the system clock.
+## Purpose:	Describes a memory model containing nothing more than flash
+##		and block RAM.  This will be used to create a board.ld linker
+##	script that can be used to link ZipCPU programs.
+##
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
@@ -36,30 +38,41 @@
 ################################################################################
 ##
 ##
-@$CLKFREQHZ=50000000
-@PREFIX=clk
-@CLOCK.TOP=i_clk
-@CLOCK.NAME=clk
-@TOP.DEFNS=
-	wire		s_clk, s_reset;
-@TOP.INSERT=
-	assign	s_reset = 1'b0; // This design requires local, not global resets
+##
+@PREFIX=mem_flash_bkram
+@MASTER.TYPE=CPU
+@MASTER.BUS=zip
+@LD.FILE=flashram.ld
+@LD.DEFNS=
+/* LD.DEFNS from zipmaster.txt */
+_kram  = 0; /* No high-speed kernel RAM */
+_ram   = ORIGIN(bkram);
+_rom   = ORIGIN(flash);
+_top_of_stack = ORIGIN(bkram) + LENGTH(bkram);
 
-`ifdef	VERILATOR
-	assign	s_clk = i_clk;
-`else
-	reg	clk_50mhz;
-
-	initial	clk_50mhz = 1'b0;
-	always @(posedge i_clk)
-		clk_50mhz <= !clk_50mhz;
-
-	SB_GB global_buffer(clk_50mhz, s_clk);
-`endif
-
-@REGDEFS.H.DEFNS=
-#define	CLKFREQHZ	@$CLKFREQHZ
-@BDEF.DEFN=
-#define	CLKFREQHZ	@$CLKFREQHZ
-@CLOCK.NAME=clk
-@CLOCK.FREQUENCY= @$CLKFREQHZ
+@LD.SCRIPT=
+/* LD.SCRIPT from @$(PREFIX).txt */
+SECTIONS
+{
+       .rocode @$[0x%08x](zip.RESET_ADDRESS) : ALIGN(4) {
+               _boot_address = .;
+               *(.start) *(.boot)
+       } > flash
+       _kram_start = . ;
+       _kram_end = . ;
+       .kernel : ALIGN_WITH_INPUT {
+               *(.kernel)
+               *(.text.startup)
+               *(.text*)
+               *(.rodata*) *(.strings)
+               *(.data) *(COMMON)
+               }> flash
+       _ram_image_start = . ;
+       _ram_image_end = . ;
+       .bss : ALIGN_WITH_INPUT {
+               *(.bss)
+               _bss_image_end = . ;
+               } > bkram
+       _top_of_heap = .;
+}
+#

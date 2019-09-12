@@ -77,7 +77,7 @@ module	hbgenhex(i_clk, i_reset, i_stb, i_bits, o_gx_busy, o_gx_stb, o_gx_char, i
 	else if (!o_gx_busy)
 		o_gx_stb <= i_stb;
 
-	wire	[7:0]	w_gx_char;
+	reg	[7:0]	w_gx_char;
 	always @(*)
 	case(i_bits)
 		5'h00: w_gx_char = "0";

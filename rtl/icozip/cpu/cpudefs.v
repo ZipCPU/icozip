@@ -74,7 +74,7 @@
 // A value of 2 will cause the multiply to have a single delay cycle, 3 will
 // have two delay cycles, and 4 (or more) will have 3 delay cycles.
 //
-`define	OPT_MULTIPLY	0
+`define	OPT_MULTIPLY	10
 //
 //
 //
@@ -87,7 +87,7 @@
 // mode.
 //
 //
-// `define	OPT_DIVIDE
+`define	OPT_DIVIDE
 //
 //
 //
@@ -131,7 +131,7 @@
 // I recommend only defining this if you "need" to, if area is tight and
 // speed isn't as important.  Otherwise, just leave this undefined.
 //
-// `define	OPT_SINGLE_FETCH // 2047 total LUTs (savings of 181 from before)
+// `define	OPT_SINGLE_FETCH
 //
 //
 // OPT_DOUBLE_FETCH is an alternative to OPT_SINGLE_FETCH.  It is designed to
@@ -218,7 +218,7 @@
 //
 // If you have the fabric to support this option, I recommend including it.
 //
-// `define	OPT_TRADITIONAL_PFCACHE
+`define	OPT_TRADITIONAL_PFCACHE
 //
 //
 //

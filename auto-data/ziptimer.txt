@@ -1,6 +1,6 @@
 ################################################################################
 ##
-## Filename: 	pic.txt
+## Filename: 	ziptimer.txt
 ##
 ## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
 ##
@@ -35,32 +35,37 @@
 ################################################################################
 ##
 ##
-@PREFIX=buspic
-@DEVID=BUSPIC
+@PREFIX=timer
+@DEVID=ZIPTIMER
 @NADDR=1
-@ACCESS=BUSPIC_ACCESS
+@ACCESS=ZIPTIMER_ACCESS
 @SLAVE.TYPE=SINGLE
 @SLAVE.BUS=wb
-@DEVID=BUSPIC
-@PIC.BUS= bus_int_vector
-@PIC.MAX= 15
-@INT.BUS.WIRE= w_bus_int
-@INT.BUS.PIC=
-@BDEF.DEFN=
-#define BUSPIC(X) (1<<X)
+@INT.TIMER.WIRE=@$(INTERRUPT)
+@INT.TIMER.PIC=buspic
+@CE=1'b1
+@RESET=1'b0
+@INTERRUPT=@$(PREFIX)_int
 @MAIN.INSERT=
 	//
-	// The BUS Interrupt controller
+	// A zip timer
 	//
-	icontrol #(15)	@$(PREFIX)i(i_clk, 1'b0, (wb_stb)&&(@$(PREFIX)_sel),
-			wb_data, @$(PREFIX)_data, bus_int_vector, w_bus_int);
-@MAIN.ALT=
+	ziptimer #(32,31,1)
+		@$(PREFIX)i(@$(SLAVE.BUS.CLOCK.WIRE), @$(RESET), @$(CE),
+			(@$(SLAVE.BUS.NAME)_cyc),
+			(@$(SLAVE.BUS.NAME)_stb)&&(@$(PREFIX)_sel),
+			@$(SLAVE.BUS.NAME)_we,
+			@$(SLAVE.BUS.NAME)_data,
+			@$(PREFIX)_ack,
+			@$(PREFIX)_stall,
+			@$(PREFIX)_data,
+			@$(INTERRUPT));
 @REGS.N=1
-@REGS.0= 0 R_PIC PIC
+@REGS.0= 0 R_@$(DEVID) @$(DEVID)
 @BDEF.IONAME= _@$(PREFIX)
 @BDEF.IOTYPE= unsigned
 @BDEF.OSDEF= _BOARD_HAS_@$(DEVID)
-@BDEF.OSVAL= static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$[0x%08x](REGBASE));
-@RTL.MAKE.GROUP= BUSPIC
-@RTL.MAKE.SUBD= cpu
-@RTL.MAKE.FILES=icontrol.v
+@BDEF.OSVAL= static volatile @$BDEF.IOTYPE *const @$BDEF.IONAME = ((@$BDEF.IOTYPE *)@$REGBASE);
+@RTL.MAKE.GROUP=ZTIMER
+@RTL.MAKE.SUBD=cpu
+@RTL.MAKE.FILES=ziptimer.v

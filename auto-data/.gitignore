@@ -1,6 +1,10 @@
 board.h
 board.ld
+bkram.ld
+flash.ld
+flashram.ld
 build.xdc
+build.pcf
 main.v
 regdefs.h
 regdefs.cpp

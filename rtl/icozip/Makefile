@@ -105,15 +105,16 @@ $(VDIRFB)/V%__ALL.a: $(VDIRFB)/V%.mk
 bin: icozip.bin
 #
 #
-icozip.blif: toplevel.v $(VFLIST)
+icozip.json: toplevel.v $(VFLIST)
 	@echo yosys -ql yosys.log -p 'synth_ice40 -blif icozip.blif -top toplevel' ...
 	@yosys -ql yosys.log -p 'synth_ice40 -blif icozip.blif -json icozip.json -top toplevel' $^
 
 .PHONY: yosys
 yosys: icozip.blif
 
-icozip.asc: $(PCFFILE) icozip.blif
-	arachne-pnr -d 8k -r -P ct256 -p $(PCFFILE) icozip.blif -o $@
+icozip.asc: $(PCFFILE) icozip.json
+	# arachne-pnr -d 8k -r -P ct256 -p $(PCFFILE) icozip.blif -o $@
+	nextpnr-ice40 --hx8k -r --freq 50 --package ct256 --pcf $(PCFFILE) --json icozip.json --asc icozip.asc
 
 .PHONY: arachne
 arachne: icozip.asc
@@ -128,12 +129,9 @@ icozip.bin: icozip.asc
 .PHONY: clean
 clean:
 	rm -rf $(VOBJ) cpudefs.h design.h
-	rm -rf *.blif *.asc *.bin
+	rm -rf *.blif *.asc *.bin *.json
 	rm -rf $(VDIRFB)/*.mk
 	rm -rf $(VDIRFB)/*.cpp
 	rm -rf $(VDIRFB)/*.h
 	rm -rf $(VDIRFB)/
 
-# yosys -p synth_ice40 -blif icozip.blif toplevel.v main.v wbubus/wbconsole.v wbubus/wbubus.v wbubus/wbucompactlines.v wbubus/wbucompress.v wbubus/wbuconsole.v wbubus/wbudecompress.v wbubus/wbudeword.v wbubus/wbuexec.v wbubus/wbufifo.v wbubus/wbuidleint.v wbubus/wbuinput.v wbubus/wbuoutput.v wbubus/wbureadcw.v wbubus/wbusixchar.v wbubus/wbutohex.v cpu/busdelay.v cpu/cpudefs.v cpu/cpuops.v cpu/dblfetch.v cpu/div.v cpu/icontrol.v cpu/idecode.v cpu/memops.v cpu/pfcache.v cpu/pipefetch.v cpu/pipemem.v cpu/prefetch.v cpu/wbarbiter.v cpu/wbdblpriarb.v cpu/wbdmac.v cpu/wbpriarbiter.v cpu/wbwatchdog.v cpu/zipbones.v cpu/zipcounter.v cpu/zipcpu.v cpu/zipjiffies.v cpu/zipsystem.v cpu/ziptimer.v ../pport/ppio.v ../pport/pport.v ../pport/wbpport.v memdev.v ufifo.v
-# arachne-pnr -d 8k -p icozip.pcf icozip.blif -o icozip.asc
-# icetime -d hx8k -c 75 icozip.asc

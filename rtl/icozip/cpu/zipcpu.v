@@ -185,6 +185,7 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 `else
 	localparam	[0:0]	OPT_PIPELINED_BUS_ACCESS = 1'b0;
 `endif
+	localparam	[0:0]	OPT_MEMPIPE = OPT_PIPELINED_BUS_ACCESS;
 	parameter	[0:0]	IMPLEMENT_LOCK=1;
 	localparam	[0:0]	OPT_LOCK=(IMPLEMENT_LOCK)&&(OPT_PIPELINED);
 `ifdef	OPT_DCACHE
@@ -192,6 +193,7 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 `else
 	parameter		OPT_LGDCACHE = 0;
 `endif
+	localparam	[0:0]	OPT_DCACHE = (OPT_LGDCACHE > 0);
 
 	parameter [0:0]	WITH_LOCAL_BUS = 1'b1;
 	localparam	AW=ADDRESS_WIDTH;
@@ -719,6 +721,7 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 		.OPT_FPU(IMPLEMENT_FPU),
 		.OPT_LOCK(OPT_LOCK),
 		.OPT_OPIPE(OPT_PIPELINED_BUS_ACCESS),
+		.OPT_NO_USERMODE(OPT_NO_USERMODE),
 `ifdef	VERILATOR
 		.OPT_SIM(1'b1),
 `else
@@ -1056,11 +1059,11 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 
 		initial	r_op_lock = 1'b0;
 		always @(posedge i_clk)
-			if (clear_pipeline)
-				r_op_lock <= 1'b0;
-			else if (op_ce)
-				r_op_lock <= (dcd_valid)&&(dcd_lock)
-					&&(!dcd_illegal)&&(!clear_pipeline);
+		if (clear_pipeline)
+			r_op_lock <= 1'b0;
+		else if (op_ce)
+			r_op_lock <= (dcd_valid)&&(dcd_lock)
+					&&(!dcd_illegal);
 		assign	op_lock = r_op_lock;
 
 	end endgenerate
@@ -1120,6 +1123,7 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	generate if ((OPT_PIPELINED)||(EARLY_BRANCHING))
 	begin : SET_OP_PC
 
+		initial op_pc[0] = 1'b0;
 		always @(posedge i_clk)
 		if (op_ce)
 			op_pc <= (dcd_early_branch)?dcd_branch_pc:dcd_pc;
@@ -1340,7 +1344,7 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	generate if (IMPLEMENT_FPU != 0)
 	begin : FPU
 		//
-		// sfpu thefpu(i_clk, i_reset, fpu_ce,
+		// sfpu thefpu(i_clk, i_reset, fpu_ce, op_opn[2:0],
 		//	op_Av, op_Bv, fpu_busy, fpu_valid, fpu_err, fpu_result,
 		//	fpu_flags);
 		//
@@ -1561,12 +1565,12 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 
 	// Memory interface
 	//{{{
-	generate if (OPT_LGDCACHE > 0)
+	generate if (OPT_DCACHE)
 	begin : MEM_DCACHE
 
 		dcache #(.LGCACHELEN(OPT_LGDCACHE), .ADDRESS_WIDTH(AW),
-			.LGNLINES(6), .OPT_LOCAL_BUS(WITH_LOCAL_BUS),
-			.OPT_PIPE(OPT_PIPELINED_BUS_ACCESS),
+			.LGNLINES(OPT_LGDCACHE-3), .OPT_LOCAL_BUS(WITH_LOCAL_BUS),
+			.OPT_PIPE(OPT_MEMPIPE),
 			.OPT_LOCK(OPT_LOCK)
 			) docache(i_clk, i_reset,
 		///{{{
@@ -2215,7 +2219,7 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	always @(posedge i_clk)
 	if (i_reset)
 		pf_pc <= { RESET_BUS_ADDRESS, 2'b00 };
-	else if ((dbgv)&&(wr_reg_id[4] == gie)&&(wr_write_pc))
+	else if ((dbg_clear_pipe)&&(wr_reg_ce)&&(wr_write_pc))
 		pf_pc <= { wr_spreg_vl[(AW+1):2], 2'b00 };
 	else if ((w_switch_to_interrupt)
 			||((!gie)&&((w_clear_icache)||(dbg_clear_pipe))))
@@ -2313,20 +2317,21 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 		always @(posedge i_clk)
 			pre_dbg_reg <= regset[i_dbg_reg];
 
-		always @(*)
+		always @(posedge i_clk)
 		begin
-			o_dbg_reg = pre_dbg_reg;
+			o_dbg_reg <= pre_dbg_reg;
 			if (i_dbg_reg[3:0] == `CPU_PC_REG)
-				o_dbg_reg = w_debug_pc;
+				o_dbg_reg <= w_debug_pc;
 			else if (i_dbg_reg[3:0] == `CPU_CC_REG)
 			begin
-				o_dbg_reg[14:0] = (i_dbg_reg[4])
+				o_dbg_reg[14:0] <= (i_dbg_reg[4])
 						? w_uflags : w_iflags;
-				o_dbg_reg[15] = 1'b0;
-				o_dbg_reg[31:23] = w_cpu_info;
-				o_dbg_reg[`CPU_GIE_BIT] = gie;
+				o_dbg_reg[15] <= 1'b0;
+				o_dbg_reg[31:23] <= w_cpu_info;
+				o_dbg_reg[`CPU_GIE_BIT] <= gie;
 			end
 		end
+
 `else
 		always @(posedge i_clk)
 		begin
@@ -2371,7 +2376,22 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 				&&(!pf_cyc)&&(!mem_busy)&&(!alu_busy)
 					&&(!div_busy)&&(!fpu_busy);
 	end endgenerate
+`ifdef	NO_DISTRIBUTED_RAM
+	reg	r_dbg_stall;
+	initial	r_dbg_stall = 1'b1;
+
+	always @(posedge i_clk)
+	if (i_reset)
+		r_dbg_stall <= 1'b1;
+	else if (!r_halted)
+		r_dbg_stall <= 1'b1;
+	else
+		r_dbg_stall <= (!i_dbg_we)||(!r_dbg_stall);
+
 	assign	o_dbg_stall = !r_halted;
+`else
+	assign	o_dbg_stall = !r_halted;
+`endif
 	//}}}
 
 	//}}}

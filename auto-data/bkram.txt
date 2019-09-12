@@ -56,24 +56,28 @@
 @REGS.N=1
 @REGS.0= 0 R_@$(DEVID) RAM
 @REGDEFS.H.DEFNS=
-#define	@$(DEVID)BASE	@$(BASEHX)
+#define	@$(DEVID)BASE	@$[0x%08x](REGBASE)
 #define	@$(DEVID)LEN	@$NBYTES
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @MEM.NAME= @$(PREFIX)
 @BDEF.OSVAL=extern char	_@$(MEM.NAME)[@$NBYTES];
-@LDSCRIPT.PSTR=	wx
-@LDSCRIPT.PTR=	@$(MEM.NAME)
-@LDSCRIPT.DEF=
-_@$(MEM.NAME) = ORIGIN(@$(MEM.NAME))
+@LD.PERM=	wx
+@LD.NAME=	@$(MEM.NAME)
 @RTL.MAKE.GROUP= @$(DEVID)
 @RTL.MAKE.FILES= memdev.v
-@$BASEHX = @$REGBASE
-@BASEHX.FORMAT= 0x%08x
 @$NADDRHX = @$NADDR
 @NADDRHX.FORMAT= 0x%x
 @SIM.INCLUDE=
 #include "byteswap.h"
 @SIM.DEFINES=
+#ifndef VVAR
+#ifdef  NEW_VERILATOR
+#define VVAR(A) main__DOT_ ## A
+#else
+#define VVAR(A) v__DOT_ ## A
+#endif
+#endif
+
 #define	block_ram	VVAR(_@$(PREFIX)i__DOT__mem)
 @SIM.LOAD=
 			start = start & (-4);

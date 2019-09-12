@@ -38,6 +38,10 @@
 ################################################################################
 ##
 ##
+## Define @SYSPIC so that other peripherals needing to be on the ZipSystem's
+## PIC know the name of the PIC we are using.  Note that this is a global.
+##
+@SYSPIC= buspic
 @PREFIX=zip
 @ACCESS=INCLUDE_ZIPCPU
 @DBGBUS=hb
@@ -47,6 +51,7 @@
 @BUS.NAME=zip
 @BUS.WIDTH=32
 @BUS.CLOCK=clk
+@$RESET_ADDRESS=@$flash.REGBASE+131072
 @SCOPE.TRIGGER=zip_trigger
 @SCOPE.DATA=zip_debug
 @INT.ZIP.WIRE=zip_cpu_int
@@ -118,6 +123,8 @@
 #define	CPU_uCC		0x001e
 #define	CPU_uPC		0x001f
 
+#define	RESET_ADDRESS	@$[0x%08x](RESET_ADDRESS)
+
 
 @SIM.INCLUDE=
 #include "zipelf.h"
@@ -132,11 +139,12 @@
 #endif
 
 #define	CPUVAR(A)	VVAR(_swic__DOT__thecpu__DOT_ ## A)
+
+#define	cpu_reset	VVAR(_swic__DOT__cmd_reset)
 #define	cpu_break 	VVAR(_swic__DOT__cpu_break)
 #define	cpu_cmd_halt	VVAR(_swic__DOT__cmd_halt)
-#define	cpu_reset	VVAR(_swic__DOT__cmd_reset)
-#define	cpu_ipc		VVAR(_swic__DOT__thecpu__DOT__ipc)
-#define	cpu_pf_pc	VVAR(_swic__DOT__thecpu__DOT__pf_pc)
+#define	cpu_ipc		CPUVAR(_ipc)
+#define	cpu_pf_pc	CPUVAR(_pf_pc)
 #define	cpu_upc		CPUVAR(_SET_USER_PC__DOT__r_upc)
 #define	cpu_gie		CPUVAR(_SET_GIE__DOT__r_gie)
 #define	cpu_iflags	CPUVAR(_w_iflags)
@@ -149,7 +157,7 @@
 #define	cpu_mem_rdaddr	CPUVAR(_domem__DOT__rdaddr)
 #define	cpu_mem_wraddr	CPUVAR(_domem__DOT__wraddr)
 #define	cpu_op_sim	CPUVAR(_op_sim)
-#define	cpu_op_valid	VVAR(_swic__DOT__thecpu__DOT__op_valid)
+#define	cpu_op_valid	CPUVAR(_op_valid)
 #define	cpu_alu_ce	CPUVAR(_alu_ce)
 #define	cpu_new_pc	CPUVAR(_new_pc)
 #define	cpu_op_sim	CPUVAR(_op_sim)
@@ -196,9 +204,18 @@
 		elfread(elfname, entry, secpp);
 
 		for(int s=0; secpp[s]->m_len; s++) {
+			bool	successful_load;
 			secp = secpp[s];
 
-			load(secp->m_start, secp->m_data, secp->m_len);
+			successful_load = load(secp->m_start,
+				secp->m_data, secp->m_len);
+
+			if (!successful_load) {
+				printf("Could not load section "
+					"from %08x to %08x--no such address\n",
+					secp->m_start,
+					secp->m_start+secp->m_len);
+			}
 		} free(secpp);
 	}
 
@@ -350,7 +367,7 @@
 				m_core->cpu_upc);
 		} fflush(stdout);
 	}
-#endif
+#endif	// @$(ACCESS)
 
 #
 #
@@ -359,7 +376,7 @@
 @RTL.MAKE.FILES= zipcpu.v cpuops.v dblfetch.v prefetch.v memops.v
 		idecode.v ziptimer.v 
 		wbpriarbiter.v zipbones.v busdelay.v cpudefs.v icontrol.v
-		div.v mpyop.v wbdblpriarb.v
+		div.v mpyop.v slowmpy.v wbdblpriarb.v
 @RTL.MAKE.SUBD= cpu
 #
 #

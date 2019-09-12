@@ -1,6 +1,6 @@
 ################################################################################
 ##
-## Filename: 	flexpress.txt
+## Filename: 	spixpress.txt
 ##
 ## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##

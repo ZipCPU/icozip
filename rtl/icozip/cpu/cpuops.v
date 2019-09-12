@@ -45,7 +45,7 @@
 module	cpuops(i_clk,i_reset, i_stb, i_op, i_a, i_b, o_c, o_f, o_valid,
 			o_busy);
 	parameter		IMPLEMENT_MPY = `OPT_MULTIPLY;
-	parameter	[1:0]	OPT_SHIFTS = 2'b11;
+	parameter	[0:0]	OPT_SHIFTS = 1'b1;
 	input	wire	i_clk, i_reset, i_stb;
 	input	wire	[3:0]	i_op;
 	input	wire	[31:0]	i_a, i_b;
@@ -58,111 +58,8 @@ module	cpuops(i_clk,i_reset, i_stb, i_op, i_a, i_b, o_c, o_f, o_valid,
 
 	// Shift register pre-logic
 	wire	[32:0]		w_lsr_result, w_asr_result, w_lsl_result;
-	wire			w_shift_busy;
-	generate if (OPT_SHIFTS == 2'b00)
-	begin : NO_SHIFTS
-		assign w_asr_result = { i_a[31], i_a };
-		assign w_lsl_result = { i_a, 1'b0 };
-		assign w_lsr_result = { 1'b0, i_a };
-		assign	w_shift_busy= 1'b0;
-	end else if (OPT_SHIFTS == 2'b01)
+	generate if (OPT_SHIFTS)
 	begin : IMPLEMENT_SHIFTS
-		wire	signed	[33:0]	w_pre_shift_input, w_pre_asr_shifted,
-					w_shift_result;
-		wire	[31:0]	brev_shift_pre;
-
-		for(k=0; k<32; k=k+1)
-			assign brev_shift_pre[k] = i_a[31-k];
-
-		assign	w_pre_shift_input = (i_op[0]) 
-				? { (i_op[1])&&(i_a[31]), i_a, 1'b0 }
-				: { 1'b0, brev_shift_pre, 1'b0 };
-		assign	w_pre_asr_shifted = w_pre_shift_input >>> i_b[5:0];
-		assign	w_shift_result = ((|i_b[31:5])||(i_b[5:0]>6'd32))
-				? {(34){w_pre_shift_input[33]}}
-				: w_pre_asr_shifted;// ASR
-
-		assign	w_asr_result = w_shift_result[32:0];
-		assign	w_lsr_result = w_shift_result[32:0];
-
-		for(k=0; k<33; k=k+1)
-			assign	w_lsl_result[k] = w_shift_result[32-k];
-		assign	w_shift_busy= 1'b0;
-
-		// verilator lint_on  UNUSED
-		wire	unused_shift;
-		assign	unused_shift = w_shift_result[33];
-		// verilator lint_off UNUSED
-	end else if (OPT_SHIFTS == 2'b10)
-	begin : TWOSTAGE_SHIFTS
-			
-		wire	signed	[33:0]	w_pre_shift_input, w_shift_result;
-		wire	[31:0]	brev_shift_pre;
-		reg	r_lsl, r_is_shift, r_full_shift;
-
-
-		for(k=0; k<32; k=k+1)
-			assign brev_shift_pre[k] = i_a[31-k];
-
-		assign	w_pre_shift_input = (i_op[0]) 
-				? { (i_op[1])&&(i_a[31]), i_a, 1'b0 }
-				: { 1'b0, brev_shift_pre, 1'b0 };
-
-		always @(posedge i_clk)
-			r_lsl <= (i_stb)&&(!i_op[0]);
-
-		initial	r_is_shift = 1'b0;
-		always @(posedge i_clk)
-		if (i_stb)
-		begin
-			r_is_shift <= 1'b0;
-			case(i_op)
-			4'h5: r_is_shift <= 1'b1;
-			4'h6: r_is_shift <= 1'b1;
-			4'h7: r_is_shift <= 1'b1;
-			default: r_is_shift <= 1'b0;
-			endcase
-		end else
-			r_is_shift <= 1'b0;
-		assign	w_shift_busy = r_is_shift;
-
-		reg	[33:0]	r_pre_asr_shifted;
-		always @(posedge i_clk)
-			r_pre_asr_shifted <= (w_pre_shift_input >>> i_b[2:0]);
-
-		reg	[2:0]	remaining_shift;
-		always @(posedge i_clk)
-			remaining_shift <= i_b[5:3];
-
-		always @(posedge i_clk)
-			r_full_shift <= (|i_b[31:6])||(i_b[5:0]>6'h32);
-
-		always @(*)
-		casez({r_full_shift,remaining_shift})
-			4'b0000: w_shift_result = r_pre_asr_shifted;
-			4'b0001: w_shift_result =
-				{ {(8){r_pre_asr_shifted[33]}},
-					r_pre_asr_shifted[33:8] };
-			4'b0010: w_shift_result =
-				{ {(16){r_pre_asr_shifted[33]}},
-					r_pre_asr_shifted[33:16] };
-			4'b0011: w_shift_result =
-				{ {(24){r_pre_asr_shifted[33]}},
-					r_pre_asr_shifted[33:24] };
-			4'b01??: w_shift_result =
-				{ {(32){r_pre_asr_shifted[33]}},
-					r_pre_asr_shifted[33:32] };
-			default: w_shift_result =
-				{(34){w_pre_shift_input[33]}};
-		endcase
-
-		for(k=0; k<33; k=k+1)
-			assign	w_lsl_result[k] = w_shift_result[32-k];
-
-		assign	w_asr_result = (r_lsl) ? w_lsl_result
-					: {w_shift_result[0],w_shift_result[32:1]};
-		assign	w_lsr_result = w_asr_result;
-	end else begin : ORIGINAL_ZIPCPU_SHIFT
 		wire	signed	[32:0]	w_pre_asr_input, w_pre_asr_shifted;
 		assign	w_pre_asr_input = { i_a, 1'b0 };
 		assign	w_pre_asr_shifted = w_pre_asr_input >>> i_b[4:0];
@@ -170,15 +67,20 @@ module	cpuops(i_clk,i_reset, i_stb, i_op, i_a, i_b, o_c, o_f, o_valid,
 					: w_pre_asr_shifted;// ASR
 		assign	w_lsr_result = ((|i_b[31:6])||(i_b[5]&&(i_b[4:0]!=0)))? 33'h00
 					:((i_b[5])?{32'h0,i_a[31]}
-					
+
 					: ( { i_a, 1'b0 } >> (i_b[4:0]) ));// LSR
 		assign	w_lsl_result = ((|i_b[31:6])||(i_b[5]&&(i_b[4:0]!=0)))? 33'h00
 					:((i_b[5])?{i_a[0], 32'h0}
 					: ({1'b0, i_a } << i_b[4:0]));	// LSL
+	end else begin : NO_SHIFTS
 
-		assign w_shift_busy = 1'b0;
+		assign	w_asr_result = {   i_a[31], i_a[31:0] };
+		assign	w_lsr_result = {      1'b0, i_a[31:0] };
+		assign	w_lsl_result = { i_a[31:0],      1'b0 };
+
 	end endgenerate
 
+	//
 	// Bit reversal pre-logic
 	wire	[31:0]	w_brev_result;
 	generate
@@ -191,16 +93,17 @@ module	cpuops(i_clk,i_reset, i_stb, i_op, i_a, i_b, o_c, o_f, o_valid,
 	wire	z, n, v;
 	reg	c, pre_sign, set_ovfl, keep_sgn_on_ovfl;
 	always @(posedge i_clk)
-		if (i_stb) // 1 LUT
-			set_ovfl<=(((i_op==4'h0)&&(i_a[31] != i_b[31]))//SUB&CMP
-				||((i_op==4'h2)&&(i_a[31] == i_b[31])) // ADD
-				||(i_op == 4'h6) // LSL
-				||(i_op == 4'h5)); // LSR
+	if (i_stb) // 1 LUT
+		set_ovfl<=(((i_op==4'h0)&&(i_a[31] != i_b[31]))//SUB&CMP
+			||((i_op==4'h2)&&(i_a[31] == i_b[31])) // ADD
+			||(i_op == 4'h6) // LSL
+			||(i_op == 4'h5)); // LSR
+
 	always @(posedge i_clk)
-		if (i_stb) // 1 LUT
-			keep_sgn_on_ovfl<=
-				(((i_op==4'h0)&&(i_a[31] != i_b[31]))//SUB&CMP
-				||((i_op==4'h2)&&(i_a[31] == i_b[31]))); // ADD
+	if (i_stb) // 1 LUT
+		keep_sgn_on_ovfl<=
+			(((i_op==4'h0)&&(i_a[31] != i_b[31]))//SUB&CMP
+			||((i_op==4'h2)&&(i_a[31] == i_b[31]))); // ADD
 
 	wire	[63:0]	mpy_result; // Where we dump the multiply result
 	wire	mpyhi;		// Return the high half of the multiply
@@ -209,7 +112,7 @@ module	cpuops(i_clk,i_reset, i_stb, i_op, i_a, i_b, o_c, o_f, o_valid,
 
 	// A 4-way multiplexer can be done in one 6-LUT.
 	// A 16-way multiplexer can therefore be done in 4x 6-LUT's with
-	//	the Xilinx multiplexer fabric that follows. 
+	//	the Xilinx multiplexer fabric that follows.
 	// Given that we wish to apply this multiplexer approach to 33-bits,
 	// this will cost a minimum of 132 6-LUTs.
 
@@ -251,21 +154,19 @@ module	cpuops(i_clk,i_reset, i_stb, i_op, i_a, i_b, o_c, o_f, o_valid,
 		4'b1100:   o_c   <= mpy_result[31:0];	// MPY
 		default:   o_c   <= i_b;		// MOV, LDI
 		endcase
-	end else if (w_shift_busy)
-		{c,o_c} <= w_asr_result;
-	else // if (mpydone)
+	end else // if (mpydone)
 		// set the output based upon the multiply result
 		o_c <= (mpyhi)?mpy_result[63:32]:mpy_result[31:0];
 
 	reg	r_busy;
 	initial	r_busy = 1'b0;
 	always @(posedge i_clk)
-		if (i_reset)
-			r_busy <= 1'b0;
-		else if (IMPLEMENT_MPY > 1)
-			r_busy <= ((i_stb)&&(this_is_a_multiply_op))||mpybusy;
-		else
-			r_busy <= 1'b0;
+	if (i_reset)
+		r_busy <= 1'b0;
+	else if (IMPLEMENT_MPY > 1)
+		r_busy <= ((i_stb)&&(this_is_a_multiply_op))||mpybusy;
+	else
+		r_busy <= 1'b0;
 
 	assign	o_busy = (r_busy); // ||((IMPLEMENT_MPY>1)&&(this_is_a_multiply_op));
 
@@ -279,12 +180,12 @@ module	cpuops(i_clk,i_reset, i_stb, i_op, i_a, i_b, o_c, o_f, o_valid,
 
 	initial	o_valid = 1'b0;
 	always @(posedge i_clk)
-		if (i_reset)
-			o_valid <= 1'b0;
-		else if (IMPLEMENT_MPY <= 1)
-			o_valid <= (i_stb);
-		else
-			o_valid <=((i_stb)&&(!this_is_a_multiply_op))||(mpydone);
+	if (i_reset)
+		o_valid <= 1'b0;
+	else if (IMPLEMENT_MPY <= 1)
+		o_valid <= (i_stb);
+	else
+		o_valid <=((i_stb)&&(!this_is_a_multiply_op))||(mpydone);
 
 `ifdef	FORMAL
 // Formal properties for this module are maintained elsewhere

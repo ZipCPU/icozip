@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017, Gisselquist Technology, LLC
+## Copyright (C) 2017-2019, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -38,17 +38,15 @@
 @PREFIX=gpio
 @DEVID=GPIO
 @NADDR=1
-@ACCESS=GPIO_ACCESS
+@ACCESS=@$(DEVID)_ACCESS
 @SLAVE.TYPE=SINGLE
 @SLAVE.BUS=wb
-@$NUMINPUT= 2
 @$NUMOUTPUT= 3+8
-# @SINGLE.OUTPUTS= o_gpio
-# @SINGLE.INPUTS=  i_gpio
+@$NUMINPUT= 2
 @INT.GPIO.WIRE=gpio_int
 @INT.GPIO.PIC=buspic
 @TOP.PORTLIST=
-		// GPIO wires
+		// @$(DEVID) ports
 		o_ledg, o_ledr, i_btn
 @TOP.IODECL=
 	// GPIO wires
@@ -62,7 +60,7 @@
 	wire	[@$(NUMOUTPUT)-1:0]	o_@$(PREFIX);
 @TOP.MAIN=
 		// GPIO wires
-		i_gpio, o_gpio
+		i_@$(PREFIX), o_@$(PREFIX)
 @TOP.INSERT=
 	assign	i_gpio = { i_btn };
 	assign	o_ledr = o_@$(PREFIX)[0];

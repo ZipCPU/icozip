@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-* Filename:	./sram.ld
+* Filename:	./flashram.ld
 *
 * Project:	ICO Zip, iCE40 ZipCPU demonstration project
 *
@@ -56,30 +56,28 @@ MEMORY
 * memory.  The name of this pointer is given by the @LD.NAME tag within
 * the memory peripheral's configuration
 */
-/* LD.SCRIPT from mem_flash_sram.txt */
+/* LD.SCRIPT from mem_flash_bkram.txt */
 SECTIONS
 {
-	.rocode 0x01020000 : ALIGN(4) {
-		_boot_address = .;
-		*(.start) *(.boot)
+       .rocode 0x01020000 : ALIGN(4) {
+               _boot_address = .;
+               *(.start) *(.boot)
        } > flash
        _kram_start = . ;
-       .kernel : ALIGN_WITH_INPUT {
-		*(.kernel)
-		}> bkram AT> flash;
        _kram_end = . ;
-       .rocode : ALIGN_WITH_INPUT {
-		_ram_image_start = . ;
-		*(.text.startup)
-		*(.text*)
-		*(.rodata*) *(.strings)
-		*(.data) *(COMMON)
-		}> sram AT> flash
+       .kernel : ALIGN_WITH_INPUT {
+               *(.kernel)
+               *(.text.startup)
+               *(.text*)
+               *(.rodata*) *(.strings)
+               *(.data) *(COMMON)
+               }> flash
+       _ram_image_start = . ;
        _ram_image_end = . ;
        .bss : ALIGN_WITH_INPUT {
-		*(.bss)
-		_bss_image_end = . ;
-		} > sram
+               *(.bss)
+               _bss_image_end = . ;
+               } > bkram
        _top_of_heap = .;
 }
 
