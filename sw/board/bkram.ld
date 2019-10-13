@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-* Filename:	./bkram.ld
+* Filename:	bkram.ld
 *
 * Project:	ICO Zip, iCE40 ZipCPU demonstration project
 *
@@ -15,7 +15,7 @@
 *
 /*******************************************************************************
 *
-* Copyright (C) 2017-2018, Gisselquist Technology, LLC
+* Copyright (C) 2017-2019, Gisselquist Technology, LLC
 *
 * This program is free software (firmware): you can redistribute it and/or
 * modify it under the terms of  the GNU General Public License as published
@@ -46,16 +46,30 @@ MEMORY
 {
 	/* To be listed here, a slave must be of type MEMORY.  If the slave
 	* has a defined name in its @LD.NAME tag, it will be listed here
-	* under that name.  The permissions are given by the @LD.PERM tag.
-	* If no permission tag exists, a permission of 'r' will be assumed.
+	* under that name, otherwise it will be listed under it's
+	* @$(PREFIX) tag with an underscore prepended to it.  The permissions
+	* are given by the @LD.PERM tag.  If no permission tag exists, a
+	* permission of 'r' will be assumed.
 	*/
-	/* No memories found */
+	   bkram(wx) : ORIGIN = 0x00a00000, LENGTH = 0x00002000
+	    sram(wx) : ORIGIN = 0x00c00000, LENGTH = 0x00020000
+	   flash(rx) : ORIGIN = 0x01000000, LENGTH = 0x01000000
 }
 
 /* For each defined memory peripheral, we also define a pointer to that
 * memory.  The name of this pointer is given by the @LD.NAME tag within
 * the memory peripheral's configuration
 */
+_bkram    = ORIGIN(bkram);
+_sram     = ORIGIN(sram);
+_flash    = ORIGIN(flash);
+/* LD.DEFNS from zipmaster.txt */
+_kram  = 0; /* No high-speed kernel RAM */
+_ram   = ORIGIN(bkram);
+_rom   = 0;
+_top_of_stack = ORIGIN(bkram) + LENGTH(bkram);
+
+
 /* LD.SCRIPT from mem_bkram_only.txt */
 SECTIONS
 {

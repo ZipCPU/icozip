@@ -65,7 +65,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2016, Gisselquist Technology, LLC
+// Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -122,7 +122,9 @@ module rxuart(i_clk, i_reset, i_setup, i_uart_rx, o_wr, o_data, o_break,
 	parameter [30:0] INITIAL_SETUP = 31'd868;
 	// 8 data bits, no parity, (at least 1) stop bit
 	input	wire		i_clk, i_reset;
+	/* verilator lint_off UNUSED */
 	input	wire	[30:0]	i_setup;
+	/* verilator lint_on UNUSED */
 	input	wire		i_uart_rx;
 	output	reg		o_wr;
 	output	reg	[7:0]	o_data;

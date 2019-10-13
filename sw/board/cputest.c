@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2018, Gisselquist Technology, LLC
+// Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -1079,30 +1079,45 @@ int	multiarg_test(void) {
 
 __attribute__((noinline))
 void	wait(unsigned int msk) {
+	//
+	// Use the new PIC interface
+	//
 	// Clear/Disable all interrupts
-	PIC = 0x7fff7fff;
+	PIC = 0xffff7fff;
 	// Enable only our interrupt
-	PIC = 0x80000000|(msk<<16);
+	PIC = 0x80008000|(msk<<16);
 	PIC;
 	asm("WAIT\n");
-	PIC = 0; // Turn interrupts back off, lest they confuse the test
+	PIC = 0x80000000; // Turn interrupts back off, lest they confuse the test
 }
 
 asm("\n\t.text\nidle_task:\n\tWAIT\n\tBRA\tidle_task\n");
 
+#ifdef	_BOARD_HAS_BUSCONSOLE
+#define	_ZIP_HAS_WBUART
+#endif
+
 __attribute__((noinline))
 void	txchr(char v) {
-	if (zip_cc() & CC_GIE) {
-		while(UARTTX & 0x100)
-			;
-	} else
-		wait(BUSPIC_UARTTXF);
-	UARTTX = v;
+#ifdef	_ZIP_HAS_WBUART
+#define	TXBUSY	((_uart->u_fifo & 0x010000)==0)
+	while(TXBUSY)
+		;
+	uint8_t c = v;
+	_uart->u_tx = (unsigned)c;
+#else
+#error "No uart defined"
+#endif
+	// asm("\tNOUT %0\n" : : "r"(v));
 }
 
 void	wait_for_uart_idle(void) {
-	while(UARTTX & 0x100)	// While the UART is busy
+#ifdef	_ZIP_HAS_WBUART
+	while(TXBUSY)	// While the FIFO is non-empty
 		;
+#else
+#error "No uart defined"
+#endif
 }
 
 __attribute__((noinline))
@@ -1161,7 +1176,7 @@ void	test_fails(int start_time, int *listno) {
 	// Trigger the scope, if it hasn't already triggered.  Otherwise,
 	// if it has triggered, don't clear it.
 #ifdef	HAVE_SCOPE
-	SCOPE.s_ctrl = TRIGGER_SCOPE_NOW;
+	SCOPEc = TRIGGER_SCOPE_NOW;
 #endif
 
 	MARKSTOP;
@@ -1231,7 +1246,6 @@ void entry(void) {
 	int	start_time, i;
 	int	cc_fail, cis_insns = 0;
 
-
 	for(i=0; i<32; i++)
 		testlist[i] = -1;
 
@@ -1242,7 +1256,7 @@ void entry(void) {
 	COUNTER = 0;
 #endif
 #ifdef	HAVE_SCOPE
-	SCOPE.s_ctrl = PREPARE_SCOPE;
+	SCOPEc = PREPARE_SCOPE;
 #endif
 
 	txstr("\r\n");
@@ -1437,38 +1451,30 @@ void entry(void) {
 		test_fails(start_time, &testlist[tnum]);
 	txstr("Pass\r\n"); testlist[tnum++] = 0;	// #21
 
-	// MPY_TEST
-	testid("Multiply test"); MARKSTART;
-	cc_fail = CC_MMUERR|CC_FPUERR|CC_DIVERR|CC_BUSERR|CC_STEP|CC_SLEEP;
-	if ((run_test(mpy_test, user_stack_ptr))||(zip_ucc()&cc_fail))
-		test_fails(start_time, &testlist[tnum]);
-	else if (zip_ucc() & CC_ILL)
-		txstr("No Multiply Implemented\r\n");
-	else {
-		txstr("Pass\r\n");
-		testlist[tnum++] = 0;	// #22
+	if ((zip_cc() & 0x40000000)==0) {
+		txstr("No multiply unit installed\r\n");
+	} else {
+		// MPY_TEST
+		testid("Multiply test"); MARKSTART;
+		if ((run_test(mpy_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
+			test_fails(start_time, &testlist[tnum]);
+		txstr("Pass\r\n"); testlist[tnum++] = 0;	// #22
 
 		// MPYxHI_TEST
-		if ((zip_ucc() & CC_ILL)==0) {
-			testid("Multiply HI-word test"); MARKSTART;
-			if ((run_test(mpyhi_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
-				test_fails(start_time, &testlist[tnum]);
-			txstr("Pass\r\n"); testlist[tnum++] = 0;	// #23
-		}
+		testid("Multiply HI-word test"); MARKSTART;
+		if ((run_test(mpyhi_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
+			test_fails(start_time, &testlist[tnum]);
+		txstr("Pass\r\n"); testlist[tnum++] = 0;	// #23
 	}
 
 	// DIV_TEST
 	testid("Divide test");
 	if ((zip_cc() & 0x20000000)==0) {
 		txstr("No divide unit installed\r\n");
-	} else {
-		MARKSTART;
-		if ((run_test(div_test, user_stack_ptr))||(zip_ucc()&cc_fail))
-			test_fails(start_time, &testlist[tnum]);
-		else if (zip_ucc() & CC_ILL) {
-			txstr("No Divide Implemented (" "?" "?)\r\n");
-		} txstr("Pass\r\n"); testlist[tnum++] = 0;	// #24
-	}
+	} else { MARKSTART;
+	if ((run_test(div_test, user_stack_ptr))||(zip_ucc()&CC_EXCEPTION))
+		test_fails(start_time, &testlist[tnum]);
+	} txstr("Pass\r\n"); testlist[tnum++] = 0;	// #24
 
 
 	txstr("\r\n");

@@ -14,7 +14,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2018, Gisselquist Technology, LLC
+## Copyright (C) 2017-2019, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -174,26 +174,6 @@
 		m_core->i_gpio |= 1;
 @SIM.CLRRESET=
 		m_core->i_gpio &= ~1;
-@SIM.TICK=
-#ifdef	@$(ACCESS)
-		// ZipCPU Sim instruction support
-		if ((m_core->cpu_op_sim)
-			&&(m_core->cpu_op_valid)
-			&&(m_core->cpu_alu_ce)
-			&&(!m_core->cpu_new_pc)) {
-			//
-			execsim(m_core->cpu_sim_immv);
-		}
-
-		if (m_cpu_bombed) {
-			if (m_cpu_bombed++ > 12)
-				m_done = true;
-		} else if (m_core->cpu_break) {
-			printf("\n\nBOMB : CPU BREAK RECEIVED\n");
-			m_cpu_bombed++;
-			dump(m_core->cpu_regs);
-		}
-#endif	// @$(ACCESS)
 
 @SIM.METHODS=
 #ifdef	@$(ACCESS)
@@ -367,6 +347,26 @@
 				m_core->cpu_upc);
 		} fflush(stdout);
 	}
+#endif // @$(ACCESS)
+@SIM.TICK=
+#ifdef	@$(ACCESS)
+		// ZipCPU Sim instruction support
+		if ((m_core->cpu_op_sim)
+			&&(m_core->cpu_op_valid)
+			&&(m_core->cpu_alu_ce)
+			&&(!m_core->cpu_new_pc)) {
+			//
+			execsim(m_core->cpu_sim_immv);
+		}
+
+		if (m_cpu_bombed) {
+			if (m_cpu_bombed++ > 12)
+				m_done = true;
+		} else if (m_core->cpu_break) {
+			printf("\n\nBOMB : CPU BREAK RECEIVED\n");
+			m_cpu_bombed++;
+			dump(m_core->cpu_regs);
+		}
 #endif	// @$(ACCESS)
 
 #
@@ -418,13 +418,15 @@
 @INT.WATCHDOG.PIC=cpu_reset
 @INT.WATCHDOG.WIRE=watchdog_reset
 @INT.RESET.PIC=cpu_reset
-@INT.RESET.WIRE=i_reset
+@INT.RESET.WIRE=design_reset
 @MAIN.INSERT=
 	ziptimer #(.VW(16), .RELOADABLE(0))
 		@$(PREFIX)i(i_clk, i_reset, 1'b1,
 			wb_cyc, (wb_stb)&&(@$(PREFIX)_sel), wb_we, wb_data,
 				@$(PREFIX)_ack, @$(PREFIX)_stall,
 				@$(PREFIX)_data, watchdog_reset);
+
+	assign	design_reset = i_reset;
 @BDEFS.IONAME=_@$(PREFIX)
 @BDEFS.IOTYPE=unsigned
 @BDEFS.OSDEF=_BOARD_HAS_@$(DEVID)

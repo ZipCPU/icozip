@@ -14,10 +14,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2018, Gisselquist Technology, LLC
+// Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -59,16 +59,28 @@
 #include "main_tb.cpp"
 
 void	usage(void) {
-	fprintf(stderr, "USAGE: main_tb [zipcpu-elf-file]\n");
+	fprintf(stderr, "USAGE: main_tb <options> [zipcpu-elf-file]\n");
+	fprintf(stderr,
+// -h
+// -p # command port
+// -s # serial port
+// -f # profile file
+"\t-d\tSets the debugging flag\n"
+"\t-t <filename>\n"
+"\t\tTurns on tracing, sends the trace to <filename>--assumed to\n"
+"\t\tbe a vcd file\n"
+);
 }
 
 int	main(int argc, char **argv) {
+	Verilated::commandArgs(argc, argv);
+
 	const	char *elfload = NULL,
+			// *profile_file = NULL,
 			*trace_file = NULL; // "trace.vcd";
 	bool	debug_flag = false, willexit = false;
-//	int	fpga_port = FPGAPORT, serial_port = -(FPGAPORT+1);
-//	int	copy_comms_to_stdout = -1;
-	Verilated::commandArgs(argc, argv);
+	// FILE	*profile_fp;
+
 	MAINTB	*tb = new MAINTB;
 
 	for(int argn=1; argn < argc; argn++) {
@@ -79,8 +91,7 @@ int	main(int argc, char **argv) {
 				if (trace_file == NULL)
 					trace_file = "trace.vcd";
 				break;
-			// case 'p': fpga_port = atoi(argv[++argn]); j=1000; break;
-			// case 's': serial_port=atoi(argv[++argn]); j=1000; break;
+			// case 'f': profile_file = "pfile.bin"; break;
 			case 't': trace_file = argv[++argn]; j=1000; break;
 			case 'h': usage(); exit(0); break;
 			default:
@@ -99,14 +110,6 @@ int	main(int argc, char **argv) {
 	}
 
 	if (elfload) {
-		/*
-		if (serial_port < 0)
-			serial_port = 0;
-		if (copy_comms_to_stdout < 0)
-			copy_comms_to_stdout = 0;
-		tb = new TESTBENCH(fpga_port, serial_port,
-			(copy_comms_to_stdout)?true:false, debug_flag);
-		*/
 		willexit = true;
 	} else {
 		/*
@@ -139,7 +142,6 @@ int	main(int argc, char **argv) {
 
 	if (elfload) {
 #ifdef	INCLUDE_ZIPCPU
-		fprintf(stderr, "WARNING: Elf loading currently only works for programs starting at the reset address\n");
 		tb->loadelf(elfload);
 
 		ELFSECTION	**secpp;
@@ -158,9 +160,18 @@ int	main(int argc, char **argv) {
 		tb->m_core->cpu_ipc = entry;
 		tb->m_core->cpu_new_pc   = 1;
 		tb->m_core->cpu_pf_pc    = entry;
-		tb->m_core->cpu_cmd_halt = 0;
+		tb->m_core->cpu_cmd_halt = 1;
 		tb->m_core->cpu_reset    = 0;
+	//
+		// tb->m_core->alu_wR  = 1;
+		tb->m_core->CPUVAR(_alu_reg) = 15;
+		tb->m_core->CPUVAR(_dbgv)    = 1;
+		tb->m_core->CPUVAR(_dbg_val) = entry;
+		tb->m_core->CPUVAR(_dbg_clear_pipe) = 1;
+	//
 		tb->tick();
+		tb->m_core->cpu_cmd_halt = 0;
+		tb->m_core->VVAR(_swic__DOT__cmd_reset) = 0;
 #else
 		fprintf(stderr, "ERR: Design has no ZipCPU\n");
 		exit(EXIT_FAILURE);
@@ -170,13 +181,17 @@ int	main(int argc, char **argv) {
 	if (willexit) {
 		while(!tb->done())
 			tb->tick();
+		printf("Will exit: DONE!!\n");
 	} else
 		while(true)
 			tb->tick();
 
+	printf("Calling TB -> close\n"); fflush(stdout);
 	tb->close();
+	printf("Delete TB\n"); fflush(stdout);
 	delete tb;
 
+	printf("Exit success\n"); fflush(stdout);
 	return	EXIT_SUCCESS;
 }
 

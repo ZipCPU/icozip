@@ -26,7 +26,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015,2018, Gisselquist Technology, LLC
+// Copyright (C) 2015,2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -149,21 +149,10 @@ module	wbpriarbiter(i_clk,
 	end endgenerate
 
 `ifdef	FORMAL
-
 `ifdef	WBPRIARBITER
-	generate if (F_OPT_CLK2FFLOGIC)
-	begin
-		reg	f_last_clk;
-		initial	assume(!i_clk);
-		always @($global_clock)
-		begin
-			assume(i_clk != f_last_clk);
-			f_last_clk <= i_clk;
-		end
-	end endgenerate
-`define	`ASSUME	assume
+`define	ASSUME	assume
 `else
-`define	`ASSUME	assert
+`define	ASSUME	assert
 `endif
 
 	reg	f_past_valid;

@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2018, Gisselquist Technology, LLC
+## Copyright (C) 2017-2019, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -36,11 +36,12 @@
 ##
 ##
 @PREFIX= flash
+@DEVID=FLASH
+@ACCESS=@$(DEVID)_ACCESS
 @$LGFLASHSZ.EXPR=24
 @$NADDR=(1<<(@$LGFLASHSZ-2))
 @$NBYTES=(1<<@$LGFLASHSZ)
 @NBYTES.FORMAT=0x%08x
-@ACCESS= FLASH_ACCESS
 @SLAVE.TYPE=MEMORY
 @SLAVE.BUS=wb
 @LD.PERM=rx
@@ -78,7 +79,7 @@
 	spixpress @$(PREFIX)i(i_clk, i_reset,
 			(wb_cyc),
 				(wb_stb)&&(@$(PREFIX)_sel),
-				(wb_stb)&&(flash_cfg_sel), wb_we,
+				(wb_stb)&&(flashcfg_sel), wb_we,
 				wb_addr[(@$LGFLASHSZ-3):0],
 				wb_data,
 			@$(PREFIX)_stall, @$(PREFIX)_ack, @$(PREFIX)_data,
@@ -90,7 +91,6 @@
 @MEM.NAME= flash
 @MEM.ACCESS = rx
 @REGS.N= 1
-@DEVID=FLASH
 @REGDEFS.H.DEFNS=
 #define	@$(DEVID)BASE	@$[0x%08x](REGBASE)
 #define	@$(DEVID)LEN	@$NBYTES
@@ -98,37 +98,33 @@
 @REGS.0= 0 R_@$(DEVID) @$(DEVID)
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=extern char _@$(PREFIX)[@$NBYTES];
-@LDSCRIPT.PSTR=	rx
-@LDSCRIPT.PTR=	@$(PREFIX)
-@LDSCRIPT.DEF=
-_@$(PREFIX)=ORIGIN(@$(PREFIX));
-@REGDEFS.H.INSERT=
-
-@SIM.INCLUDE+=
+@LD.PERM=	rx
+@LD.NAME=	@$(PREFIX)
+@SIM.INCLUDE=
 #include "flashsim.h"
-@SIM.DEFNS+=
+@SIM.DEFNS=
 #ifdef	@$(ACCESS)
 	FLASHSIM	*m_@$(MEM.NAME);
 	int		m_@$(MEM.NAME)_last_sck;
-#endif
-@SIM.INIT+=
+#endif // @$(ACCESS)
+@SIM.INIT=
 #ifdef	@$(ACCESS)
 		m_@$(MEM.NAME) = new FLASHSIM(FLASHLGLEN);
 		m_@$(MEM.NAME)_last_sck = 0;
 #endif
-@SIM.TICK +=
+@SIM.TICK=
 #ifdef	@$(ACCESS)
 		if (m_@$(MEM.NAME)_last_sck) {
 			(*m_@$(MEM.NAME))(m_core->o_spi_cs_n, 0,
 						m_core->o_spi_mosi);
 		} m_core->i_spi_miso = ((*m_@$(MEM.NAME))(m_core->o_spi_cs_n, 1,
-						m_core->o_spi_mosi))?1:0;
+						m_core->o_spi_mosi)&2)?1:0;
 		m_@$(MEM.NAME)_last_sck = m_core->o_spi_sck;
-#endif
-@SIM.LOAD +=
+#endif // @$(ACCESS)
+@SIM.LOAD=
 #ifdef	@$(ACCESS)
 			m_@$(MEM.NAME)->load(start, &buf[offset], wlen);
-#endif
+#endif // @$(ACCESS)
 #
 #
 #
@@ -139,17 +135,24 @@ _@$(PREFIX)=ORIGIN(@$(PREFIX));
 #
 #
 #
-@PREFIX=flash_cfg
+@PREFIX=flashcfg
+@NADDR=1
+@DEVID=FLASHCFG
+@ACCESS=@$(DEVID)_ACCESS
+@DEPENDS= FLASH_ACCESS
+## Although this is really a SLAVE.TYPE=SINGLE interface, it receives its
+## acknowledgements from the flash above.  SLAVE.TYPE=SINGLE will create
+## acknowledgements in the interconnect, resulting in bus errors.  As a result,
+## this must be a SLAVE.TYPE=OTHER
 @SLAVE.TYPE=OTHER
 @SLAVE.BUS=wb
-@NADDR=1
-@REGS.N=1
-@REGS.0= 0  R_FLASHCFG FLASHCFG
 @MAIN.DEFNS=
 @MAIN.INSERT=
-	assign	flash_cfg_data  = flash_data;
-	assign	flash_cfg_stall = flash_stall;
-	assign	flash_cfg_ack   = 1'b0;
+	assign	flashcfg_data  = flash_data;
+	assign	flashcfg_stall = flash_stall;
+	assign	flashcfg_ack   = 1'b0;
+@REGS.N= 1
+@REGS.0= 0  R_@$(DEVID) @$(DEVID)
 @REGDEFS.H.INSERT=
 // Flash memory constants
 #define	SZPAGEB		256

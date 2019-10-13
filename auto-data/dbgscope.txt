@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2018, Gisselquist Technology, LLC
+## Copyright (C) 2018-2019, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -60,10 +60,10 @@
 @RTL.MAKE.GROUP= SCOPE
 @RTL.MAKE.FILES= wbscope.v
 #
-@PREFIX=externalscope
-@MAIN.PORTLIST=
-	o_dbgwires
-@MAIN.IODECL=
-	output	wire	[7:0]	o_dbgwires;
-@MAIN.INSERT=
-	assign	o_dbgwires = console_dbg[7:0];
+## @PREFIX=externalscope
+## @MAIN.PORTLIST=
+##	o_dbgwires
+## @MAIN.IODECL=
+##	output	wire	[7:0]	o_dbgwires;
+## @MAIN.INSERT=
+##	assign	o_dbgwires = console_dbg[7:0];

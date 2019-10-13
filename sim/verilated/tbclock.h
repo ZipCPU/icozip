@@ -4,17 +4,20 @@
 //
 // Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 //
-// Purpose:	
+// Purpose:	TBCLOCK is a class originally developed for the VideoZIP project
+//		as a helper class to give Verilator the ability to test across
+//	multiple clock domains.  In particular, it helps the testb.h file
+//	determine when the next clocking event will (should) occur.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017, Gisselquist Technology, LLC
+// Copyright (C) 2017-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -39,45 +42,63 @@
 #define	TBCLOCK_H
 
 class	TBCLOCK	{
-	unsigned long	m_increment_ps, m_now_ps, m_last_edge_ps;
+	unsigned long	m_increment_ps, m_now_ps, m_last_posedge_ps, m_ticks;
 
 public:
 	TBCLOCK(void) {
 		m_increment_ps = 10000; // 10 ns;
 
 		m_now_ps = m_increment_ps+1;
-		m_last_edge_ps = m_increment_ps;
+		m_last_posedge_ps = 0;
+		m_ticks = 0;
 	}
 
 	TBCLOCK(unsigned long increment_ps) {
 		init(increment_ps);
 	}
 
+	unsigned long ticks(void) { return m_ticks; }
+
 	void	init(unsigned long increment_ps) {
 		set_interval_ps(increment_ps);
 
 		// Start with the clock low, waiting on a positive edge
 		m_now_ps = m_increment_ps+1;
-		m_last_edge_ps = m_increment_ps;
+		m_last_posedge_ps = 0;
 	}
 
-	unsigned long	time_to_tick(void) {
-		unsigned long	ul;
-		if (m_last_edge_ps > m_now_ps) {
-			// Should never happen
-			ul = m_last_edge_ps - m_now_ps;
-			ul /= m_increment_ps;
-			ul = m_now_ps + ul * m_increment_ps;
-		} else if (m_last_edge_ps == m_now_ps) {
-			ul = m_increment_ps;
-		} else if (m_last_edge_ps + m_increment_ps == m_now_ps) {
-			ul = m_increment_ps;
-		} else if (m_last_edge_ps + m_increment_ps > m_now_ps) {
-			ul = m_last_edge_ps + m_increment_ps - m_now_ps;
-		} else // if (m_last_edge + m_interval_ps > m_now) {
-			ul = (m_last_edge_ps + 2*m_increment_ps - m_now_ps);
+	unsigned long	time_to_edge(void) {
+		if (m_last_posedge_ps > m_now_ps) {
+			unsigned long ul;
 
-		return ul;
+			// Should never happen
+			fprintf(stderr, "Internal tbclock error in %s:%d\n",
+				__FILE__, __LINE__);
+			fprintf(stderr, "\tGuru meditation %ld, %ld, %ld\n",
+				m_last_posedge_ps, m_increment_ps, m_now_ps);
+			assert(0);
+
+			ul = m_last_posedge_ps - m_now_ps;
+			ul /= m_increment_ps;
+
+			ul = m_now_ps + ul * m_increment_ps;
+			return ul;
+			// return m_now_ps + ul * m_increment_ps;
+		} else if (m_last_posedge_ps + m_increment_ps > m_now_ps)
+			// Next edge is a negative edge
+			return m_last_posedge_ps + m_increment_ps - m_now_ps;
+		else if (m_last_posedge_ps + 2*m_increment_ps > m_now_ps)
+			// Next edge is a positive edge
+			return m_last_posedge_ps + 2*m_increment_ps - m_now_ps;
+		else {
+			// Should never happen
+			fprintf(stderr, "Internal error in %s:%d\n",__FILE__,
+				__LINE__);
+			fprintf(stderr, "\tGuru meditation %ld, %ld, %ld\n",
+				m_last_posedge_ps, m_increment_ps, m_now_ps);
+			assert(0);
+			return 2*m_increment_ps;
+		}
 	}
 
 	void	set_interval_ps(unsigned long interval_ps) {
@@ -88,29 +109,45 @@ public:
 		assert(m_increment_ps > 0);
 	}
 
-	int	advance(unsigned long itime)  {
-		int	clk = 0;
+	void	set_frequency_hz(unsigned long frequency_hz) {
+		double	tmp = 1e12 / (double)frequency_hz;
+		unsigned long tmp_interval = (unsigned long)tmp;
+
+		m_increment_ps = (tmp_interval>>1)&-2l;
+		// printf("SET FREQ = %f MHz = %ld ps\n", frequency_hz/1e6, tmp_interval);
+		assert(m_increment_ps > 0);
+	}
+
+	int	advance(unsigned long itime) {
+		// Should never skip clocks
+		assert(itime < 4*m_increment_ps);
+
 		m_now_ps += itime;
-		if (m_now_ps >= m_last_edge_ps + 2*m_increment_ps) {
-			m_last_edge_ps += 2*m_increment_ps;
-			clk = 1;
-		} else if (m_now_ps >= m_last_edge_ps + m_increment_ps)
-			clk = 0;
-		else
-			clk = 1;
-		return clk;
+
+		if (m_now_ps >= m_last_posedge_ps + 2*m_increment_ps) {
+			// Advance to the next positive edge, and return
+			// a positive valued clock
+			m_last_posedge_ps += 2*m_increment_ps;
+			m_ticks++;
+			return 1;
+		} else if (m_now_ps >= m_last_posedge_ps + m_increment_ps) {
+			// Negative half of the clock's duty cycle
+			return 0;
+		} else
+			// Positive half of the clock's duty cycle
+			return 1;
 	}
 
 	bool	rising_edge(void) {
-		if (m_now_ps == m_last_edge_ps) {
+		if (m_now_ps == m_last_posedge_ps)
 			return true;
-		} return false;
+		return false;
 	}
 
 	bool	falling_edge(void) {
-		if (m_now_ps == m_last_edge_ps + m_increment_ps) {
+		if (m_now_ps == m_last_posedge_ps + m_increment_ps)
 			return true;
-		} return false;
+		return false;
 	}
 };
 #endif

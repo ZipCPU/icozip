@@ -4,14 +4,15 @@
 //
 // Project:	ZBasic, a generic toplevel impl using the full ZipCPU
 //
-// Purpose:	
+// Purpose:	This core implements a device to control the console channel
+//		of the debugging bus.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2017, Gisselquist Technology, LLC
+// Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -53,6 +54,7 @@ module	console(i_clk, i_reset,
 		o_console_rxfifo_int, o_console_txfifo_int,
 		o_dbg);
 	parameter [3:0]	LGFLEN = 0;
+	parameter [0:0]	HARDWARE_FLOW_CONTROL_PRESENT = 1'b1;
 	// Perform a simple/quick bounds check on the log FIFO length, to make
 	// sure its within the bounds we can support with our current
 	// interface.
@@ -266,7 +268,7 @@ module	console(i_clk, i_reset,
 			else
 				tx_console_reset <= 1'b0;
 	end else begin : TX_NOFIFO
-		reg		r_txf_err, txf_wb_write;
+		reg		r_txf_err;
 
 		initial	txf_wb_write = 1'b0;
 		always @(posedge i_clk)
@@ -303,7 +305,8 @@ module	console(i_clk, i_reset,
 		assign	o_console_stb  = txf_wb_write;
 		assign	o_console_data = txf_wb_data;
 		assign	tx_empty_n     = o_console_stb;
-		assign	txf_status     = { 13'h0, {(3){txf_wb_write}} };
+		assign	txf_status     = { 13'h0, {(2){txf_wb_write}},
+				!txf_wb_write };
 	end endgenerate
 
 	// Now that we are done with the chain, pick some wires for the user
@@ -320,8 +323,8 @@ module	console(i_clk, i_reset,
 	assign	wb_tx_data = { 16'h00,
 				1'b0, txf_status[1:0], txf_err,
 				1'b0, o_console_stb, 1'b0,
-				tx_empty_n,
-				1'b0,(tx_empty_n)?txf_wb_data:7'h0};
+				(i_console_busy|tx_empty_n),
+				1'b0,(i_console_busy|tx_empty_n)?txf_wb_data:7'h0};
 
 	// Each of the FIFO's returns a 16 bit status value.  This value tells
 	// us both how big the FIFO is, as well as how much of the FIFO is in

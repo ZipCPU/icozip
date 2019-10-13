@@ -13,7 +13,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2018, Gisselquist Technology, LLC
+## Copyright (C) 2017-2019, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -53,7 +53,7 @@ MEMORY  := spixpress.txt sramdev.txt bkram.txt
 DBGBUS  := hbconsole.txt
 CPU     := zipbones.txt
 SCOPES  := # spixscope.txt
-LDSCRIPT:= mem_flash_bkram.txt mem_bkram_only.txt mem_flash_sram.txt
+LDSCRIPT:= mem_flash_bkram.txt mem_bkram_only.txt mem_flash_sram.txt mem_sram_only.txt
 BONUS   :=
 DATA := clock50.txt $(BASE) $(AUX) $(IO) $(MEMORY) $(DBGBUS) $(CPU) $(SCOPES) $(BONUS) $(LDSCRIPT)
 	# Not used: rtclite.txt watchdog.txt

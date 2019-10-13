@@ -13,7 +13,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2018, Gisselquist Technology, LLC
+## Copyright (C) 2016-2019, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -139,7 +139,9 @@ autodata: check-autofpga
 	$(call copyif-changed,auto-data/regdefs.cpp,sw/host/regdefs.cpp)
 	$(call copyif-changed,auto-data/board.h,sw/board/board.h)
 	$(call copyif-changed,auto-data/board.h,sw/zlib/board.h)
-	$(call copyif-changed,auto-data/board.ld,sw/board/board.ld)
+	$(call copyif-changed,auto-data/sram.ld,sw/board/board.ld)
+	$(call copyif-changed,auto-data/flashram.ld,sw/board/flashram.ld)
+	$(call copyif-changed,auto-data/sram_only.ld,sw/board/boardram.ld)
 	$(call copyif-changed,auto-data/rtl.make.inc,rtl/icozip/auto.mk)
 	$(call copyif-changed,auto-data/main_tb.cpp,sim/verilated/main_tb.cpp)
 	$(call copyif-changed,auto-data/testb.h,sim/verilated/testb.h)

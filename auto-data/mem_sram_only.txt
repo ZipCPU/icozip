@@ -1,17 +1,20 @@
 ################################################################################
 ##
-## Filename: 	sramscope.txt
+## Filename: 	mem_flash_sram.txt
 ##
 ## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
 ##
-## Purpose:	Provides a scope for testing the SRAM driver on the ICO board.
+## Purpose:	Describes a memory model containing the flash, SRAM, and
+##		block RAM.  This will be used to create a board.ld linker script
+##	that can be used to link ZipCPU programs.
+##
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2018-2019, Gisselquist Technology, LLC
+## Copyright (C) 2019, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -35,44 +38,37 @@
 ################################################################################
 ##
 ##
-@PREFIX=sramscope
-@$NADDR=2
-@ACCESS= SRAM_SCOPE
-@DEPENDS= SRAM_ACCESS
-@SLAVE.TYPE=OTHER
-@SLAVE.BUS=wb
-@MAIN.INSERT=
-	wire	[31:0]	sram_debug;
-	wire		sramscope_int;
+##
+@PREFIX=mem_sram_only
+@MASTER.TYPE=CPU
+@MASTER.BUS=zip
+@LD.FILE=sram_only.ld
+@LD.DEFNS=
+/* LD.DEFNS from zipmaster.txt */
+_kram  = ORIGIN(bkram); /* Can be used for high-speed kernel RAM */
+_ram   = ORIGIN(sram);
+_rom   = 0;	/* Disable the flash */
+_top_of_stack = ORIGIN(sram) + LENGTH(sram);
 
-	assign	sram_debug = { (!o_ram_ce_n),
-			wb_cyc, (wb_stb)&&(sram_sel), wb_we,
-				sram_stall,sram_ack,
-				o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_sel,
-				o_ram_addr[4:0],
-				(!o_ram_oe_n) ? i_ram_data[15:0]
-						: o_ram_data[15:0]
-				};
-	wbscope #(.LGMEM(4), .SYNCHRONOUS(1), .HOLDOFFBITS(4))
-		@$(PREFIX)i(i_clk, 1'b1, (!o_ram_ce_n), sram_debug,
-			i_clk, wb_cyc, (wb_stb)&&(@$(PREFIX)_sel),
-			wb_we, wb_addr[0], wb_data,
-			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data,
-			@$(PREFIX)_int);
-@REGS.N= 1
-@DEVID=RAMSCOPE
-@REGS.0= 0 R_@$(DEVID) @$(DEVID)
-@REGS.1= 1 R_@$(DEVID)D @$(DEVID)D
+@LD.SCRIPT=
+/* LD.SCRIPT from @$(PREFIX).txt */
+SECTIONS
+{
+	.rocode ORIGIN(sram) : ALIGN(4) {
+		_boot_address = .;
+		*(.start) *(.boot)
+                _kram_start = . ;
+		*(.kernel)
+                _kram_end = . ;
+		_ram_image_start = . ;
+		*(.text.startup)
+		*(.text*)
+		*(.rodata*) *(.strings)
+		*(.data) *(COMMON)
+                _ram_image_end = . ;
+		*(.bss)
+		_bss_image_end = . ;
+		} > sram
+       _top_of_heap = .;
+}
 #
-@RTL.MAKE.GROUP= SCOPE
-@RTL.MAKE.FILES= wbscope.v
-#
-@PREFIX=externalscope
-@TOP.PORTLIST=
-	o_dbgwires
-@TOP.IODECL=
-	output	wire	[7:0]	o_dbgwires;
-@TOP.INSERT=
-	assign	o_dbgwires[7:3] = { o_ram_ce_n, o_ram_oe_n, o_ram_we_n,
-					o_ram_sel };
-	assign	o_dbgwires[2:0] = (o_ram_we_n)? i_ram_data[2:0] : o_ram_data[2:0];

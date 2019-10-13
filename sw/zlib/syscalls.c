@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2018, Gisselquist Technology, LLC
+// Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -48,48 +48,28 @@
 #include "bootloader.h"
 #include "zipcpu.h"
 
+#define	TXBUSY	((_uart->u_fifo & 0x010000)==0)
+#define	UARTTX	_uart->u_tx
+#define	UARTRX	_uart->u_rx
+
 void
 _outbyte(char v) {
-#if	defined(_BOARD_HAS_WBUART)
 	if (v == '\n') {
 		// Depend upon the WBUART, not the PIC
-		while(_uart->u_fifo & 0x010000)
+		while(TXBUSY)
 			;
-		_uarttx = (unsigned)'\r';
+		UARTTX = (unsigned)'\r';
 	}
 
 	// Depend upon the WBUART, not the PIC
-	while(_uart->u_fifo & 0x010000)
-		;
-	uint8_t c = v;
-	_uarttx = (unsigned)c;
-#elif	defined(_BOARD_HAS_BUSCONSOLE)
-	if (v == '\n') {
-		// Depend upon the WBUART, not the PIC
-		while(_uart->u_fifo & 0x010000)
-			;
-		_uart->u_tx = (unsigned)'\r';
-	}
-
-	// Depend upon the WBUART, not the PIC
-	while(_uart->u_fifo & 0x010000)
-		;
-	uint8_t c = v;
-	_uart->u_tx = (unsigned)c;
-#elif	defined(_ZIP_HAS_UARTTX)
-	// Depend upon the WBUART, not the PIC
-	while(UARTTX & 0x100)
+	while(TXBUSY)
 		;
 	uint8_t c = v;
 	UARTTX = (unsigned)c;
-#else
-#error	"No console"
-#endif
 }
 
 int
 _inbyte(void) {
-#ifdef	_ZIP_HAS_WBUARTRX
 	const	int	echo = 1, cr_into_nl = 1;
 	static	int	last_was_cr = 0;
 	int	rv;
@@ -100,7 +80,7 @@ _inbyte(void) {
 	// 3. \r\n's should quietly be turned into \n's
 	// 4. \n's should be passed as is
 	// Insist on at least one character
-	rv = _uartrx;
+	rv = UARTRX;
 	if (rv & 0x0100)
 		rv = -1;
 	else if ((cr_into_nl)&&(rv == '\r')) {
@@ -117,39 +97,6 @@ _inbyte(void) {
 	if ((rv != -1)&&(echo))
 		_outbyte(rv);
 	return rv;
-#else
-#ifdef	_BOARD_HAS_BUSCONSOLE
-	const	int	echo = 1, cr_into_nl = 1;
-	static	int	last_was_cr = 0;
-	int	rv;
-
-	// Character translations:
-	// 1. All characters should be echoed
-	// 2. \r's should quietly be turned into \n's
-	// 3. \r\n's should quietly be turned into \n's
-	// 4. \n's should be passed as is
-	// Insist on at least one character
-	rv = _uart->u_rx;
-	if (rv & 0x0100)
-		rv = -1;
-	else if ((cr_into_nl)&&(rv == '\r')) {
-		rv = '\n';
-		last_was_cr = 1;
-	} else if ((cr_into_nl)&&(rv == '\n')) {
-		if (last_was_cr) {
-			rv = -1;
-			last_was_cr = 0;
-		}
-	} else
-		last_was_cr = 0;
-
-	if ((rv != -1)&&(echo))
-		_outbyte(rv);
-	return rv;
-#else
-	return -1;
-#endif
-#endif
 }
 
 int
@@ -337,7 +284,6 @@ _read_r(struct _reent *reent, int file, void *ptr, size_t len)
 		int	nr = 0, rv;
 		char	*chp = ptr;
 
-#ifdef	_ZIP_HAS_WBUARTRX
 		while((rv=_inbyte()) &0x0100)
 			;
 		*chp++ = (char)rv;
@@ -351,22 +297,6 @@ _read_r(struct _reent *reent, int file, void *ptr, size_t len)
 
 		// if (rv & 0x01000) _uartrx = 0x01000;
 		return nr;
-#endif
-#ifdef	_BOARD_HAS_BUSCONSOLE
-		while((rv=_inbyte()) &0x0100)
-			;
-		*chp++ = (char)rv;
-		nr++;
-
-		// Now read out anything left in the FIFO
-		while((nr < len)&&(((rv=_inbyte()) & 0x0100)==0)) {
-			*chp++ = (char)rv;
-			nr++;
-		}
-
-		// if (rv & 0x01000) _uartrx = 0x01000;
-		return nr;
-#endif
 	}
 #ifdef	_ZIP_HAS_SDCARD_NOTYET
 	if (SDCARD_FILENO == file)

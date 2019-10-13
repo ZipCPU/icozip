@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015,2017-2018, Gisselquist Technology, LLC
+// Copyright (C) 2015,2017-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -82,8 +82,12 @@ class	FLASHSIM {
 	unsigned	m_write_count, m_ireg, m_oreg, m_sreg, m_addr,
 			m_count, m_config, m_mode_byte, m_creg, m_membytes,
 			m_memmask;
-	bool		m_debug;
+	bool		m_debug, m_idle_throttle;
 	FLASH_MODE	m_mode;
+
+	const	unsigned	CKDELAY, RDDELAY, NDUMMY;
+
+	int		*m_ckdelay, *m_rddelay;
 
 public:
 	FLASHSIM(const int lglen = 24, bool debug = false);
@@ -93,6 +97,8 @@ public:
 	bool	write_protect(void) { return ((m_sreg & QSPIF_WEL_FLAG)==0); }
 	bool	write_in_progress(void) { return ((m_sreg | QSPIF_WIP_FLAG)!=0); }
 	bool	xip_mode(void) { return (QSPIF_QUAD_READ_IDLE == m_state); }
+	bool	deep_sleep(bool newval);
+	bool	deep_sleep(void) const;
 	bool	dual_mode(void) { return (m_mode == FM_DSPI); }
 	bool	quad_mode(void) { return (m_mode == FM_QSPI); }
 	void	debug(const bool dbg) { m_debug = dbg; }
@@ -114,6 +120,12 @@ public:
 		*cptr   = (val);
 		return;}
 	int	operator()(const int csn, const int sck, const int dat);
+
+	// simtick applies various programmable delays to the inputs in 
+	// order to determine the outputs.  It's primary purpose is to
+	// support an ODDR based clock (and or other) components.
+	int	simtick(const int csn, const int sck, const int dat,
+			const int mode);
 };
 
 #endif
