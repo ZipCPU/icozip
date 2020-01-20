@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015,2017-2020, Gisselquist Technology, LLC
+// Copyright (C) 2015-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -37,9 +37,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-module wbufifo(i_clk, i_rst, i_wr, i_data, i_rd, o_data, o_empty_n, o_err);
+`default_nettype none
+//
+module wbufifo(i_clk, i_reset, i_wr, i_data, i_rd, o_data, o_empty_n, o_err);
 	parameter	BW=66, LGFLEN=10;
-	input	wire		i_clk, i_rst;
+	input	wire		i_clk, i_reset;
 	input	wire		i_wr;
 	input	wire [(BW-1):0]	i_data;
 	input	wire		i_rd;
@@ -50,37 +52,40 @@ module wbufifo(i_clk, i_rst, i_wr, i_data, i_rd, o_data, o_empty_n, o_err);
 	localparam	FLEN=(1<<LGFLEN);
 
 	reg	[(BW-1):0]	fifo[0:(FLEN-1)];
-	reg	[(LGFLEN-1):0]	r_first, r_last;
+	reg	[LGFLEN:0]	r_wrptr, r_rdptr;
+	wire	[LGFLEN:0]	nxt_wrptr, nxt_rdptr;
+	reg			will_overflow,will_underflow, r_empty_n;
+	wire			w_write, w_read;
 
-	wire	[(LGFLEN-1):0]	nxt_first;
-	assign	nxt_first = r_first+{{(LGFLEN-1){1'b0}},1'b1};
+	assign	w_write = (i_wr && (!will_overflow || i_rd));
+	assign	w_read  = (i_rd||!o_empty_n) && !will_underflow;
 
-	reg	will_overflow;
+	assign	nxt_wrptr = r_wrptr + 1;
+	assign	nxt_rdptr = r_rdptr + 1;
+
 	initial	will_overflow = 1'b0;
 	always @(posedge i_clk)
-		if (i_rst)
-			will_overflow <= 1'b0;
-		else if (i_rd)
-			will_overflow <= (will_overflow)&&(i_wr);
-		else if (i_wr)
-			will_overflow <= (r_first+2 == r_last);
-		else if (nxt_first == r_last)
-			will_overflow <= 1'b1;
+	if (i_reset)
+		will_overflow <= 1'b0;
+	else if (i_rd)
+		will_overflow <= (will_overflow)&&(i_wr);
+	else if (w_write)
+		will_overflow <= (nxt_wrptr[LGFLEN-1:0] == r_rdptr[LGFLEN-1:0])
+			&&(nxt_wrptr[LGFLEN] != r_rdptr[LGFLEN]);
+	// else if (nxt_wrptr == r_rdptr)
+	//	will_overflow <= 1'b1;
 
 	// Write
-	initial	r_first = 0;
+	initial	r_wrptr = 0;
 	always @(posedge i_clk)
-		if (i_rst)
-			r_first <= { (LGFLEN){1'b0} };
-		else if (i_wr)
-		begin // Cowardly refuse to overflow
-			if ((i_rd)||(~will_overflow)) // (r_first+1 != r_last)
-				r_first <= nxt_first;
-			// else o_ovfl <= 1'b1;
-		end
+	if (i_reset)
+		r_wrptr <= 0;
+	else if (w_write)
+		r_wrptr <= nxt_wrptr;
+
 	always @(posedge i_clk)
-		if (i_wr) // Write our new value regardless--on overflow or not
-			fifo[r_first] <= i_data;
+	if (w_write)
+		fifo[r_wrptr[LGFLEN-1:0]] <= i_data;
 
 	// Reads
 	//	Following a read, the next sample will be available on the
@@ -94,47 +99,37 @@ module wbufifo(i_clk, i_rst, i_wr, i_data, i_rd, o_data, o_empty_n, o_err);
 	//	5	1	2		fifo[2]
 	//	6	0	3		fifo[3]
 	//	7	0	3		fifo[3]
-	reg	will_underflow;
-	initial	will_underflow = 1'b0;
+	initial	will_underflow = 1'b1;
 	always @(posedge i_clk)
-		if (i_rst)
-			will_underflow <= 1'b0;
-		else if (i_wr)
-			will_underflow <= (will_underflow)&&(i_rd);
-		else if (i_rd)
-			will_underflow <= (r_last+1==r_first);
-		else
-			will_underflow <= (r_last == r_first);
+	if (i_reset)
+		will_underflow <= 1'b1;
+	else if (i_wr)
+		will_underflow <= 1'b0;
+	else if (w_read)
+		will_underflow <= (will_underflow) || (nxt_rdptr==r_wrptr);
 
-	initial	r_last = 0;
+	initial	r_rdptr = 0;
 	always @(posedge i_clk)
-		if (i_rst)
-			r_last <= { (LGFLEN){1'b0} };
-		else if (i_rd)
-		begin
-			if ((i_wr)||(~will_underflow)) // (r_first != r_last)
-				r_last <= r_last+{{(LGFLEN-1){1'b0}},1'b1};
-				// Last chases first
-				// Need to be prepared for a possible two
-				// reads in quick succession
-				// o_data <= fifo[r_last+1];
-			// else o_unfl <= 1'b1;
-		end
-	always @(posedge i_clk)
-		o_data <= fifo[(i_rd)?(r_last+{{(LGFLEN-1){1'b0}},1'b1})
-					:(r_last)];
+	if (i_reset)
+		r_rdptr <= 0;
+	else if (w_read && r_empty_n)
+		r_rdptr <= r_rdptr + 1;
 
-	assign	o_err = ((i_wr)&&(will_overflow)&&(~i_rd))
-				||((i_rd)&&(will_underflow)&&(~i_wr));
-
-	// wire	[(LGFLEN-1):0]	fill;
-	// assign	fill = (r_first-r_last);
-	wire	[(LGFLEN-1):0]	nxt_last;
-	assign	nxt_last = r_last+{{(LGFLEN-1){1'b0}},1'b1};
 	always @(posedge i_clk)
-		if (i_rst)
-			o_empty_n <= 1'b0;
-		else
-			o_empty_n <= (~i_rd)&&(r_first != r_last)
-					||(i_rd)&&(r_first != nxt_last);
+	if (w_read && r_empty_n)
+		o_data<= fifo[r_rdptr[LGFLEN-1:0]];
+
+	assign	o_err = ((i_wr)&&(will_overflow)&&(!i_rd))
+				||(i_rd && !o_empty_n);
+
+	always @(*)
+		r_empty_n = !will_underflow;
+
+	initial	o_empty_n = 1'b0;
+	always @(posedge i_clk)
+	if (i_reset)
+		o_empty_n <= 1'b0;
+	else if (!o_empty_n || i_rd)
+		o_empty_n <= r_empty_n;
+
 endmodule

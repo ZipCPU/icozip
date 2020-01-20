@@ -25,7 +25,9 @@ design.h
 *.json
 *.asc
 201*-ico.tjz
+202*-ico.tjz
 201*-build.v
+202*-build.v
 autofpga.dbg
 ppsim
 exbus

@@ -62,7 +62,9 @@ const	REGNAME	raw_bregs[] = {
 	{ R_VERSION       ,	"VERSION"  	},
 	{ R_BKRAM         ,	"RAM"      	},
 	{ R_SRAM          ,	"SRAM"     	},
-	{ R_FLASH         ,	"FLASH"    	}
+	{ R_FLASH         ,	"FLASH"    	},
+	{ R_ZIPCTRL       ,	"CPU"      	},
+	{ R_ZIPDATA       ,	"CPUD"     	}
 };
 
 // REGSDEFS.CPP.INSERT for any bus masters

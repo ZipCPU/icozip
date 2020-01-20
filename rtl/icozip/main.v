@@ -60,11 +60,11 @@
 `define	BUSCONSOLE_ACCESS
 `define	BKRAM_ACCESS
 `define	SRAM_ACCESS
-`define	INCLUDE_ZIPCPU
+`define	BUSPIC_ACCESS
 `define	PWRCOUNT_ACCESS
+`define	INCLUDE_ZIPCPU
 `define	GPIO_ACCESS
 `define	FLASH_ACCESS
-`define	BUSPIC_ACCESS
 //
 //
 // The list of those things that have @DEPENDS tags
@@ -75,9 +75,12 @@
 // Any core with both an @ACCESS and a @DEPENDS tag will show up here.
 // The @DEPENDS tag will turn into a series of ifdef's, with the @ACCESS
 // being defined only if all of the ifdef's are true//
+// The following have unmet dependencies.  They are listed
+// here for reference, but their dependencies cannot be met.
 `ifdef	FLASH_ACCESS
 `define	FLASHCFG_ACCESS
-`endif	// FLASH_ACCESS
+`endif
+
 //
 // End of dependency list
 //
@@ -176,9 +179,9 @@ module	main(i_clk, i_reset,
 	wire	uartrxf_int;	// console.INT.UARTRXF.WIRE
 	wire	uarttx_int;	// console.INT.UARTTX.WIRE
 	wire	uartrx_int;	// console.INT.UARTRX.WIRE
+	wire	w_bus_int;	// buspic.INT.BUS.WIRE
 	wire	zip_cpu_int;	// zip.INT.ZIP.WIRE
 	wire	gpio_int;	// gpio.INT.GPIO.WIRE
-	wire	w_bus_int;	// buspic.INT.BUS.WIRE
 
 
 	//
@@ -190,25 +193,24 @@ module	main(i_clk, i_reset,
 // Looking for string: MAIN.DEFNS
 	reg	cpu_reset;
 	// Console definitions
-	wire	w_console_rx_stb, w_console_tx_stb, w_console_busy;
+	wire		w_console_rx_stb, w_console_tx_stb, w_console_busy;
 	wire	[6:0]	w_console_rx_data, w_console_tx_data;
+	reg	[31:0]	r_pwrcount_data;
 	// ZipSystem/ZipCPU connection definitions
 	// All we define here is a set of scope wires
 	wire	[31:0]	zip_debug;
 	wire		zip_trigger;
 	wire		zip_halted;
 	reg	[24-1:0]	r_buserr_addr;
-	reg	[31:0]	r_pwrcount_data;
+`include "builddate.v"
 	// Definitions for the WB-UART converter.  We really only need one
 	// (more) non-bus wire--one to use to select if we are interacting
 	// with the ZipCPU or not.
 	wire		pp_rx_stb,  pp_tx_stb,  pp_tx_busy;
 	wire	[7:0]	pp_rx_data, pp_tx_data;
-//
 	wire	[31:0]	console_dbg;
 // BUILDTIME doesnt need to include builddate.v a second time
 // `include "builddate.v"
-`include "builddate.v"
 
 
 	//
@@ -380,15 +382,6 @@ module	main(i_clk, i_reset,
 	wire		hb_hb_stall, hb_hb_ack, hb_hb_err;
 	wire	[31:0]	hb_hb_idata;
 	// Verilator lint_on UNUSED
-	// Wishbone definitions for bus hb, component zip
-	// Verilator lint_off UNUSED
-	wire		hb_zip_cyc, hb_zip_stb, hb_zip_we;
-	wire	[23:0]	hb_zip_addr;
-	wire	[31:0]	hb_zip_data;
-	wire	[3:0]	hb_zip_sel;
-	wire		hb_zip_stall, hb_zip_ack, hb_zip_err;
-	wire	[31:0]	hb_zip_idata;
-	// Verilator lint_on UNUSED
 	// Wishbone definitions for bus hb, component hbarb
 	// Verilator lint_off UNUSED
 	wire		hb_hbarb_cyc, hb_hbarb_stb, hb_hbarb_we;
@@ -397,6 +390,15 @@ module	main(i_clk, i_reset,
 	wire	[3:0]	hb_hbarb_sel;
 	wire		hb_hbarb_stall, hb_hbarb_ack, hb_hbarb_err;
 	wire	[31:0]	hb_hbarb_idata;
+	// Verilator lint_on UNUSED
+	// Wishbone definitions for bus hb, component zip
+	// Verilator lint_off UNUSED
+	wire		hb_zip_cyc, hb_zip_stb, hb_zip_we;
+	wire	[23:0]	hb_zip_addr;
+	wire	[31:0]	hb_zip_data;
+	wire	[3:0]	hb_zip_sel;
+	wire		hb_zip_stall, hb_zip_ack, hb_zip_err;
+	wire	[31:0]	hb_zip_idata;
 	// Verilator lint_on UNUSED
 
 	//
@@ -664,8 +666,8 @@ module	main(i_clk, i_reset,
 	// No class DOUBLE peripherals on the "hb" bus
 	//
 
-	assign	hb_zip_err= 1'b0;
 	assign	hb_hbarb_err= 1'b0;
+	assign	hb_zip_err= 1'b0;
 	//
 	// Connect the hb bus components together using the wbxbar()
 	//
@@ -673,12 +675,12 @@ module	main(i_clk, i_reset,
 	wbxbar #(
 		.NM(1), .NS(2), .AW(24), .DW(32),
 		.SLAVE_ADDR({
-			{ 24'h800000 }, // hbarb: 0x2000000
-			{ 24'h000000 }  //   zip: 0x0000000
+			{ 24'h800000 }, //   zip: 0x2000000
+			{ 24'h000000 }  // hbarb: 0x0000000
 		}),
 		.SLAVE_MASK({
-			{ 24'h800000 }, // hbarb
-			{ 24'h800000 }  //   zip
+			{ 24'h800000 }, //   zip
+			{ 24'h800000 }  // hbarb
 		}),
 		.OPT_DBLBUFFER(1'b1))
 	hb_xbar(
@@ -715,44 +717,44 @@ module	main(i_clk, i_reset,
 		}),
 		// Slave connections
 		.o_scyc({
-			hb_hbarb_cyc,
-			hb_zip_cyc
+			hb_zip_cyc,
+			hb_hbarb_cyc
 		}),
 		.o_sstb({
-			hb_hbarb_stb,
-			hb_zip_stb
+			hb_zip_stb,
+			hb_hbarb_stb
 		}),
 		.o_swe({
-			hb_hbarb_we,
-			hb_zip_we
+			hb_zip_we,
+			hb_hbarb_we
 		}),
 		.o_saddr({
-			hb_hbarb_addr,
-			hb_zip_addr
+			hb_zip_addr,
+			hb_hbarb_addr
 		}),
 		.o_sdata({
-			hb_hbarb_data,
-			hb_zip_data
+			hb_zip_data,
+			hb_hbarb_data
 		}),
 		.o_ssel({
-			hb_hbarb_sel,
-			hb_zip_sel
+			hb_zip_sel,
+			hb_hbarb_sel
 		}),
 		.i_sstall({
-			hb_hbarb_stall,
-			hb_zip_stall
+			hb_zip_stall,
+			hb_hbarb_stall
 		}),
 		.i_sack({
-			hb_hbarb_ack,
-			hb_zip_ack
+			hb_zip_ack,
+			hb_hbarb_ack
 		}),
 		.i_sdata({
-			hb_hbarb_idata,
-			hb_zip_idata
+			hb_zip_idata,
+			hb_hbarb_idata
 		}),
 		.i_serr({
-			hb_hbarb_err,
-			hb_zip_err
+			hb_zip_err,
+			hb_hbarb_err
 		})
 		);
 
@@ -941,6 +943,34 @@ module	main(i_clk, i_reset,
 
 `endif	// SRAM_ACCESS
 
+`ifdef	BUSPIC_ACCESS
+	//
+	// The BUS Interrupt controller
+	//
+	icontrol #(15)	buspici(i_clk, 1'b0,
+			wb_buspic_cyc, wb_buspic_stb, wb_buspic_we,
+			wb_buspic_data, // 32 bits wide
+			wb_buspic_sel,  // 32/8 bits wide
+		wb_buspic_stall, wb_buspic_ack, wb_buspic_idata,
+			bus_int_vector, w_bus_int);
+`else	// BUSPIC_ACCESS
+	assign	w_bus_int = 1'b0;	// buspic.INT.BUS.WIRE
+`endif	// BUSPIC_ACCESS
+
+`ifdef	PWRCOUNT_ACCESS
+	initial	r_pwrcount_data = 32'h0;
+	always @(posedge i_clk)
+	if (r_pwrcount_data[31])
+		r_pwrcount_data[30:0] <= r_pwrcount_data[30:0] + 1'b1;
+	else
+		r_pwrcount_data[31:0] <= r_pwrcount_data[31:0] + 1'b1;
+
+	assign	wb_pwrcount_stall = 1'b0;
+	assign	wb_pwrcount_ack   = wb_pwrcount_stb;
+	assign	wb_pwrcount_idata = r_pwrcount_data;
+`else	// PWRCOUNT_ACCESS
+`endif	// PWRCOUNT_ACCESS
+
 `ifdef	INCLUDE_ZIPCPU
 	//
 	//
@@ -994,20 +1024,6 @@ module	main(i_clk, i_reset,
 	assign	wb_buserr_ack  = wb_buserr_stb;
 	assign	wb_buserr_idata = { {(30-24){1'b0}},
 			r_buserr_addr, 2'b00 };
-`ifdef	PWRCOUNT_ACCESS
-	initial	r_pwrcount_data = 32'h0;
-	always @(posedge i_clk)
-	if (r_pwrcount_data[31])
-		r_pwrcount_data[30:0] <= r_pwrcount_data[30:0] + 1'b1;
-	else
-		r_pwrcount_data[31:0] <= r_pwrcount_data[31:0] + 1'b1;
-
-	assign	wb_pwrcount_stall = 1'b0;
-	assign	wb_pwrcount_ack   = wb_pwrcount_stb;
-	assign	wb_pwrcount_idata = r_pwrcount_data;
-`else	// PWRCOUNT_ACCESS
-`endif	// PWRCOUNT_ACCESS
-
 `ifdef	GPIO_ACCESS
 	//
 	// GPIO
@@ -1027,6 +1043,22 @@ module	main(i_clk, i_reset,
 	assign	gpio_int = 1'b0;	// gpio.INT.GPIO.WIRE
 `endif	// GPIO_ACCESS
 
+`ifdef	FLASHCFG_ACCESS
+`else	// FLASHCFG_ACCESS
+
+	//
+	// In the case that there is no wb_flashcfg peripheral
+	// responding on the wb bus
+	assign	wb_flashcfg_ack   = 1'b0;
+	assign	wb_flashcfg_err   = (wb_flashcfg_stb);
+	assign	wb_flashcfg_stall = 0;
+	assign	wb_flashcfg_data  = 0;
+
+`endif	// FLASHCFG_ACCESS
+
+	assign	wb_version_idata = `DATESTAMP;
+	assign	wb_version_ack = wb_version_stb;
+	assign	wb_version_stall = 1'b0;
 `ifdef	WBUBUS_MASTER
 	// Parallel port logic
 	pport	hbi_pp(i_clk,
@@ -1052,6 +1084,9 @@ module	main(i_clk, i_reset,
 `else	// WBUBUS_MASTER
 `endif	// WBUBUS_MASTER
 
+	assign	wb_buildtime_idata = `BUILDTIME;
+	assign	wb_buildtime_ack = wb_buildtime_stb;
+	assign	wb_buildtime_stall = 1'b0;
 `ifdef	FLASH_ACCESS
 	spixpress flashi(i_clk, i_reset,
 			wb_flash_cyc, wb_flash_stb, wb_flash_we,
@@ -1079,39 +1114,6 @@ module	main(i_clk, i_reset,
 
 `endif	// FLASH_ACCESS
 
-	assign	wb_buildtime_idata = `BUILDTIME;
-	assign	wb_buildtime_ack = wb_buildtime_stb;
-	assign	wb_buildtime_stall = 1'b0;
-`ifdef	BUSPIC_ACCESS
-	//
-	// The BUS Interrupt controller
-	//
-	icontrol #(15)	buspici(i_clk, 1'b0,
-			wb_buspic_cyc, wb_buspic_stb, wb_buspic_we,
-			wb_buspic_data, // 32 bits wide
-			wb_buspic_sel,  // 32/8 bits wide
-		wb_buspic_stall, wb_buspic_ack, wb_buspic_idata,
-			bus_int_vector, w_bus_int);
-`else	// BUSPIC_ACCESS
-	assign	w_bus_int = 1'b0;	// buspic.INT.BUS.WIRE
-`endif	// BUSPIC_ACCESS
-
-`ifdef	FLASHCFG_ACCESS
-`else	// FLASHCFG_ACCESS
-
-	//
-	// In the case that there is no wb_flashcfg peripheral
-	// responding on the wb bus
-	assign	wb_flashcfg_ack   = 1'b0;
-	assign	wb_flashcfg_err   = (wb_flashcfg_stb);
-	assign	wb_flashcfg_stall = 0;
-	assign	wb_flashcfg_data  = 0;
-
-`endif	// FLASHCFG_ACCESS
-
-	assign	wb_version_idata = `DATESTAMP;
-	assign	wb_version_ack = wb_version_stb;
-	assign	wb_version_stall = 1'b0;
 
 
 endmodule // main.v

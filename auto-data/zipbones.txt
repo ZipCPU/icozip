@@ -44,12 +44,11 @@
 @SYSPIC= buspic
 @PREFIX=zip
 @ACCESS=INCLUDE_ZIPCPU
-@DBGBUS=hb
-@DBGPFX=zip_dbg
 @MASTER.TYPE=CPU
 @MASTER.BUS=wb
 @SLAVE.TYPE=OTHER
 @SLAVE.BUS=hb
+@SLAVE.ORDER=1000000
 @NADDR=2
 @BUS.NAME=wb
 @BUS.WIDTH=32
@@ -166,7 +165,8 @@
 #define	cpu_alu_ce	CPUVAR(_alu_ce)
 #define	cpu_new_pc	CPUVAR(_new_pc)
 #define	cpu_op_sim	CPUVAR(_op_sim)
-#define	cpu_sim_immv	CPUVAR(_op_sim_immv)
+#define	cpu_sim		CPUVAR(_alu_sim)
+#define	cpu_sim_immv	CPUVAR(_alu_sim_immv)
 #define	cpu_wr_ce	CPUVAR(_wr_reg_ce)
 #define	cpu_wr_reg_id	CPUVAR(_wr_reg_id)
 #define	cpu_wr_gpreg	CPUVAR(_wr_gpreg_vl)

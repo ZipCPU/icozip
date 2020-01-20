@@ -46,7 +46,7 @@
 `define	UART_TXREG	2'b11
 module	wbconsole(i_clk, i_rst,
 		//
-		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
+		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data, i_wb_sel,
 			o_wb_ack, o_wb_stall, o_wb_data,
 		//
 		o_uart_stb, o_uart_data, i_uart_busy,
@@ -67,6 +67,7 @@ module	wbconsole(i_clk, i_rst,
 	input	wire		i_wb_cyc, i_wb_stb, i_wb_we;
 	input	wire	[1:0]	i_wb_addr;
 	input	wire	[31:0]	i_wb_data;
+	input	wire	[3:0]	i_wb_sel;
 	output	reg		o_wb_ack;
 	output	wire		o_wb_stall;
 	output	reg	[31:0]	o_wb_data;
@@ -286,4 +287,7 @@ module	wbconsole(i_clk, i_rst,
 	// set this value to zero.
 	assign	o_wb_stall = 1'b0;
 
+	// Verilator lint_off UNUSED
+	wire	unused = &{ 1'b0, i_wb_sel };
+	// Verilator lint_on  UNUSED
 endmodule

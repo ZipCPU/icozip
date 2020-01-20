@@ -93,7 +93,6 @@
 	// with the ZipCPU or not.
 	wire		pp_rx_stb,  pp_tx_stb,  pp_tx_busy;
 	wire	[7:0]	pp_rx_data, pp_tx_data;
-//
 	wire	[31:0]	console_dbg;
 @$ZIP_ADDRESS_BIT=@$BUS_ADDRESS_WIDTH-1
 @$ZIP_ADDRESS=(1<<(@$.ZIP_ADDRESS_BIT+2))
@@ -162,7 +161,7 @@
 @INT.UARTTXF.PIC= buspic
 @MAIN.DEFNS=
 	// Console definitions
-	wire	w_console_rx_stb, w_console_tx_stb, w_console_busy;
+	wire		w_console_rx_stb, w_console_tx_stb, w_console_busy;
 	wire	[6:0]	w_console_rx_data, w_console_tx_data;
 @MAIN.INSERT=
 	console @$(PREFIX)i(@$(SLAVE.BUS.CLOCK.WIRE), 1'b0,

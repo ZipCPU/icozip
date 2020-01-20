@@ -45,15 +45,15 @@ BKRAM := memdev.v
 
 SRAM := sramdev.v
 
+PPORTD := ../pport
+PPORT  := $(addprefix $(PPORTD)/,ppio.v pport.v ufifo.v)
+BUSPICD := cpu
+BUSPIC  := $(addprefix $(BUSPICD)/,icontrol.v)
 ZIPCPUD := cpu
 ZIPCPU  := $(addprefix $(ZIPCPUD)/,zipcpu.v cpuops.v dblfetch.v prefetch.v memops.v idecode.v ziptimer.v wbpriarbiter.v zipbones.v busdelay.v cpudefs.v icontrol.v div.v mpyop.v slowmpy.v wbdblpriarb.v)
 GPIO := wbgpio.v
 
-PPORTD := ../pport
-PPORT  := $(addprefix $(PPORTD)/,ppio.v pport.v ufifo.v)
 FLASH := spixpress.v oclkddr.v cpu/wbarbiter.v
 
-BUSPICD := cpu
-BUSPIC  := $(addprefix $(BUSPICD)/,icontrol.v)
-VFLIST := main.v  $(HBBUS) $(BKRAM) $(SRAM) $(ZIPCPU) $(GPIO) $(PPORT) $(FLASH) $(BUSPIC)
-AUTOVDIRS :=  -y ../hexbus -y cpu -y ../pport
+VFLIST := main.v  $(HBBUS) $(BKRAM) $(SRAM) $(PPORT) $(BUSPIC) $(ZIPCPU) $(GPIO) $(FLASH)
+AUTOVDIRS :=  -y ../hexbus -y ../pport -y cpu

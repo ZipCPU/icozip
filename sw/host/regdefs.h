@@ -73,6 +73,8 @@
 #define	R_BKRAM         	0x00c00000	// 00c00000, wbregs names: RAM
 #define	R_SRAM          	0x00e00000	// 00e00000, wbregs names: SRAM
 #define	R_FLASH         	0x01000000	// 01000000, wbregs names: FLASH
+#define	R_ZIPCTRL       	0x02000000	// 02000000, wbregs names: CPU
+#define	R_ZIPDATA       	0x02000004	// 02000000, wbregs names: CPUD
 
 
 //

@@ -52,27 +52,54 @@ module	wbutohex(i_clk, i_stb, i_byte, o_stb, o_valid, o_hexbits);
 	output	reg		o_stb, o_valid;
 	output	reg	[5:0]	o_hexbits;
 
+	initial	o_stb = 1'b0;
 	always @(posedge i_clk)
 		o_stb <= i_stb;
 
+	reg	[6:0]	remap	[0:127];
+
+	integer	k;
+	reg	[6:0]	newv;
+
+	always @(*)
+	// initial
+	begin
+		for(k=0; k<128; k=k+1)
+		begin
+			newv = 7'h40;
+			// verilator lint_off WIDTH
+			if ((k >= 48)&&(k <= 57)) // A digit
+			begin
+				newv = k;
+				newv[6:4] = 3'b100;
+			end else if ((k >= 65)&&(k <= 90)) // Upper case
+			begin
+				newv[5:0] = ((k&8'h3f) + 6'h09);// -'A'+10
+				newv[6] = 1'b1;
+			end else if ((k >= 97)&&(k <= 122))
+				newv[5:0] = ((k&8'h3f) + 6'h03);	// -'a'+(10+26)
+			// verilator lint_on WIDTH
+			else if (k == 64) // An '@' sign
+				newv[5:0] = 6'h3e;
+			else if (k == 37) // A '%' sign
+				newv[5:0] = 6'h3f;
+			else
+				newv = 0;
+
+			remap[k] = newv;
+		end
+	end
+		
 	always @(posedge i_clk)
 	begin
-		// These are the defaults, to be overwridden by the ifs below
-		o_valid <= 1'b1;
-		o_hexbits <= 6'h00;
-
-		if ((i_byte >= 8'h30)&&(i_byte <= 8'h39)) // A digit
-			o_hexbits <= { 2'b0, i_byte[3:0] };
-		else if ((i_byte >= 8'h41)&&(i_byte <= 8'h5a)) // Upper case
-			o_hexbits <= (i_byte[5:0] - 6'h01 + 6'h0a);// -'A'+10
-		else if ((i_byte >= 8'h61)&&(i_byte <= 8'h7a))
-			o_hexbits <= (i_byte[5:0] +6'h03);	// -'a'+(10+26)
-		else if (i_byte == 8'h40) // An '@' sign
-			o_hexbits <= 6'h3e;
-		else if (i_byte == 8'h25) // A '%' sign
-			o_hexbits <= 6'h3f;
-		else
-			o_valid <= 1'b0;
+		{ o_valid, o_hexbits } <= remap[i_byte[6:0]];
+		if (i_byte[7])
+			o_valid <= 0;
 	end
+
+
+`ifdef	FORMAL
+// Formal properties for this module are maintained elsewhere
+`endif
 endmodule
 

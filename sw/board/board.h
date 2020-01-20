@@ -61,6 +61,9 @@ typedef struct  CONSOLE_S {
 
 
 
+#define BUSPIC(X) (1<<X)
+
+
 #define	CLKFREQHZ	50000000
 
 
@@ -88,9 +91,6 @@ typedef struct  CONSOLE_S {
 #define	GPIO_LEDG1_CLR	GPIO_CLR(GPIO_LEDG1)
 
 
-#define BUSPIC(X) (1<<X)
-
-
 #ifdef	BUSTIMER_ACCESS
 #define	_BOARD_HAS_BUSTIMER
 static volatile unsigned *const _bustimer = ((unsigned *)0x00200000);
@@ -107,27 +107,27 @@ extern char	_bkram[0x00002000];
 #define	_BOARD_HAS_SRAM
 extern char	_sram[0x00020000];
 #endif	// SRAM_ACCESS
-#define	_BOARD_HAS_BUSERR
-static volatile unsigned *const _buserr = ((unsigned *)0x00a00004);
-#ifdef	PWRCOUNT_ACCESS
-static volatile unsigned *const _pwrcount = ((unsigned *)0x00a00010);
-#endif	// PWRCOUNT_ACCESS
-#ifdef	GPIO_ACCESS
-#define	_BOARD_HAS_GPIO
-static volatile unsigned *const _gpio = ((unsigned *)10485772);
-#endif	// GPIO_ACCESS
-#ifdef	FLASH_ACCESS
-#define	_BOARD_HAS_FLASH
-extern char _flash[0x01000000];
-#endif	// FLASH_ACCESS
-#define	_BOARD_HAS_BUILDTIME
-static volatile unsigned *const _buildtime = ((unsigned *)0x00a00000);
 #ifdef	BUSPIC_ACCESS
 #define	_BOARD_HAS_BUSPIC
 static volatile unsigned *const _buspic = ((unsigned *)0x00a00008);
 #endif	// BUSPIC_ACCESS
+#ifdef	PWRCOUNT_ACCESS
+static volatile unsigned *const _pwrcount = ((unsigned *)0x00a00010);
+#endif	// PWRCOUNT_ACCESS
+#define	_BOARD_HAS_BUSERR
+static volatile unsigned *const _buserr = ((unsigned *)0x00a00004);
+#ifdef	GPIO_ACCESS
+#define	_BOARD_HAS_GPIO
+static volatile unsigned *const _gpio = ((unsigned *)10485772);
+#endif	// GPIO_ACCESS
 #define	_BOARD_HAS_VERSION
 static volatile unsigned *const _version = ((unsigned *)0x00a00014);
+#define	_BOARD_HAS_BUILDTIME
+static volatile unsigned *const _buildtime = ((unsigned *)0x00a00000);
+#ifdef	FLASH_ACCESS
+#define	_BOARD_HAS_FLASH
+extern char _flash[0x01000000];
+#endif	// FLASH_ACCESS
 //
 // Interrupt assignments (2 PICs)
 //

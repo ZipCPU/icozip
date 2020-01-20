@@ -46,6 +46,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
+`default_nettype	none
 //
 module	wbusixchar(i_clk, i_stb, i_bits, o_stb, o_char, o_busy, i_busy);
 	input	wire		i_clk;
@@ -56,29 +57,47 @@ module	wbusixchar(i_clk, i_stb, i_bits, o_stb, o_char, o_busy, i_busy);
 	output	wire		o_busy;
 	input	wire		i_busy;
 
+	initial	o_stb = 1'b0;
+	always @(posedge i_clk)
+	if (!o_stb || !i_busy)
+		o_stb <= i_stb;
+
+	reg	[6:0]	remap	[0:127];
+	reg	[6:0]	newv;
+
+	integer	k;
+	always @(*) begin
+		for(k=0; k<128; k=k+1)
+		begin
+			newv = 0;
+			// verilator lint_off WIDTH
+// `define	BROKEN_CODE
+`ifdef	BROKEN_CODE
+			if (k[6])
+`else
+			if (k >= 64)
+`endif
+				newv = 7'h0a;
+			else if (k <= 6'h09) // A digit, WORKS
+				newv = "0" + { 3'h0, k[3:0] };
+			else if (k[5:0] <= 6'd35) // Upper case
+				newv[6:0] = 7'h41 + { 1'h0, k[5:0] } - 7'd10; // -'A'+10
+			else if (k[5:0] <= 6'd61)
+				newv = 7'h61 + { 1'h0, k[5:0] } - 7'd36;// -'a'+(10+26)
+			// verilator lint_on WIDTH
+			else if (k[5:0] == 6'd62) // An '@' sign
+				newv = 7'h40;
+			else // if (i_char == 6'h63) // A '%' sign
+				newv = 7'h25;
+
+			remap[k] = newv;
+		end
+	end
+
 	initial	o_char = 8'h00;
 	always @(posedge i_clk)
-		if ((i_stb)&&(~o_busy))
-		begin
-			if (i_bits[6])
-				o_char <= 8'h0a;
-			else if (i_bits[5:0] <= 6'h09) // A digit, WORKS
-				o_char <= "0" + { 4'h0, i_bits[3:0] };
-			else if (i_bits[5:0] <= 6'd35) // Upper case
-				o_char <= "A" + { 2'h0, i_bits[5:0] } - 8'd10; // -'A'+10
-			else if (i_bits[5:0] <= 6'd61)
-				o_char <= "a" + { 2'h0, i_bits[5:0] } - 8'd36;// -'a'+(10+26)
-			else if (i_bits[5:0] == 6'd62) // An '@' sign
-				o_char <= 8'h40;
-			else // if (i_char == 6'h63) // A '%' sign
-				o_char <= 8'h25;
-		end
-
-	always @(posedge i_clk)
-		if ((o_stb)&&(~i_busy))
-			o_stb <= 1'b0;
-		else if ((i_stb)&&(~o_stb))
-			o_stb <= 1'b1;
+	if (!o_busy)
+		o_char <= { 1'b0, remap[i_bits] };
 
 	assign	o_busy = o_stb;
 
