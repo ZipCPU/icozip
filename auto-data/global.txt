@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2019, Gisselquist Technology, LLC
+## Copyright (C) 2017-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -42,7 +42,7 @@
 @KEYS.INTLIST= BUS_ADDRESS_WIDTH NADDR NPIC NSCOPES PIC.MAX REGS.N ID
 @DEFAULT.BUS=wb
 @$RESET_ADDRESS=@$flash.BASE+131072
-@REGISTER.BUS=wbu
+@REGISTER.BUS=wb
 @VERILATOR_PREFIX=v
 @REGDEFS.H.INSERT=
 typedef	struct {

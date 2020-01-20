@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2018-2019, Gisselquist Technology, LLC
+## Copyright (C) 2018-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -54,9 +54,7 @@
 				o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso };
 	wbscope #(.LGMEM(7), .SYNCHRONOUS(1), .HOLDOFFBITS(8))
 		@$(PREFIX)i(i_clk, 1'b1, (!o_spi_cs_n), spixpress_debug,
-			i_clk, wb_cyc, (wb_stb)&&(@$(PREFIX)_sel),
-			wb_we, wb_addr[0], wb_data,
-			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data,
+			i_clk, @$(SLAVE.PORTLIST),
 			@$(PREFIX)_int);
 @REGS.N= 1
 @DEVID=SPIXSCOPE

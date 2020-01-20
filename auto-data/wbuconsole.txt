@@ -16,7 +16,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2019, Gisselquist Technology, LLC
+## Copyright (C) 2017-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -92,8 +92,13 @@
 	wire	[0:0]	wbubus_dbg;
 	wire		pp_rx_stb,  pp_tx_stb,  pp_tx_busy;
 	wire	[7:0]	pp_rx_data, pp_tx_data;
+	wire	[31:0]	@$(SLAVE.PREFIX)_tmp_addr;
 `ifndef	INCLUDE_ZIPCPU
-	wire		zip_dbg_ack, zip_dbg_stall;
+	//
+	// The bus-console depends upon the zip_dbg wires.  If there is no
+	// ZipCPU defining them, we'll need to define them here anyway.
+	//
+	wire		zip_dbg_stall, zip_dbg_ack;
 	wire	[31:0]	zip_dbg_data;
 `endif
 @$ZIP_ADDRESS_BIT=@$BUS_ADDRESS_WIDTH-1
@@ -118,10 +123,10 @@
 	wire	w_bus_int;
 	assign	w_bus_int = 1'b0;
 `endif
-	wire	[31:0]	wbu_tmp_addr;
 	wbuconsole genbus(@$(CLOCK.WIRE), pp_rx_stb, pp_rx_data,
-			wbu_cyc, wbu_stb, wbu_we, wbu_tmp_addr, wbu_data,
-			wbu_ack, wbu_stall, wbu_err, wbu_idata,
+			@$(MASTER.PREFIX)_cyc, @$(MASTER.PREFIX)_stb, @$(MASTER.PREFIX)_we, @$(MASTER.PREFIX)_tmp_addr, @$(MASTER.PREFIX)_data,
+			@$(MASTER.PREFIX)_stall, @$(MASTER.PREFIX)_ack,
+			@$(MASTER.PREFIX)_idata, @$(MASTER.PREFIX)_err,
 			w_bus_int,
 			pp_tx_stb, pp_tx_data, pp_tx_busy,
 			//
@@ -129,8 +134,8 @@
 			w_console_rx_stb, w_console_rx_data,
 			//
 			wbubus_dbg[0]);
-	assign	wbu_sel = 4'hf;
-	assign	wbu_addr = wbu_tmp_addr[(@$BUS_ADDRESS_WIDTH-1):0];
+	assign	@$(MASTER.PREFIX)_sel = 4'hf;
+	assign	@$(MASTER.PREFIX)_addr = @$(MASTER.PREFIX)_tmp_addr[(@$BUS_ADDRESS_WIDTH-1):0];
 @REGDEFS.H.DEFNS=
 #define	R_ZIPCTRL	@$.ZIP_ADDRESS
 #define	R_ZIPDATA	@$.ZIP_DBGDATA
@@ -141,7 +146,7 @@
 	DBLUARTSIM	*m_@$(PREFIX);
 @SIM.INIT=
 		m_@$(PREFIX) = new DBLUARTSIM();
-		m_@$(PREFIX)->setup(@$(CSETUP));
+		m_@$(PREFIX)->setup(@$[%d](CSETUP));
 @SIM.TICK=
 		m_core->i_@$(PREFIX)_uart_rx = (*m_@$(PREFIX))(m_core->o_@$(PREFIX)_uart_tx);
 #
@@ -164,13 +169,11 @@
 @INT.UARTTXF.PIC= buspic
 @MAIN.DEFNS=
 	// Console definitions
-	wire	w_console_rx_stb, w_console_tx_stb, w_console_busy;
+	wire		w_console_rx_stb, w_console_tx_stb, w_console_busy;
 	wire	[6:0]	w_console_rx_data, w_console_tx_data;
 @MAIN.INSERT=
 	wbconsole console(@$(SLAVE.BUS.CLOCK.WIRE), 1'b0,
- 			wb_cyc, (wb_stb)&&(@$(PREFIX)_sel), wb_we,
-				wb_addr[1:0], wb_data,
- 			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data,
+			@$(SLAVE.PORTLIST),
 			w_console_tx_stb, w_console_tx_data, w_console_busy,
 			w_console_rx_stb, w_console_rx_data,
 			uartrx_int, uarttx_int, uartrxf_int, uarttxf_int);

@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
+// Copyright (C) 2015-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -39,7 +39,7 @@
 //
 module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 			i_wb_sel,
-		o_wb_ack, o_wb_stall, o_wb_data,
+		o_wb_stall, o_wb_ack, o_wb_data,
 		o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr, o_ram_data,
 		o_ram_sel, i_ram_data);
 	parameter	WBADDR = 15;
@@ -51,7 +51,7 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 	input	wire	[31:0]		i_wb_data;
 	input	wire	[3:0]		i_wb_sel;
 	//  and outputs
-	output	reg			o_wb_ack, o_wb_stall;
+	output	reg			o_wb_stall, o_wb_ack;
 	output	reg	[31:0]		o_wb_data;
 	// RAM control wires
 	output	reg			o_ram_ce_n, o_ram_oe_n, o_ram_we_n;

@@ -14,7 +14,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2019, Gisselquist Technology, LLC
+## Copyright (C) 2017-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -47,8 +47,11 @@
 @DBGBUS=hb
 @DBGPFX=zip_dbg
 @MASTER.TYPE=CPU
-@MASTER.BUS=zip
-@BUS.NAME=zip
+@MASTER.BUS=wb
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=hb
+@NADDR=2
+@BUS.NAME=wb
 @BUS.WIDTH=32
 @BUS.CLOCK=clk
 @$RESET_ADDRESS=@$flash.REGBASE+131072
@@ -90,15 +93,17 @@
 			.START_HALTED(ZIP_START_HALTED))
 		swic(i_clk, (cpu_reset),
 			// Zippys wishbone interface
-			zip_cyc, zip_stb, zip_we, zip_addr, zip_data, zip_sel,
-					zip_ack, zip_stall, zip_idata, zip_err,
+			@$(MASTER.PORTLIST),
+			// zip_cyc, zip_stb, zip_we, zip_addr, zip_data, zip_sel,
+			//		zip_ack, zip_stall, zip_idata, zip_err,
 			w_bus_int, zip_cpu_int,
 			// Debug wishbone interface
-			(@$(DBGBUS)_cyc), ((@$(DBGBUS)_stb)&&(@$(DBGPFX)_sel)),@$(DBGBUS)_we,
-			@$(DBGBUS)_addr[0],
-			@$(DBGBUS)_data, @$(DBGPFX)_ack, @$(DBGPFX)_stall, @$(DBGPFX)_data,
+			@$(SLAVE.PORTLIST),
 			zip_debug);
-	assign	zip_trigger = zip_debug[0];
+	assign	zip_trigger = zip_debug[31];
+@REGS.N=2
+@REGS.0=0 R_ZIPCTRL  CPU
+@REGS.1=1 R_ZIPDATA CPUD
 @BDEF.INCLUDE=
 #include <design.h>
 #include <cpudefs.h>
@@ -205,7 +210,7 @@
 	}
 
 	void dump(const uint32_t *regp) {
-		uint32_t	uccv, iccv;
+		uint32_t	uccv, iccv, ipc, upc;
 		fflush(stderr);
 		fflush(stdout);
 		printf("ZIPM--DUMP: ");
@@ -217,6 +222,8 @@
 
 		iccv = m_core->cpu_iflags;
 		uccv = m_core->cpu_uflags;
+		ipc = m_core->cpu_ipc;
+		upc = m_core->cpu_upc;
 
 		printf("sR0 : %08x ", regp[0]);
 		printf("sR1 : %08x ", regp[1]);
@@ -233,7 +240,7 @@
 		printf("sR12: %08x ", regp[12]);
 		printf("sSP : %08x ", regp[13]);
 		printf("sCC : %08x ", iccv);
-		printf("sPC : %08x\n",regp[15]);
+		printf("sPC : %08x\n",ipc);
 
 		printf("\n");
 
@@ -252,7 +259,7 @@
 		printf("uR12: %08x ", regp[28]);
 		printf("uSP : %08x ", regp[29]);
 		printf("uCC : %08x ", uccv);
-		printf("uPC : %08x\n",regp[31]);
+		printf("uPC : %08x\n",upc);
 		printf("\n");
 		fflush(stderr);
 		fflush(stdout);
@@ -348,12 +355,11 @@
 		} fflush(stdout);
 	}
 #endif // @$(ACCESS)
+@SIM.CLOCK=clk
 @SIM.TICK=
 #ifdef	@$(ACCESS)
 		// ZipCPU Sim instruction support
-		if ((m_core->cpu_op_sim)
-			&&(m_core->cpu_op_valid)
-			&&(m_core->cpu_alu_ce)
+		if ((m_core->cpu_sim)
 			&&(!m_core->cpu_new_pc)) {
 			//
 			execsim(m_core->cpu_sim_immv);
@@ -369,18 +375,18 @@
 		}
 #endif	// @$(ACCESS)
 
-#
-#
-#
+##
+##
+##
 @RTL.MAKE.GROUP=ZIPCPU
 @RTL.MAKE.FILES= zipcpu.v cpuops.v dblfetch.v prefetch.v memops.v
 		idecode.v ziptimer.v 
 		wbpriarbiter.v zipbones.v busdelay.v cpudefs.v icontrol.v
 		div.v mpyop.v slowmpy.v wbdblpriarb.v
 @RTL.MAKE.SUBD= cpu
-#
-#
-#
+##
+##
+##
 @PREFIX=bustimer
 @DEVID=BUSTIMER
 @ACCESS=@$(DEVID)_ACCESS
@@ -390,9 +396,8 @@
 @MAIN.INSERT=
 	ziptimer #(.VW(16))
 		@$(PREFIX)i(i_clk, i_reset, 1'b1,
-			wb_cyc, (wb_stb)&&(@$(PREFIX)_sel), wb_we, wb_data,
-				@$(PREFIX)_ack, @$(PREFIX)_stall,
-				@$(PREFIX)_data, @$(PREFIX)_int);
+			@$(SLAVE.PORTLIST),
+			@$(PREFIX)_int);
 @INT.BUSTIMER.WIRE= @$(PREFIX)_int
 @INT.BUSTIMER.PIC= buspic
 @REGS.NOTE= // The bus timer
@@ -422,9 +427,8 @@
 @MAIN.INSERT=
 	ziptimer #(.VW(16), .RELOADABLE(0))
 		@$(PREFIX)i(i_clk, i_reset, 1'b1,
-			wb_cyc, (wb_stb)&&(@$(PREFIX)_sel), wb_we, wb_data,
-				@$(PREFIX)_ack, @$(PREFIX)_stall,
-				@$(PREFIX)_data, watchdog_reset);
+			@$(SLAVE.PORTLIST),
+			watchdog_reset);
 
 	assign	design_reset = i_reset;
 @BDEFS.IONAME=_@$(PREFIX)
@@ -434,14 +438,14 @@
 #
 #
 #
-@PREFIX=zip_dbg
-@SLAVE.TYPE=OTHER
-@SLAVE.BUS=hb
-@SLAVE.ORDER=1000000
-@NADDR=2
-@REGS.N=2
-@REGS.0=0 R_ZIPCTRL  CPU
-@REGS.1=1 R_ZIPDATA CPUD
+## @PREFIX=zip_dbg
+## @SLAVE.TYPE=OTHER
+## @SLAVE.BUS=hb
+## @SLAVE.ORDER=1000000
+## @NADDR=2
+## @REGS.N=2
+## @REGS.0=0 R_ZIPCTRL  CPU
+## @REGS.1=1 R_ZIPDATA CPUD
 #
 #
 @PREFIX=cpu_reset

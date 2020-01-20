@@ -14,7 +14,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2019, Gisselquist Technology, LLC
+## Copyright (C) 2016-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -63,7 +63,7 @@ print <<"EOM";
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017-2019, Gisselquist Technology, LLC
+// Copyright (C) 2017-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -87,8 +87,11 @@ print <<"EOM";
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
+`ifndef	DATESTAMP
 EOM
 
 print "`define DATESTAMP 32\'h";
 printf("%04d%02d%02d\n", $nyr, $nmo, $ndy);
-
+print "`define BUILDTIME 32\'h";
+printf("%04d%02d%02d\n", $nhr, $mn, $sc);
+printf("`endif\n//\n");

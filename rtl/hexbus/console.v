@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
+// Copyright (C) 2015-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -44,8 +44,8 @@
 `define	CONSOLE_TXREG	2'b11
 module	console(i_clk, i_reset,
 		//
-		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
-			o_wb_ack, o_wb_stall, o_wb_data,
+		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data, i_wb_sel,
+			o_wb_stall, o_wb_ack, o_wb_data,
 		//
 		o_console_stb, o_console_data, i_console_busy,
 		i_console_stb, i_console_data,
@@ -67,6 +67,7 @@ module	console(i_clk, i_reset,
 	input	wire		i_wb_cyc, i_wb_stb, i_wb_we;
 	input	wire	[1:0]	i_wb_addr;
 	input	wire	[31:0]	i_wb_data;
+	input	wire	[3:0]	i_wb_sel;
 	output	reg		o_wb_ack;
 	output	wire		o_wb_stall;
 	output	reg	[31:0]	o_wb_data;
@@ -376,8 +377,8 @@ module	console(i_clk, i_reset,
 
 	// Make verilator happy
 	// verilator lint_off UNUSED
-	wire	[19+5-1:0]	unused;
-	assign	unused = { i_wb_data[31:13], i_wb_data[11:7] };
+	wire	unused;
+	assign	unused = &{ 1'b0, i_wb_data[31:13], i_wb_data[11:7], i_wb_sel };
 	// verilator lint_on UNUSED
 `ifdef	FORMAL
 	reg	f_past_valid;

@@ -18,7 +18,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
+// Copyright (C) 2015-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -46,7 +46,7 @@
 //
 module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 		o_wb_cyc, o_wb_stb, o_wb_we, o_wb_addr, o_wb_data, o_wb_sel,
-		i_wb_ack, i_wb_stall, i_wb_err, i_wb_data,
+		i_wb_stall, i_wb_ack, i_wb_err, i_wb_data,
 		i_interrupt,
 		o_tx_stb, o_tx_data, i_tx_busy,
 		i_console_stb, i_console_data, o_console_busy,
@@ -61,7 +61,7 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 	output	wire	[29:0]	o_wb_addr;
 	output	wire	[31:0]	o_wb_data;
 	output	wire	[3:0]	o_wb_sel;
-	input	wire		i_wb_ack, i_wb_stall, i_wb_err;
+	input	wire		i_wb_stall, i_wb_ack, i_wb_err;
 	input	wire	[31:0]	i_wb_data;
 	input	wire		i_interrupt;
 	output	wire		o_tx_stb;

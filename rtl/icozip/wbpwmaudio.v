@@ -55,7 +55,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
+// Copyright (C) 2015-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -83,8 +83,8 @@
 //
 module	wbpwmaudio(i_clk, i_reset,
 		// Wishbone interface
-		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
-			o_wb_ack, o_wb_stall, o_wb_data,
+		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data, i_wb_sel,
+			o_wb_stall, o_wb_ack, o_wb_data,
 		o_pwm, o_aux, o_int);
 	parameter	DEFAULT_RELOAD = 16'd1814, // about 44.1 kHz @  80MHz
 			//DEFAULT_RELOAD = 16'd2268,//about 44.1 kHz @ 100MHz
@@ -95,6 +95,7 @@ module	wbpwmaudio(i_clk, i_reset,
 	input	wire		i_wb_cyc, i_wb_stb, i_wb_we;
 	input	wire		i_wb_addr;
 	input	wire	[31:0]	i_wb_data;
+	input	wire	[3:0]	i_wb_sel;
 	output	reg		o_wb_ack;
 	output	wire		o_wb_stall;
 	output	wire	[31:0]	o_wb_data;
@@ -246,8 +247,9 @@ module	wbpwmaudio(i_clk, i_reset,
 	// V*rilator that we already know these bits aren't being used.
 	//
 	// verilator lint_off UNUSED
-	wire	[14:0] unused;
-	assign	unused = { i_wb_cyc, i_wb_data[31:21], i_wb_data[19:17] };
+	wire	unused;
+	assign	unused = &{ 1'b0, i_wb_cyc, i_wb_data[31:21], i_wb_data[19:17],
+			i_wb_sel };
 	// verilator lint_on  UNUSED
 
 endmodule

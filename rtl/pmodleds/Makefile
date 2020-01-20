@@ -13,7 +13,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2019, Gisselquist Technology, LLC
+## Copyright (C) 2016-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -38,17 +38,19 @@
 ##
 ##
 all: ledbouncer	ledwalker
+CLKFREQ := 100
+PNR := nextpnr-ice40 --hx8k -r --freq $(CLKFREQ) --package ct256
 
 # GNU Make automatic variables (since I can never remember these ...)
 # $@	- name of the target
 # $<	- Name of the first prerequisite
 # $^	- Names of all the prerequisites
-%.blif: %.v
-	yosys -p 'synth_ice40 -blif $@' $<
-%.asc: %.blif %.pcf
-	arachne-pnr -d 8k -p $*.pcf -o $@ $<
+%.json: %.v
+	yosys -ql $*.yslog -p 'synth_ice40 -top $* -json $@' $<
+%.asc: %.json %.pcf
+	$(PNR) --pcf $*.pcf --json $*.json --asc $@ |& tee $*.pnrlog
 %.bin: %.asc
-	icetime -d hx8k -c 100 $<
+	icetime -d hx8k -c $(CLKFREQ) $<
 	icepack $< $@
 
 .PHONY: bouncer walker ledbouncer ledwalker
@@ -62,6 +64,6 @@ load: ledwalker.bin
 	echo "Type/run sudo icoprog -p < ledwalker.bin" # Needs sudo
 
 clean:
-	rm -f *.blif *.asc *.bin
+	rm -f *.blif *.json *.asc *.bin
 	# rm -rf obj_dir
 

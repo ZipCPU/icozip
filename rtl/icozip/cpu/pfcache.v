@@ -35,7 +35,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
+// Copyright (C) 2015-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -65,12 +65,11 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 			// i_early_branch, i_from_addr,
 			i_stall_n, i_pc, o_insn, o_pc, o_valid,
 		o_wb_cyc, o_wb_stb, o_wb_we, o_wb_addr, o_wb_data,
-			i_wb_ack, i_wb_stall, i_wb_err, i_wb_data,
+			i_wb_stall, i_wb_ack, i_wb_err, i_wb_data,
 			o_illegal
 		);
 	parameter	LGCACHELEN = 8, ADDRESS_WIDTH=24,
 			LGLINES=5; // Log of the number of separate cache lines
-	parameter [0:0]	F_OPT_CLK2FFLOGIC = 1'b0;
 	localparam	CACHELEN=(1<<LGCACHELEN); //Wrd Size of our cache memory
 	localparam	CW=LGCACHELEN;	// Short hand for LGCACHELEN
 	localparam	LS=LGCACHELEN-LGLINES; // Size of a cache line
@@ -94,7 +93,7 @@ module	pfcache(i_clk, i_reset, i_new_pc, i_clear_cache,
 	output	reg	[(AW-1):0]	o_wb_addr;
 	output	wire	[(BUSW-1):0]	o_wb_data;
 	//
-	input	wire			i_wb_ack, i_wb_stall, i_wb_err;
+	input	wire			i_wb_stall, i_wb_ack, i_wb_err;
 	input	wire	[(BUSW-1):0]	i_wb_data;
 	//
 	// o_illegal will be true if this instruction was the result of a

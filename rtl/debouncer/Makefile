@@ -37,9 +37,8 @@
 ##
 ##
 all: testbus
-# ARACHNEPNR := arachne-pnr
 YOSYS      := yosys
-ARACHNEPNR := /home/dan/work/rnd/opencores/icozip/arachne-pnr/bin/arachne-pnr
+NEXTPNR    := nextpnr-ice40 --hx8k -r --package ct256
 ICEPACK    := icepack
 ICETIME    := icetime
 
@@ -47,10 +46,10 @@ ICETIME    := icetime
 # $@	- name of the target
 # $<	- Name of the first prerequisite
 # $^	- Names of all the prerequisites
-%.blif: %.v
-	$(YOSYS) -p 'synth_ice40 -blif $@' $<
-%.asc: %.blif %.pcf
-	$(ARACHNEPNR) -d 8k -p $*.pcf -o $@ $<
+%.json: %.v
+	$(YOSYS) -p 'synth_ice40 -json $@' $<
+%.asc: %.json %.pcf
+	$(NEXTPNR) --freq 80 --pcf $*.pcf --json $*.json --asc $@
 %.bin: %.asc
 	$(ICETIME) -d hx8k -c 80 $<
 	$(ICEPACK) $< $@
@@ -60,16 +59,16 @@ HEXSRCS := hbbus.v hbdechex.v hbdeword.v hbexec.v hbgenhex.v hbidle.v hbints.v h
 PSRCS := $(addprefix ../pport/,$(PPSRCS))
 HSRCS := $(addprefix ../hexbus/,$(HEXSRCS))
 VSRCS :=  testbus.v debouncer.v unbounced.v wbscopc.v # wbscope.v
-testbus.blif: $(VSRCS) $(HSRCS)
-	$(YOSYS) -p 'synth_ice40 -blif $@ -top testbus' $(VSRCS) $(HSRCS) $(PSRCS) | tee log.txt
-testbus.asc: testbus.blif debouncer.pcf
-	$(ARACHNEPNR) -d 8k -p debouncer.pcf -o $@ $< | tee -a log.txt
+testbus.json: $(VSRCS) $(HSRCS)
+	$(YOSYS) -p 'synth_ice40 -json $@ -top testbus' $(VSRCS) $(HSRCS) $(PSRCS) | tee log.txt
+testbus.asc: testbus.json debouncer.pcf
+	$(NEXTPNR) --freq 80 --pcf debouncer.pcf --json testbus.json --asc $@
 
 
 .PHONY: testbus
 testbus: testbus.bin
 
 clean:
-	rm -f *.blif *.asc *.bin
+	rm -f *.blif *.asc *.json *.bin
 	rm -rf obj_dir
 

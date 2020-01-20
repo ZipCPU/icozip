@@ -16,7 +16,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2019, Gisselquist Technology, LLC
+## Copyright (C) 2017-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -113,15 +113,15 @@
 `endif
 	wire	[29:0]	@$(PREFIX)_tmp_addr;
 	hbconsole genbus(@$(CLOCK.WIRE), pp_rx_stb, pp_rx_data,
-			@$(PREFIX)_cyc, @$(PREFIX)_stb, @$(PREFIX)_we, @$(PREFIX)_tmp_addr, @$(PREFIX)_data, @$(PREFIX)_sel,
-			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_err, @$(PREFIX)_idata,
+			@$(MASTER.PREFIX)_cyc, @$(MASTER.PREFIX)_stb, @$(MASTER.PREFIX)_we, @$(PREFIX)_tmp_addr, @$(MASTER.PREFIX)_data, @$(MASTER.PREFIX)_sel,
+			@$(MASTER.PREFIX)_stall, @$(MASTER.PREFIX)_ack, @$(MASTER.PREFIX)_err, @$(MASTER.PREFIX)_idata,
 			w_bus_int,
 			pp_tx_stb, pp_tx_data, pp_tx_busy,
 			//
 			w_console_tx_stb, w_console_tx_data, w_console_busy,
 			w_console_rx_stb, w_console_rx_data);
-	assign	@$(PREFIX)_sel = 4'hf;
-	assign	@$(PREFIX)_addr= @$(PREFIX)_tmp_addr[(@$BUS_ADDRESS_WIDTH-1):0];
+	assign	@$(MASTER.PREFIX)_sel = 4'hf;
+	assign	@$(MASTER.PREFIX)_addr= @$(PREFIX)_tmp_addr[(@$BUS_ADDRESS_WIDTH-1):0];
 @REGDEFS.H.DEFNS=
 #define	R_ZIPCTRL	@$.ZIP_ADDRESS
 #define	R_ZIPDATA	@$.ZIP_DBGDATA
@@ -133,6 +133,7 @@
 	PPORTSIM	*m_@$(PREFIX);
 @SIM.INIT=
 		m_@$(PREFIX) = new PPORTSIM(FPGAPORT, true);
+@SIM.CLOCK=clk
 @SIM.TICK=
 		int	pp_clk = m_core->i_pp_clk,
 			pp_dir = m_core->i_pp_dir;
@@ -165,9 +166,7 @@
 	wire	[6:0]	w_console_rx_data, w_console_tx_data;
 @MAIN.INSERT=
 	console @$(PREFIX)i(@$(SLAVE.BUS.CLOCK.WIRE), 1'b0,
- 			wb_cyc, (wb_stb)&&(@$(PREFIX)_sel), wb_we,
-				wb_addr[1:0], wb_data,
- 			@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data,
+			@$(SLAVE.PORTLIST),
 			w_console_tx_stb, w_console_tx_data, w_console_busy,
 			w_console_rx_stb, w_console_rx_data,
 			uartrx_int, uarttx_int, uartrxf_int, uarttxf_int,
@@ -201,3 +200,20 @@ typedef struct  CONSOLE_S {
 @RTL.MAKE.GROUP= PPORT
 @RTL.MAKE.SUBD=../pport
 @RTL.MAKE.FILES= ppio.v pport.v ufifo.v
+
+@PREFIX=hbarb
+@MASTER.BUS=wb
+@MASTER.TYPE=ARBITER
+@SLAVE.BUS=hb
+@SLAVE.TYPE=OTHER
+@MAIN.INSERT=
+	assign	@$(MASTER.PREFIX)_cyc  = @$(SLAVE.PREFIX)_cyc;
+	assign	@$(MASTER.PREFIX)_stb  = @$(SLAVE.PREFIX)_stb;
+	assign	@$(MASTER.PREFIX)_we   = @$(SLAVE.PREFIX)_we;
+	assign	@$(MASTER.PREFIX)_addr = @$(SLAVE.PREFIX)_addr[@$(MASTER.BUS.AWID)-1:0];
+	assign	@$(MASTER.PREFIX)_data = @$(SLAVE.PREFIX)_data;
+	assign	@$(MASTER.PREFIX)_sel  = @$(SLAVE.PREFIX)_sel;
+	assign	@$(SLAVE.PREFIX)_stall = @$(MASTER.PREFIX)_stall;
+	assign	@$(SLAVE.PREFIX)_ack   = @$(MASTER.PREFIX)_ack;
+	assign	@$(SLAVE.PREFIX)_idata = @$(MASTER.PREFIX)_idata;
+	assign	@$(SLAVE.PREFIX)_err   = @$(MASTER.PREFIX)_err;

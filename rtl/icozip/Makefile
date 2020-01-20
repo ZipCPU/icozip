@@ -12,7 +12,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2015-2019, Gisselquist Technology, LLC
+## Copyright (C) 2015-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -49,7 +49,7 @@ VERILATOR := verilator
 # VERILATOR := VERILATOR_ROOT=/home/dan/tmp/verilator.git /home/dan/tmp/verilator.git/bin/verilator
 # toplevel.v rxuart.v txuart.v
 # rtcdate.v wbubus.v
-ICOSRCS := toplevel.v main.v $(WBUBUS) $(PPBUS) $(PPORT) cpu/icontrol.v memdev.v ufifo.v
+ICOSRCS := toplevel.v main.v $(WBUBUS) $(PPBUS) $(PPORT) cpu/icontrol.v memdev.v ufifo.v wbxbar.v addrdecode.v skidbuffer.v
 
 #
 # Verilator build from the main level.  This is not the toplevel verilog
@@ -104,16 +104,16 @@ $(VDIRFB)/V%__ALL.a: $(VDIRFB)/V%.mk
 bin: icozip.bin
 #
 #
-icozip.json: toplevel.v $(VFLIST)
-	@echo yosys -ql yosys.log -p 'synth_ice40 -blif icozip.blif -top toplevel' ...
-	@yosys -ql yosys.log -p 'synth_ice40 -blif icozip.blif -json icozip.json -top toplevel' $^
+icozip.json: toplevel.v wbxbar.v addrdecode.v skidbuffer.v $(VFLIST)
+	@echo yosys -ql yosys.log -p 'synth_ice40 -top toplevel' ...
+	@yosys -ql yosys.log -p 'synth_ice40 -json icozip.json -top toplevel' $^
 
 .PHONY: yosys
 yosys: icozip.blif
 
 icozip.asc: $(PCFFILE) icozip.json
 	# arachne-pnr -d 8k -r -P ct256 -p $(PCFFILE) icozip.blif -o $@
-	nextpnr-ice40 --hx8k -r --freq 50 --package ct256 --pcf $(PCFFILE) --json icozip.json --asc icozip.asc
+	nextpnr-ice40 --hx8k -r --freq 50 --package ct256 --pcf $(PCFFILE) --json icozip.json --asc icozip.asc --no-promote-globals
 
 .PHONY: arachne
 arachne: icozip.asc

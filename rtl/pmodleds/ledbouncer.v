@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
+// Copyright (C) 2015-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -39,8 +39,8 @@
 `default_nettype	none
 //
 module	ledbouncer(i_clk, o_led);
-	parameter	NLEDS=8, CTRBITS=25, NPWM = 9;
-	input	wire		i_clk;
+	parameter			NLEDS=8, CTRBITS=25, NPWM = 7;
+	input	wire			i_clk;
 	output	reg	[(NLEDS-1):0]	o_led;
 
 	reg	[(NLEDS-1):0]	led_owner;
@@ -56,51 +56,64 @@ module	ledbouncer(i_clk, o_led);
 
 	initial	led_owner = { {(NLEDS-1){1'b0}}, 1'b1};
 	always @(posedge i_clk)
-		if (led_owner == 0)
-		begin
-			led_owner <= { {(NLEDS-1){1'b0}}, 1'b1 };
-			led_dir   <= 1'b1; // Left, or shift up
-		end else if ((led_clk)&&(led_dir)) // Go left
-		begin
-			if (led_owner == { 1'b1, {(NLEDS-1){1'b0}} })
-				led_dir <= !led_dir;
-			else
-				led_owner <= { led_owner[(NLEDS-2):0], 1'b0 };
-		end else if (led_clk) begin
-			if (led_owner == { {(NLEDS-1){1'b0}}, 1'b1 })
-				led_dir <= !led_dir;
-			else
-				led_owner <= { 1'b0, led_owner[(NLEDS-1):1] };
-		end
+	if (led_owner == 0)
+	begin
+		led_owner <= { {(NLEDS-1){1'b0}}, 1'b1 };
+		led_dir   <= 1'b1; // Left, or shift up
+	end else if ((led_clk)&&(led_dir)) // Go left
+	begin
+		if (led_owner == { 1'b1, {(NLEDS-1){1'b0}} })
+			led_dir <= !led_dir;
+		else
+			led_owner <= { led_owner[(NLEDS-2):0], 1'b0 };
+	end else if (led_clk) begin
+		if (led_owner == { {(NLEDS-1){1'b0}}, 1'b1 })
+			led_dir <= !led_dir;
+		else
+			led_owner <= { 1'b0, led_owner[(NLEDS-1):1] };
+	end
 
 	genvar	k;
 	generate for(k=0; k<(NLEDS); k=k+1)
 		always@(posedge i_clk)
-			if (led_clk)
-			begin
-				if (led_owner[k])
-					led_pwm[k] <= 9'h1ff;
-				else if (led_pwm[k] > 9'h04)
-					led_pwm[k] <= 9'h04;
-				else if (led_pwm[k] > 9'h03)
-					led_pwm[k] <= 9'h03;
-				else if (led_pwm[k] > 9'h02)
-					led_pwm[k] <= 9'h02;
-				else if (led_pwm[k] > 9'h01)
-					led_pwm[k] <= 9'h01;
-				else
-					led_pwm[k] <= 9'h00;
-			end
+		if (led_clk)
+		begin
+			if (led_owner[k])
+				led_pwm[k] <= 7'h7f;
+			else if (led_pwm[k] > 7'h04)
+				led_pwm[k] <= 7'h04;
+			else if (led_pwm[k] > 0)
+				led_pwm[k] <= led_pwm[k] - 1;
+		/*
+			else if (led_pwm[k] > 9'h03)
+				led_pwm[k] <= 9'h03;
+			else if (led_pwm[k] > 9'h02)
+				led_pwm[k] <= 9'h02;
+			else if (led_pwm[k] > 9'h01)
+				led_pwm[k] <= 9'h01;
+			else
+				led_pwm[k] <= 9'h00;
+		*/
+		end
 	endgenerate
 
-	assign	br_ctr = { led_ctr[0], led_ctr[1], led_ctr[2], led_ctr[3], 
-			led_ctr[4] };
+	generate for(k=0; k<NPWM; k=k+1)
+	begin : BIT_REVERSE_LED_COUNTER
+
+		assign	br_ctr[k] = led_ctr[NPWM-1-k];
+
+	end endgenerate
 
 	generate for(k=0; k<(NLEDS); k=k+1)
+
+		initial	o_led[k] = 0;
 		always @(posedge i_clk)
-			o_led[k] <= (&led_pwm[k])? 1'b1
-				:((led_pwm[k] == 0) ? 1'b0
-				: (br_ctr[(NPWM-1):0]<=led_pwm[k]));
+		if (&led_pwm[k])
+			o_led[k] <= 1'b1;
+		else if (led_pwm[k] == 0)
+			o_led[k] <= 1'b0;
+		else
+			o_led[k] <= (br_ctr[(NPWM-1):0]<=led_pwm[k]);
 	endgenerate
 
 endmodule

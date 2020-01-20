@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2019, Gisselquist Technology, LLC
+## Copyright (C) 2017-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -44,10 +44,7 @@
 @MAIN.INSERT=
 	wbpwmaudio #(.DEFAULT_RELOAD(16'd1042),.VARIABLE_RATE(0))
 		@$(PREFIX)i(i_clk, 1'b0,
-			(wb_cyc), (wb_stb)&&(@$(PREFIX)_sel), wb_we,
-				wb_addr[1:0], wb_data,
-				@$(PREFIX)_ack, @$(PREFIX)_stall,
-				@$(PREFIX)_data,
+			@$(SLAVE.PORTLIST),
 			o_@$(PREFIX),
 			{ o_@$(PREFIX)_gain, o_@$(PREFIX)_shutdown_n },
 			@$(PREFIX)_int);

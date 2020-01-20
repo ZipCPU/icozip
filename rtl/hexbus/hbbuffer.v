@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018-2019, Gisselquist Technology, LLC
+// Copyright (C) 2018-2020, Gisselquist Technology, LLC
 //
 // This file is part of the hexbus debugging interface.
 //

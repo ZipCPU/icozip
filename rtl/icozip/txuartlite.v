@@ -25,7 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
+// Copyright (C) 2015-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -221,5 +221,6 @@ module txuartlite(i_clk, i_wr, i_data, o_uart_tx, o_busy);
 		else
 			baud_counter <= CLOCKS_PER_BAUD - 1'b1;
 	end
+	// }}}
 endmodule
 

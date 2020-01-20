@@ -49,7 +49,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018-2019, Gisselquist Technology, LLC
+// Copyright (C) 2018-2020, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -76,8 +76,10 @@
 `default_nettype	none
 //
 module	spixpress(i_clk, i_reset,
-		i_wb_cyc, i_wb_stb, i_cfg_stb, i_wb_we, i_wb_addr, i_wb_data,
+		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data, i_wb_sel,
 			o_wb_stall, o_wb_ack, o_wb_data,
+		i_cfg_cyc, i_cfg_stb, i_cfg_we, i_cfg_data, i_cfg_sel,
+			o_cfg_stall, o_cfg_ack, o_cfg_data,
 		o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso);
 	//
 	// OPT_PIPE allows successive, sequential, transactions to
@@ -96,35 +98,100 @@ module	spixpress(i_clk, i_reset,
 	// programming or reading the one-time-programmable memory or more.
 	parameter [0:0]	OPT_CFG  = 1'b1;
 	//
+	parameter	AW = 24 - 2;
+	parameter	DW = 32;
+	//
 	input	wire		i_clk, i_reset;
 	//
-	input	wire		i_wb_cyc, i_wb_stb, i_cfg_stb, i_wb_we;
-	input	wire	[21:0]	i_wb_addr;
-	input	wire	[31:0]	i_wb_data;
+	input	wire		i_wb_cyc, i_wb_stb, i_wb_we;
+	input	wire [AW-1:0]	i_wb_addr;
+	input	wire [DW-1:0]	i_wb_data;
+	input	wire [DW/8-1:0]	i_wb_sel;
 	output	reg		o_wb_stall, o_wb_ack;
-	output	reg	[31:0]	o_wb_data;
+	output	reg [DW-1:0]	o_wb_data;
+	//
+	input	wire		i_cfg_cyc, i_cfg_stb, i_cfg_we;
+	input	wire [DW-1:0]	i_cfg_data;
+	input	wire [DW/8-1:0]	i_cfg_sel;
+	output	reg		o_cfg_stall, o_cfg_ack;
+	output	reg [DW-1:0]	o_cfg_data;
 	//
 	output	reg		o_spi_cs_n, o_spi_sck, o_spi_mosi;
 	input	wire		i_spi_miso;
 	//
 	//
 
+	//
+	// Arbitrated bus registers and inputs
+	//
+	wire		bus_cyc, bus_stb, bus_we, ign_wb_err, ign_cfg_err;
+	wire	[AW-1:0] bus_addr;
+	wire [DW-1:0]	bus_data;
+	wire [DW/8-1:0]	bus_sel;
+	reg		bus_stall, bus_ack;
+	wire		cfg_bus_stb, mem_bus_stb;
+
+	generate if (OPT_CFG)
+	begin : ARBITER
+		wire	cfg_bus_grant;
+		//
+		// Memory vs Configuration bus arbiter
+		//
+		wbarbiter #(.DW(DW), .AW(AW+1), .SCHEME("PRIORITY"),
+			.F_MAX_STALL(0), .F_MAX_ACK_DELAY(0))
+		arbiter(i_clk, i_reset,
+			i_wb_cyc, i_wb_stb, i_wb_we, { 1'b0, i_wb_addr },
+				i_wb_data, i_wb_sel,
+				o_wb_stall, o_wb_ack, ign_wb_err,
+			i_cfg_cyc, i_cfg_stb, i_cfg_we, { 1'b1, i_wb_addr },
+				i_cfg_data, i_cfg_sel,
+				o_cfg_stall, o_cfg_ack, ign_cfg_err,
+			bus_cyc, bus_stb, bus_we, { cfg_bus_grant, bus_addr },
+				bus_data, bus_sel, bus_stall, bus_ack, 1'b0);
+
+		assign	cfg_bus_stb = bus_stb &&  cfg_bus_grant;
+		assign	mem_bus_stb = bus_stb && !cfg_bus_grant;
+		assign	o_cfg_data  = o_wb_data;
+
+		// Verilator lint_off UNUSED
+		wire	unused;
+		assign	unused = &{ 1'b0, bus_data, bus_addr,
+					ign_cfg_err, ign_wb_err };
+		// Verilator lint_on UNUSED
+	end else begin
+		assign	bus_cyc    = i_wb_cyc;
+		assign	bus_stb    = i_wb_stb;
+		assign	bus_we     = i_wb_we;
+		assign	bus_addr   = i_wb_addr;
+		assign	bus_data   = i_wb_data;
+		assign	bus_sel    = i_wb_sel;
+		//
+		assign	o_wb_ack   = bus_ack;
+		assign	o_wb_stall = bus_stall;
+
+		assign	mem_bus_stb = bus_stb;
+		assign	cfg_bus_stb = 0;
+		assign	o_cfg_ack   = i_cfg_stb;
+		assign	o_cfg_stall = 0;
+		assign	o_cfg_data  = 0;
+	end endgenerate
+
 	reg		cfg_user_mode;
 	reg	[32:0]	wdata_pipe;
 	reg	[6:0]	ack_delay;
 	reg		actual_sck;
 
-	wire	[21:0]	next_addr;
+	wire	[AW-1:0]	next_addr;
 
 	wire	bus_request, next_request, user_request;
 
-	assign	bus_request  = (i_wb_stb)&&(!o_wb_stall)
-					&&(!i_wb_we)&&(!cfg_user_mode);
-	assign	next_request = (OPT_PIPE)&&(i_wb_stb)&&(!i_wb_we)
+	assign	bus_request  = (mem_bus_stb)&&(!bus_stall)
+					&&(!bus_we)&&(!bus_stall);
+	assign	next_request = (OPT_PIPE)&&(mem_bus_stb)&&(!bus_we)
 					&&(!cfg_user_mode)
 					&&(i_wb_addr == next_addr);
-	assign	user_request = (OPT_CFG)&&(i_cfg_stb)&&(!o_wb_stall)
-					&&(i_wb_we)&&(!i_wb_data[8]);
+	assign	user_request = (OPT_CFG)&&(cfg_bus_stb)&&(!bus_stall)
+					&&(bus_we)&&(!bus_data[8]);
 
 
 	//
@@ -132,10 +199,10 @@ module	spixpress(i_clk, i_reset,
 	//
 	// The state control is nominally the number of clocks to wait until
 	// the current operation finishes.  Once ack_delay transitions to 0,
-	// the operation is finished and o_wb_ack should be high.
+	// the operation is finished and bus_ack should be high.
 	initial	ack_delay = 0;
 	always @(posedge i_clk)
-	if ((i_reset)||(!i_wb_cyc))
+	if ((i_reset)||(!bus_cyc))
 		ack_delay <= 0;
 	else if (bus_request)
 		ack_delay <= ((o_spi_cs_n)||(!OPT_PIPE)) ? 7'd65 : 7'd32;
@@ -157,10 +224,10 @@ module	spixpress(i_clk, i_reset,
 	// of models:
 	//
 	// 1. Upon any flash read request, request a read from the 24-bit
-	//	address formed from i_wb_addr[21:0] and 2'b00--since we are
+	//	address formed from i_wb_addr[AW-1:0] and 2'b00--since we are
 	//	only doing aligned transactions.
 	//
-	//	wdata_pipe <= { 1'b0, 8'h03, i_wb_addr[21:0], 2'b00 };
+	//	wdata_pipe <= { 1'b0, 8'h03, i_wb_addr[AW-1:0], 2'b00 };
 	//
 	// 2. Upon any configuration port write, set the data based upon the
 	//	desired 8-bit command contained in i_wb_data
@@ -175,23 +242,25 @@ module	spixpress(i_clk, i_reset,
 	// 
 	initial	wdata_pipe = 0;
 	always @(posedge i_clk)
-	if (!o_wb_stall)
+	if (!bus_stall)
+	begin
 		// On any read request, this sets the address to be read.
 		//
 		// On a configuration write request, or if the bus is idle,
 		// these bits are don't cares so we can optimize them a bit
-		wdata_pipe[23:0] <= { i_wb_addr[21:0], 2'b00 };
-	else
+		wdata_pipe[23:0] <= 0;
+		wdata_pipe[(AW+1):2] <= bus_addr[AW-1:0];
+	end else
 		// While in operation, just shift left one bit at a time
 		wdata_pipe[23:0] <= { wdata_pipe[22:0], 1'b0 };
 
 	always @(posedge i_clk)
-	if (((!OPT_CFG)||(i_wb_stb))&&(!o_wb_stall)) // (bus_request)
+	if (((!OPT_CFG)||(mem_bus_stb))&&(!bus_stall)) // (bus_request)
 		// Request to read from the flash
 		wdata_pipe[32:24] <= { 1'b0, 8'h03 };
-	else if ((OPT_CFG)&&(!o_wb_stall)) // (user_request)
+	else if ((OPT_CFG)&&(!bus_stall)) // (user_request)
 		// Request to send special data to the flash
-		wdata_pipe[32:24] <= { 1'b0, i_wb_data[7:0] };
+		wdata_pipe[32:24] <= { 1'b0, i_cfg_data[7:0] };
 	else
 		// Otherwise just shift the register left
 		wdata_pipe[32:24] <= { wdata_pipe[31:23] };
@@ -208,23 +277,23 @@ module	spixpress(i_clk, i_reset,
 	always @(posedge i_clk)
 	if (i_reset)
 		// Clear any acknowledgment on reset
-		o_wb_ack <= 0;
+		bus_ack <= 0;
 	else if (ack_delay == 1)
 		// Acknowledge the end of any operation, whether from the
 		// configuration port or from reading the memory
-		o_wb_ack <= (i_wb_cyc);
-	else if ((i_wb_stb)&&(!o_wb_stall)&&(!bus_request))
+		bus_ack <= (bus_cyc);
+	else if ((bus_stb)&&(!bus_stall)&&(!bus_request))
 		// Immediately acknowledge any write to the memory address
 		// space, or any read/write while the configuration port is
 		// active.
-		o_wb_ack <= 1'b1;
-	else if ((i_cfg_stb)&&(!o_wb_stall)&&(!user_request))
+		bus_ack <= 1'b1;
+	else if ((cfg_bus_stb)&&(!bus_stall)&&(!user_request))
 		// Immediately acknowledge any read from the configuration
 		// port.  No action is required.
-		o_wb_ack <= 1'b1;
+		bus_ack <= 1'b1;
 	else
 		// In all other cases, leave the acknowledgment line low.
-		o_wb_ack <= 0;
+		bus_ack <= 0;
 
 	//
 	// CFG user mode (i.e. override mode)
@@ -237,8 +306,8 @@ module	spixpress(i_clk, i_reset,
 	always @(posedge i_clk)
 	if (i_reset)
 		cfg_user_mode <= 0;
-	else if ((OPT_CFG)&&(i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we))
-		cfg_user_mode <= !i_wb_data[8];
+	else if ((OPT_CFG)&&(cfg_bus_stb)&&(!bus_stall)&&(bus_we))
+		cfg_user_mode <= !i_cfg_data[8];
 
 	//
 	// Actual_sck (SCK, but delayed by one)
@@ -246,7 +315,7 @@ module	spixpress(i_clk, i_reset,
 	// This is the SCK signal the hardware sees
 	initial	actual_sck = 1'b0;
 	always @(posedge i_clk)
-	if ((i_reset)||(!i_wb_cyc))
+	if ((i_reset)||(!bus_cyc))
 		actual_sck <= 1'b0;
 	else
 		// Our SCK signal is delayed by one clock from our request
@@ -281,7 +350,7 @@ module	spixpress(i_clk, i_reset,
 	if (i_reset)
 		// Idle on reset
 		o_spi_cs_n <= 1'b1;
-	else if ((!i_wb_cyc)&&(!cfg_user_mode))
+	else if ((!bus_cyc)&&(!cfg_user_mode))
 		// Following any aborted transaction, or any time we
 		// leave the configuration mode, return to idle.
 		o_spi_cs_n <= 1'b1;
@@ -289,10 +358,10 @@ module	spixpress(i_clk, i_reset,
 		// On any bus read request, select the device to initiate a
 		// transaction.
 		o_spi_cs_n <= 1'b0;
-	else if ((OPT_CFG)&&(i_cfg_stb)&&(!o_wb_stall)&&(i_wb_we))
+	else if ((OPT_CFG)&&(cfg_bus_stb)&&(!bus_stall)&&(bus_we))
 		// Similarly, on any write to the configuration port, begin
 		// an 8-bit transfer.
-		o_spi_cs_n <= i_wb_data[8];
+		o_spi_cs_n <= bus_data[8];
 	else if (cfg_user_mode)
 		// Even if the transfer is complete, while we are in
 		// configuration mode hold the CS line active (low)
@@ -313,7 +382,7 @@ module	spixpress(i_clk, i_reset,
 		// Start clocking following any memory read or configuration
 		// port write request
 		o_spi_sck <= 1'b1;
-	else if ((i_wb_cyc)&&(ack_delay > 2)) // Bus abort check
+	else if ((bus_cyc)&&(ack_delay > 2)) // Bus abort check
 		// As long as CYC stays high, continue the request
 		o_spi_sck <= 1'b1;
 	else if ((next_request)&&(ack_delay == 2))
@@ -328,29 +397,29 @@ module	spixpress(i_clk, i_reset,
 	//
 	// The WB interface needs to stall any time we are busy calculating
 	// an answer, as this core can only process one request at a time.
-	initial	o_wb_stall = 1'b0;
+	initial	bus_stall = 1'b0;
 	always @(posedge i_clk)
-	if ((i_reset)||(!i_wb_cyc))
+	if ((i_reset)||(!bus_cyc))
 		// Release the stall line on a reset, or bus abort
-		o_wb_stall <= 1'b0;
+		bus_stall <= 1'b0;
 	else if ((bus_request)||(user_request))
 		// On any request for a flash transaction, immediately start
 		// stalling the bus
-		o_wb_stall <= 1'b1;
+		bus_stall <= 1'b1;
 	else if ((next_request)&&(ack_delay == 2))
 		// This one is tricky.  If there's a request for a subsequent
 		// read transaction, we'll need to lower the stall line in
 		// order to accept it.  This depends upon the bus request
 		// remaining stable for another clock period.
-		o_wb_stall <= 1'b0;
+		bus_stall <= 1'b0;
 	else
-		o_wb_stall <= (ack_delay > 1);
+		bus_stall <= (ack_delay > 1);
 
 	generate if (OPT_PIPE)
 	begin
-		reg	[21:0]	r_next_addr;
+		reg	[AW-1:0]	r_next_addr;
 		always @(posedge i_clk)
-		if (!o_wb_stall)
+		if (!bus_stall)
 			r_next_addr <= i_wb_addr + 1'b1;
 
 		assign	next_addr = r_next_addr;
@@ -362,8 +431,8 @@ module	spixpress(i_clk, i_reset,
 	end endgenerate
 
 	// verilator lint_off UNUSED
-	wire	[22:0]	unused;
-	assign	unused = i_wb_data[31:9];
+	wire	unused;
+	assign	unused = &{ 1'b0, bus_data[DW-1:9] };
 	// verilator lint_on  UNUSED
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -402,8 +471,8 @@ module	spixpress(i_clk, i_reset,
 		//
 		assert(ack_delay    ==  0);
 		assert(cfg_user_mode == 0);
-		assert(o_wb_stall == 1'b0);
-		assert(o_wb_ack   == 1'b0);
+		assert(bus_stall == 1'b0);
+		assert(bus_ack   == 1'b0);
 	end
 
 	localparam	F_LGDEPTH = 7;
@@ -414,18 +483,10 @@ module	spixpress(i_clk, i_reset,
 			.F_MAX_REQUESTS((OPT_PIPE) ? 0 : 1'b1),
 			.F_OPT_MINCLOCK_DELAY(1'b1)
 		) slavei(i_clk, (i_reset),
-		i_wb_cyc, (i_wb_stb)||(i_cfg_stb), i_wb_we,
-			i_wb_addr, i_wb_data, 4'hf,
-			o_wb_ack, o_wb_stall, o_wb_data, 1'b0,
+		bus_cyc, (bus_stb), bus_we,
+			bus_addr, bus_data, 4'hf,
+			bus_ack, bus_stall, bus_data, 1'b0,
 			f_nreqs, f_nacks, f_outstanding);
-
-	always @(posedge i_clk)
-	if ((f_past_valid)&&(!$past(i_reset))&&(i_wb_cyc)
-		&&(($past(i_wb_stb))||($past(i_cfg_stb)))&&($past(o_wb_stall)))
-		assume($stable({i_wb_stb,i_cfg_stb}));
-
-	always @(*)
-		assume((!i_cfg_stb)||(!i_wb_stb));
 
 	always @(*)
 	if (OPT_PIPE)
@@ -435,34 +496,34 @@ module	spixpress(i_clk, i_reset,
 
 	always @(posedge i_clk)
 	if (ack_delay == 0)
-		assert((o_wb_ack)||(f_outstanding == 0));
+		assert((bus_ack)||(f_outstanding == 0));
 
 
 	always @(posedge i_clk)
-	if ((f_past_valid)&&(!i_reset)&&(i_wb_cyc))
+	if ((f_past_valid)&&(!i_reset)&&(bus_cyc))
 	begin
 		if (((!OPT_PIPE)||($past(o_spi_cs_n)))
-			&&($past(i_wb_stb))&&(!$past(o_wb_stall))&&(i_wb_cyc))
+			&&($past(bus_stb))&&(!$past(bus_stall))&&(bus_cyc))
 			assert(f_outstanding == 1);
 		if (ack_delay > 0)
-			assert((o_wb_ack)||(f_outstanding == 1));
+			assert((bus_ack)||(f_outstanding == 1));
 	end
 
 	always @(posedge i_clk)
-	if ((f_past_valid)&&(o_wb_ack)&&($past(o_wb_ack)))
+	if ((f_past_valid)&&(bus_ack)&&($past(bus_ack)))
 		assert(f_outstanding <= 1);
 
 	always @(posedge i_clk)
 	if (f_outstanding == 2)
-		assert((OPT_PIPE)&&(o_wb_ack)&&(!o_spi_cs_n)&&(o_spi_sck)
+		assert((OPT_PIPE)&&(bus_ack)&&(!o_spi_cs_n)&&(o_spi_sck)
 			&&(ack_delay==7'd32));
 
 	always @(posedge i_clk)
-	if ((f_past_valid)&&($past(i_wb_stb))&&(!$past(o_wb_stall)))
+	if ((f_past_valid)&&($past(bus_stb))&&(!$past(bus_stall)))
 	begin
-		if ((i_wb_cyc)&&(!i_reset)
+		if ((bus_cyc)&&(!i_reset)
 				&&(!$past(user_request))&&(!$past(bus_request)))
-			assert((o_wb_ack)&&(f_outstanding == 1));
+			assert((bus_ack)&&(f_outstanding == 1));
 	end
 
 	//
@@ -477,11 +538,11 @@ module	spixpress(i_clk, i_reset,
 
 	always @(*)
 	if (ack_delay == 0)
-		assert(!o_wb_stall);
+		assert(!bus_stall);
 	else if (ack_delay > 1)
-		assert(o_wb_stall);
+		assert(bus_stall);
 	else if ((!OPT_PIPE)&&(ack_delay == 1))
-		assert(o_wb_stall);
+		assert(bus_stall);
 
 	always @(*)
 		assert(ack_delay <= 7'd65);
@@ -497,34 +558,34 @@ module	spixpress(i_clk, i_reset,
 	begin
 
 		always @(posedge i_clk)
-			cover(o_wb_ack&&(!$past(bus_request))
+			cover(bus_ack&&(!$past(bus_request))
 				&&(!$past(user_request)));
 
 		reg	f_pending_user_request, f_pending_bus_request;
 
 		initial	f_pending_user_request = 1'b0;
 		always @(posedge i_clk)
-		if ((i_reset)||(!i_wb_cyc))
+		if ((i_reset)||(!bus_cyc))
 			f_pending_user_request <= 1'b0;
 		else if (user_request)
 			f_pending_user_request <= 1'b1;
-		else if (o_wb_ack)
+		else if (bus_ack)
 			f_pending_user_request <= 1'b0;
 
 		initial	f_pending_bus_request = 1'b0;
 		always @(posedge i_clk)
-		if ((i_reset)||(!i_wb_cyc))
+		if ((i_reset)||(!bus_cyc))
 			f_pending_bus_request <= 1'b0;
 		else if (bus_request)
 			f_pending_bus_request <= 1'b1;
-		else if (o_wb_ack)
+		else if (bus_ack)
 			f_pending_bus_request <= 1'b0;
 
 		always @(posedge i_clk)
-			cover((o_wb_ack)&&(f_pending_user_request));
+			cover((bus_ack)&&(f_pending_user_request));
 
 		always @(posedge i_clk)
-			cover((o_wb_ack)&&(f_pending_bus_request));
+			cover((bus_ack)&&(f_pending_bus_request));
 
 		if (OPT_PIPE)
 		begin
@@ -541,26 +602,26 @@ module	spixpress(i_clk, i_reset,
 
 `endif
 `ifdef	VERIFIC
-	reg	[21:0]	f_last_addr, f_next_addr;
+	reg	[AW-1:0]	f_last_addr, f_next_addr;
 
 	always @(posedge i_clk)
 	if (bus_request)
-		f_last_addr <= i_wb_addr[21:0];
+		f_last_addr <= bus_addr[AW-1:0];
 
 	always @(*)
 		f_next_addr <= f_last_addr + 1'b1;
 
 	// Writes are immediately returned
 	assert property (@(posedge i_clk)
-		disable iff ((i_reset)||(!i_wb_cyc))
-		((i_wb_stb)||(i_cfg_stb))&&(!o_wb_stall)
+		disable iff ((i_reset)||(!bus_cyc))
+		(bus_stb)&&(!bus_stall)
 				&&(!user_request)&&(!bus_request)
-		|=> (o_wb_ack)&&(!o_wb_stall));
+		|=> (bus_ack)&&(!bus_stall));
 
 	assert property (@(posedge i_clk)
-		(i_wb_stb)&&(!o_wb_stall)&&(!o_spi_cs_n)&&(!i_wb_we)
-			&&(!cfg_user_mode)
-		|-> (OPT_PIPE)&&(i_wb_addr == f_next_addr)
+		(mem_bus_stb)&&(!bus_stall)&&(!o_spi_cs_n)&&(!bus_we)
+			// &&(!cfg_user_mode)
+		|-> (OPT_PIPE)&&(bus_addr[AW-1:0] == f_next_addr)
 		);
 
 	sequence READ_COMMAND;

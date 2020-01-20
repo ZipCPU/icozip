@@ -12,7 +12,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2018-2019, Gisselquist Technology, LLC
+## Copyright (C) 2018-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -83,9 +83,7 @@
 @MAIN.INSERT=
 	sramdev #(.WBADDR(@$LGMEMSZ-2))
 		@$(PREFIX)i(i_clk,
-			(wb_cyc), (wb_stb)&&(@$(PREFIX)_sel), wb_we,
-				wb_addr[(@$LGMEMSZ-3):0], wb_data, wb_sel,
-				@$(PREFIX)_ack, @$(PREFIX)_stall, @$(PREFIX)_data,
+			@$(SLAVE.PORTLIST),
 			o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr,
 				o_ram_data, o_ram_sel, i_ram_data);
 @REGS.N=1
@@ -112,6 +110,7 @@
 #ifdef	@$(ACCESS)
 		m_@$(MEM.NAME) = new SRAMSIM(@$NBYTES);
 #endif // @$(ACCESS)
+@SIM.CLOCK=clk
 @SIM.TICK=
 #ifdef	@$(ACCESS)
 		m_core->i_ram_data = (*m_@$(MEM.NAME))(m_core->o_ram_ce_n,

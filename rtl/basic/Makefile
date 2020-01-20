@@ -11,7 +11,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2019, Gisselquist Technology, LLC
+## Copyright (C) 2016-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -36,16 +36,15 @@
 ##
 ##
 all: blinky pmodtest clktest dimmer
-# PNRD := /home/dan/work/rnd/opencores/icozip/arachne-pnr/bin
-PNR := arachne-pnr -d 8k -r -P ct256
+PNR := nextpnr-ice40 --hx8k -r --freq 100 --package ct256
 # GNU Make automatic variables (since I can never remember these ...)
 # $@	- name of the target
 # $<	- Name of the first prerequisite
 # $^	- Names of all the prerequisites
-%.blif: %.v
-	yosys -p 'synth_ice40 -blif $@' $<
-%.asc: %.blif %.pcf
-	$(PNR) -p $*.pcf -o $@ $<
+%.json: %.v
+	yosys -p 'synth_ice40 -json $@' $<
+%.asc: %.json %.pcf
+	$(PNR) --pcf $*.pcf --json $*.json --asc $@
 %.bin: %.asc
 	icetime -d hx8k -c 100 $<
 	icepack $< $@
@@ -61,6 +60,6 @@ load: blinky.bin
 	echo "To load this, type: sudo icoprog -p < blinky.bin" # Needs sudo
 
 clean:
-	rm -f *.blif *.asc *.bin
+	rm -f *.blif *.json *.asc *.bin
 	# rm -rf obj_dir
 
