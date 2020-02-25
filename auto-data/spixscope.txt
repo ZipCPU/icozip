@@ -2,7 +2,7 @@
 ##
 ## Filename: 	spixscope.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	Provides a scope for testing the new spixpress flash driver.
 ##

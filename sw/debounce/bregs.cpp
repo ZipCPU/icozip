@@ -2,7 +2,7 @@
 //
 // Filename:	bregs.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	
 //

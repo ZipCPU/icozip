@@ -2,7 +2,7 @@
 //
 // Filename: 	ledwalker.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Turn on each of the 8 LED's in the PMod LED8 in succession, one
 //		by one, for the purpose of verifying that they each work and

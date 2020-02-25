@@ -2,7 +2,7 @@
 //
 // Filename: 	ledbouncer.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Create a Knight-Rider themed output on a PMod, using a PMod
 //		LED8 from Digilent

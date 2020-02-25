@@ -2,7 +2,7 @@
 //
 // Filename: 	zopcodes.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	A structure defined to keep track of our various opcodes and
 //		some of their shortcut synonyms.

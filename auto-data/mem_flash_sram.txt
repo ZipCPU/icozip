@@ -2,7 +2,7 @@
 ##
 ## Filename: 	mem_flash_sram.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	Describes a memory model containing the flash, SRAM, and
 ##		block RAM.  This will be used to create a board.ld linker script

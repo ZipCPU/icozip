@@ -2,7 +2,7 @@
 //
 // Filename: 	builddate.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This file records the date of the last build.  Running "make"
 //		in the main directory will create this file.  The `define found

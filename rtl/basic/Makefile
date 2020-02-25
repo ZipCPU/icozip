@@ -2,7 +2,7 @@
 ## 
 ## Filename: 	rtl/basic/Makefile
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To direct the build of the files in the rtl/basic directory!
 ##

@@ -2,7 +2,7 @@
 //
 // Filename:	dumpflash.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Read the entire contents of the flash memory into a file.
 //		The flash is unchanged by this process.

@@ -2,7 +2,7 @@
 ##
 ## Filename:	Makefile
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	Simply coordinates builds in the various subdirectories of
 ##		rtl.

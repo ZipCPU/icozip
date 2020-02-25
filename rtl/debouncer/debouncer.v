@@ -2,7 +2,7 @@
 //
 // Filename: 	debouncer.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	To "debounce" signals from within a group passed to this
 //		module.  It is assumed that each signal passed to this module

@@ -2,7 +2,7 @@
 //
 // Filename: 	wbscope.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This is a generic/library routine for providing a bus accessed
 //	'scope' or (perhaps more appropriately) a bus accessed logic analyzer.

@@ -2,7 +2,7 @@
 ##
 ## Filename:	Makefile
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To coordinate the build of both a cycle accurate, Verilator based,
 ##		simulation of the main module as well as the final ICOZIP FPGA

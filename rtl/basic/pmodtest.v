@@ -2,7 +2,7 @@
 //
 // Filename: 	pmodtest.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project, Basic Demos
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project, Basic Demos
 //
 // Purpose:	
 //

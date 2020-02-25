@@ -2,7 +2,7 @@
 //
 // Filename: 	wbscopc.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This scope is identical in function to the wishbone scope
 //	found in wbscope, save that the output is compressed via a run-length

@@ -2,7 +2,7 @@
 //
 // Filename: 	umod.c
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This is a temporary file--a crutch if you will--until a similar
 //		capability is merged into GCC.  Right now, GCC has no way of

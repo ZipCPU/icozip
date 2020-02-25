@@ -2,7 +2,7 @@
 //
 // Filename: 	tbclock.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	TBCLOCK is a class originally developed for the VideoZIP project
 //		as a helper class to give Verilator the ability to test across

@@ -2,7 +2,7 @@
 //
 // Filename: 	crt0.c
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	To start a program from flash, loading its various components
 //		into on-chip block RAM, or off-chip SRAM, as indicated

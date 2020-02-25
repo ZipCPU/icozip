@@ -2,7 +2,7 @@
 ##
 ## Filename: 	zipbones.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To describe what needs to be done to make the ZipCPU a part
 ##		of a main .v file.  This Wishbone Master description

@@ -2,7 +2,7 @@
 //
 // Filename:	wbgpio.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This extremely simple GPIO controller, although minimally
 //		featured, is designed to control up to sixteen general purpose

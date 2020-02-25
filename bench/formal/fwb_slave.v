@@ -2,7 +2,7 @@
 //
 // Filename:	fwb_slave.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This file describes the rules of a wishbone interaction from the
 //		perspective of a wishbone slave.  These formal rules may be used

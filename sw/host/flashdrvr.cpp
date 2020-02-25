@@ -2,7 +2,7 @@
 //
 // Filename: 	flashdrvr.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Flash driver.  Encapsulates the erasing and programming (i.e.
 //		writing) necessary to set the values in a flash device.

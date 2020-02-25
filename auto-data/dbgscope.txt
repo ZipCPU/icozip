@@ -2,7 +2,7 @@
 ##
 ## Filename: 	dbgscope.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	An ad-hoc scope to dig into what's going on
 ##

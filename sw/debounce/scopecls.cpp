@@ -2,7 +2,7 @@
 //
 // Filename: 	scopecls.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	After rebuilding the same code over and over again for every
 //		"scope" I tried to interact with, I thought it would be simpler

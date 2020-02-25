@@ -2,7 +2,7 @@
 ##
 ## Filename: 	sramdev.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	Describes how an HDL project needs to be patched to include the
 ##		SRAM device driver/controller.

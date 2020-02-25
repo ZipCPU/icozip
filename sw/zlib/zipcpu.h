@@ -2,7 +2,7 @@
 //
 // Filename: 	zipcpu.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Declare the capabilities and memory structure of the ZipSystem
 //		for programs that must interact with it.

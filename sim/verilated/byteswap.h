@@ -2,7 +2,7 @@
 //
 // Filename: 	byteswap.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Definse prototypes for the functions that can be used to convert
 //		between little endian and big endian byte orders, and to handle

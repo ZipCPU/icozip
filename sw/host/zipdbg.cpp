@@ -2,7 +2,7 @@
 //
 // Filename: 	zipdbg.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Provide a debugger to step through the ZipCPU assembler,
 //		evaluate the ZipCPU's current state, modify registers as(if)

@@ -2,7 +2,7 @@
 ##
 ## Filename: 	icozip.pcf
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	This is the file that maps toplevel.v I/O ports to actual FPGA
 ##		pins.

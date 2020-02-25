@@ -2,7 +2,7 @@
 ## 
 ## Filename: 	rtl/pmodleds/Makefile
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To direct the build of the files in the rtl/pmodleds directory.
 ##		The files in this directory assume that the user has a Digilent

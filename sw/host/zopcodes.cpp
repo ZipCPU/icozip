@@ -2,7 +2,7 @@
 //
 // Filename: 	zopcodes.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	A simple program to handle the disassembly and definition
 //		of the various Zip Assembly opcodes.  The primary function

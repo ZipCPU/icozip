@@ -2,7 +2,7 @@
 //
 // Filename: 	ppio.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	The parallel port on the icozip, the port to the RPi, is a
 //		bi-directional port.  However, ... arachne-pnr doesn't

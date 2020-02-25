@@ -3,7 +3,7 @@
 ##
 ## Filename:	vversion.sh
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To determine whether or not the verilator prefix for internal
 ##		variables is v__DOT__ or the name of the top level followed by

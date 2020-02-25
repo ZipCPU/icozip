@@ -2,7 +2,7 @@
 //
 // Filename: 	spio.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	
 //

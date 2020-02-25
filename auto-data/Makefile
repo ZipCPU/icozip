@@ -2,7 +2,7 @@
 ##
 ## Filename:	auto-data/Makefile
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To coordinate the build of the glue logic holding this design
 ##		together via autofpga.

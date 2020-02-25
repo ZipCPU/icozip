@@ -2,7 +2,7 @@
 ##
 ## Filename:	Makefile
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To guide/direct the build of the board-specific portion of
 ##		newlib.

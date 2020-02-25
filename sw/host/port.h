@@ -2,7 +2,7 @@
 //
 // Filename:	port.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Defines the communication parameters necessary for communicating
 //		with the device.

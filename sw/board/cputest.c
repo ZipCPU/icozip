@@ -2,7 +2,7 @@
 //
 // Filename:	cputest.c
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	To test the CPU, it's instructions, cache, and pipeline, to make
 //		certain that it works.  This includes testing that each of the

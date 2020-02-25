@@ -3,7 +3,7 @@
 ##
 ## Filename:	arch.sh
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To return "pc" or "arm" depending on which type of machine
 ##		this is being run from.  If run from a PC, "pc" should be

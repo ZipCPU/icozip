@@ -2,7 +2,7 @@
 ##
 ## Filename: 	auto-data/mem_bkram.txt
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	Describes a memory model containing nothing more than flash
 ##		and block RAM.  This will be used to create a board.ld linker

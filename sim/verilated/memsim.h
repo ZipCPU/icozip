@@ -2,7 +2,7 @@
 //
 // Filename: 	memsim.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This creates a memory like device to act on a WISHBONE bus.
 //		It doesn't exercise the bus thoroughly, but does give some

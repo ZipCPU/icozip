@@ -2,7 +2,7 @@
 //
 // Filename: 	dblpipecmdr.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This program attaches to a Verilated Verilog IP core.
 //		It will not work apart from such a core.  Once attached,

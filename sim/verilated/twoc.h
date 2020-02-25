@@ -2,7 +2,7 @@
 //
 // Filename: 	twoc.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Some various two's complement related C++ helper routines.
 //		Specifically, these help extract signed numbers from

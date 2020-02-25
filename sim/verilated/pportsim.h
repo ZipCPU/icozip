@@ -2,7 +2,7 @@
 //
 // Filename: 	pportsim.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This class implements a simulation of the parallel port, as it
 //		has been used within this project.  Specific pieces include:

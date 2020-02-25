@@ -2,7 +2,7 @@
 //
 // Filename: 	zipstate.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	To get a quick (understandable) peek at what the ZipCPU
 //		is up to without stopping the CPU.  This is basically

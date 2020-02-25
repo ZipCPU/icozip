@@ -2,7 +2,7 @@
 //
 // Filename: 	pportsim.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This program simulates a parallel port peripheral to a
 //		ICO Zip processor, one that is used to push data in and

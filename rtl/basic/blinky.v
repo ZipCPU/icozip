@@ -2,7 +2,7 @@
 //
 // Filename: 	blinky.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Every board needs a blinky demo.  The ICO board is no different.
 //		This demo, however, is different from the one delivered on the

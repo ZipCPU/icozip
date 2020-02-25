@@ -2,7 +2,7 @@
 //
 // Filename:	hexbus.h
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This is the C++ program on the command side that will interact
 //		with a UART on an FPGA, to command the WISHBONE on that same

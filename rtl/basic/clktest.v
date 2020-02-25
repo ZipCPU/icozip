@@ -2,7 +2,7 @@
 //
 // Filename: 	clktest.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	To determine the actual clock rate of the ICO board.  If the
 //		clock is configured properly within here, then one LED will 

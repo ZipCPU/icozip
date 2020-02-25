@@ -2,7 +2,7 @@
 ##
 ## Filename: 	Makefile
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To coordinate the build of a series of UART testing programs
 ##		for the icoboard.

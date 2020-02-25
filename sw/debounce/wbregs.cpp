@@ -2,7 +2,7 @@
 //
 // Filename:	wbregs.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	To give a user access, via a command line program, to read
 //		and write wishbone registers one at a time.  Thus this program

@@ -2,7 +2,7 @@
 //
 // Filename: 	zipload.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	To load a program for the ZipCPU into memory, whether flash,
 //		SRAM, or block RAM.  This requires a working/running

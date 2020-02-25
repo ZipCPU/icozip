@@ -2,7 +2,7 @@
 //
 // Filename: 	spixpress.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This module is intended to be a low logic flash controller.
 // 		It uses the 8'h03 read command from the flash, and so it
@@ -114,7 +114,7 @@ module	spixpress(i_clk, i_reset,
 	input	wire [DW-1:0]	i_cfg_data;
 	input	wire [DW/8-1:0]	i_cfg_sel;
 	output	reg		o_cfg_stall, o_cfg_ack;
-	output	reg [DW-1:0]	o_cfg_data;
+	output	wire [DW-1:0]	o_cfg_data;
 	//
 	output	reg		o_spi_cs_n, o_spi_sck, o_spi_mosi;
 	input	wire		i_spi_miso;

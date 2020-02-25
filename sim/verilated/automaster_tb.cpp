@@ -2,7 +2,7 @@
 //
 // Filename:	automaster_tb.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This file calls and accesses the main.v function via the
 //		MAIN_TB class found in main_tb.cpp.  When put together with

@@ -2,7 +2,7 @@
 //
 // Filename:	unbounced.v
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	To measure the "bouncing" characteristics of an FPGA input
 //		device, such as a button.  Specifically, we'll measure here:

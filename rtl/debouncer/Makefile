@@ -2,7 +2,7 @@
 ##
 ## Filename: 	debouncer/Makefile
 ##
-## Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	To coordinate the build of a button debouncing test design
 ##		for the icoboard.
@@ -12,7 +12,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2016-2019, Gisselquist Technology, LLC
+## Copyright (C) 2016-2020, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published

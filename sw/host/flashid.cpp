@@ -2,7 +2,7 @@
 //
 // Filename:	flashid.cpp
 //
-// Project:	ICO Zip, iCE40 ZipCPU demonsrtation project
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Read the ID from the flash as a test of whether or not the
 //		SPIXPRESS controller is working or not.
