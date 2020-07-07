@@ -130,7 +130,7 @@ module	wbxbar(i_clk, i_reset,
 	// be used to reduce the logic count of the device.  Hence, OPT_LOWPOWER
 	// will use more logic, but it won't drive bus wires unless there's a
 	// value to drive onto them.
-	parameter [0:0]	OPT_LOWPOWER = 1'b1;
+	parameter [0:0]	OPT_LOWPOWER = 1'b0;
 	//
 	// LGNM is the log (base two) of the number of bus masters connecting
 	// to this crossbar
@@ -238,7 +238,7 @@ module	wbxbar(i_clk, i_reset,
 			.OPT_PASSTHROUGH(1),
 `endif
 			.OPT_OUTREG(0))
-		iskid(i_clk, i_reset || !i_mcyc[N], i_mstb[N] && i_mcyc[N], iskd_ready,
+		iskid(i_clk, i_reset || !i_mcyc[N], i_mstb[N], iskd_ready,
 			{ i_mwe[N], i_maddr[N*AW +: AW], i_mdata[N*DW +: DW],
 					i_msel[N*DW/8 +: DW/8] },
 			skd_stb, !skd_stall,

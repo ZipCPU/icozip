@@ -42,12 +42,12 @@ all: helloworld speechfifo
 # $@	- name of the target
 # $<	- Name of the first prerequisite
 # $^	- Names of all the prerequisites
-%.blif: %.v
-	yosys -p 'synth_ice40 -blif $@' $<
-%.asc: %.blif %.pcf
-	arachne-pnr -d 8k -r -P ct256 -p $*.pcf -o $@ $<
+%.json: %.v
+	yosys -p 'synth_ice40 -json $@' $<
+%.asc: %.json %.pcf
+	nextpnr-ice40 --hx8k -r --freq 50 --package ct256 --pcf $*.pcf --json $< --asc $@
 %.bin: %.asc
-	icetime -d hx8k -c 100 $<
+	icetime -d hx8k -c 50 $<
 	icepack $< $@
 
 .PHONY: helloworld speechfifo

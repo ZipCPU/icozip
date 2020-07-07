@@ -46,7 +46,6 @@
 // This is useful for guaranteeing any include functions
 // your simulation needs are called.
 //
-// Looking for string: SIM.INCLUDE
 #include "verilated.h"
 #include "Vmain.h"
 #define	BASECLASS	Vmain
@@ -67,7 +66,6 @@
 // This tag is useful fr pasting in any #define values that
 // might then control the simulation following.
 //
-// Looking for string: SIM.DEFINES
 #ifndef VVAR
 #ifdef  NEW_VERILATOR
 #define VVAR(A) main__DOT_ ## A
@@ -121,7 +119,6 @@ public:
 		// If you have any simulation components, create a
 		// SIM.DEFNS tag to have those components defined here
 		// as part of the main_tb.cpp function.
-// Looking for string: SIM.DEFNS
 #ifdef	SRAM_ACCESS
 	SRAMSIM		*m_sram;
 #endif // SRAM_ACCESS
@@ -159,7 +156,6 @@ public:
 		// tick with reset set, that logic can be placed into
 		// the SIM.SETRESET tag and thus pasted here.
 		//
-// Looking for string: SIM.SETRESET
 		m_core->i_gpio |= 1;
 		TESTB<Vmain>::reset();
 		// SIM.CLRRESET
@@ -167,7 +163,6 @@ public:
 		// reset tick, that logic can be placed into the
 		// SIM.CLRRESET tag and thus pasted here.
 		//
-// Looking for string: SIM.CLRRESET
 		m_core->i_gpio &= ~1;
 
 	}
@@ -363,7 +358,6 @@ public:
 	// define this tag by those functions (or other sim code), and
 	// it will be pasated here.
 	//
-// Looking for string: SIM.METHODS
 #ifdef	INCLUDE_ZIPCPU
 	void	loadelf(const char *elfname) {
 		ELFSECTION	**secpp, *secp;

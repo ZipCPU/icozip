@@ -190,7 +190,6 @@ module	main(i_clk, i_reset,
 	// These declarations come from the @MAIN.DEFNS keys found in the
 	// various components comprising the design.
 	//
-// Looking for string: MAIN.DEFNS
 	reg	cpu_reset;
 	// Console definitions
 	wire		w_console_rx_stb, w_console_tx_stb, w_console_busy;
@@ -422,13 +421,13 @@ module	main(i_clk, i_reset,
 
 	always	@(posedge i_clk)
 	casez( wb_sio_addr[2:0] )
-		3'h0: r_wb_sio_data <= wb_buildtime_idata;
-		3'h1: r_wb_sio_data <= wb_buserr_idata;
-		3'h2: r_wb_sio_data <= wb_buspic_idata;
-		3'h3: r_wb_sio_data <= wb_gpio_idata;
-		3'h4: r_wb_sio_data <= wb_pwrcount_idata;
-		3'h5: r_wb_sio_data <= wb_version_idata;
-		default: r_wb_sio_data <= wb_version_idata;
+	3'h0: r_wb_sio_data <= wb_buildtime_idata;
+	3'h1: r_wb_sio_data <= wb_buserr_idata;
+	3'h2: r_wb_sio_data <= wb_buspic_idata;
+	3'h3: r_wb_sio_data <= wb_gpio_idata;
+	3'h4: r_wb_sio_data <= wb_pwrcount_idata;
+	3'h5: r_wb_sio_data <= wb_version_idata;
+	default: r_wb_sio_data <= wb_version_idata;
 	endcase
 	assign	wb_sio_idata = r_wb_sio_data;
 
@@ -490,6 +489,9 @@ module	main(i_clk, i_reset,
 	wbxbar #(
 		.NM(2), .NS(8), .AW(23), .DW(32),
 		.SLAVE_ADDR({
+			// Address width    = 23
+			// Address LSBs     = 2
+			// Slave name width = 8
 			{ 23'h400000 }, //    flash: 0x1000000
 			{ 23'h380000 }, //     sram: 0x0e00000
 			{ 23'h300000 }, //    bkram: 0x0c00000
@@ -500,6 +502,9 @@ module	main(i_clk, i_reset,
 			{ 23'h080000 }  // bustimer: 0x0200000
 		}),
 		.SLAVE_MASK({
+			// Address width    = 23
+			// Address LSBs     = 2
+			// Slave name width = 8
 			{ 23'h400000 }, //    flash
 			{ 23'h780000 }, //     sram
 			{ 23'h780000 }, //    bkram
@@ -675,10 +680,16 @@ module	main(i_clk, i_reset,
 	wbxbar #(
 		.NM(1), .NS(2), .AW(24), .DW(32),
 		.SLAVE_ADDR({
+			// Address width    = 24
+			// Address LSBs     = 2
+			// Slave name width = 5
 			{ 24'h800000 }, //   zip: 0x2000000
 			{ 24'h000000 }  // hbarb: 0x0000000
 		}),
 		.SLAVE_MASK({
+			// Address width    = 24
+			// Address LSBs     = 2
+			// Slave name width = 5
 			{ 24'h800000 }, //   zip
 			{ 24'h800000 }  // hbarb
 		}),
@@ -833,7 +844,7 @@ module	main(i_clk, i_reset,
 	assign	wb_watchdog_ack   = 1'b0;
 	assign	wb_watchdog_err   = (wb_watchdog_stb);
 	assign	wb_watchdog_stall = 0;
-	assign	wb_watchdog_data  = 0;
+	assign	wb_watchdog_idata = 0;
 
 	assign	design_reset = 1'b0;	// watchdog.INT.RESET.WIRE
 	assign	watchdog_reset = 1'b0;	// watchdog.INT.WATCHDOG.WIRE
@@ -855,7 +866,7 @@ module	main(i_clk, i_reset,
 	assign	wb_bustimer_ack   = 1'b0;
 	assign	wb_bustimer_err   = (wb_bustimer_stb);
 	assign	wb_bustimer_stall = 0;
-	assign	wb_bustimer_data  = 0;
+	assign	wb_bustimer_idata = 0;
 
 	assign	bustimer_int = 1'b0;	// bustimer.INT.BUSTIMER.WIRE
 `endif	// BUSTIMER_ACCESS
@@ -883,7 +894,7 @@ module	main(i_clk, i_reset,
 	assign	wb_console_ack   = 1'b0;
 	assign	wb_console_err   = (wb_console_stb);
 	assign	wb_console_stall = 0;
-	assign	wb_console_data  = 0;
+	assign	wb_console_idata = 0;
 
 	assign	uarttxf_int = 1'b0;	// console.INT.UARTTXF.WIRE
 	assign	uartrxf_int = 1'b0;	// console.INT.UARTRXF.WIRE
@@ -917,7 +928,7 @@ module	main(i_clk, i_reset,
 	assign	wb_bkram_ack   = 1'b0;
 	assign	wb_bkram_err   = (wb_bkram_stb);
 	assign	wb_bkram_stall = 0;
-	assign	wb_bkram_data  = 0;
+	assign	wb_bkram_idata = 0;
 
 `endif	// BKRAM_ACCESS
 
@@ -939,7 +950,7 @@ module	main(i_clk, i_reset,
 	assign	wb_sram_ack   = 1'b0;
 	assign	wb_sram_err   = (wb_sram_stb);
 	assign	wb_sram_stall = 0;
-	assign	wb_sram_data  = 0;
+	assign	wb_sram_idata = 0;
 
 `endif	// SRAM_ACCESS
 
@@ -1005,7 +1016,7 @@ module	main(i_clk, i_reset,
 	assign	hb_zip_ack   = 1'b0;
 	assign	hb_zip_err   = (hb_zip_stb);
 	assign	hb_zip_stall = 0;
-	assign	hb_zip_data  = 0;
+	assign	hb_zip_idata = 0;
 
 	assign	zip_cpu_int = 1'b0;	// zip.INT.ZIP.WIRE
 `endif	// INCLUDE_ZIPCPU
@@ -1052,7 +1063,7 @@ module	main(i_clk, i_reset,
 	assign	wb_flashcfg_ack   = 1'b0;
 	assign	wb_flashcfg_err   = (wb_flashcfg_stb);
 	assign	wb_flashcfg_stall = 0;
-	assign	wb_flashcfg_data  = 0;
+	assign	wb_flashcfg_idata = 0;
 
 `endif	// FLASHCFG_ACCESS
 
@@ -1110,7 +1121,7 @@ module	main(i_clk, i_reset,
 	assign	wb_flash_ack   = 1'b0;
 	assign	wb_flash_err   = (wb_flash_stb);
 	assign	wb_flash_stall = 0;
-	assign	wb_flash_data  = 0;
+	assign	wb_flash_idata = 0;
 
 `endif	// FLASH_ACCESS
 
