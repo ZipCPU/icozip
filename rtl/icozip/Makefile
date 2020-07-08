@@ -109,7 +109,7 @@ icozip.json: toplevel.v wbxbar.v addrdecode.v skidbuffer.v $(VFLIST)
 	@yosys -ql yosys.log -p 'synth_ice40 -json icozip.json -top toplevel' $^
 
 .PHONY: yosys
-yosys: icozip.blif
+yosys: icozip.json
 
 icozip.asc: $(PCFFILE) icozip.json
 	# arachne-pnr -d 8k -r -P ct256 -p $(PCFFILE) icozip.blif -o $@

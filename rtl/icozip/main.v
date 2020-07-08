@@ -671,7 +671,7 @@ module	main(i_clk, i_reset,
 	// No class DOUBLE peripherals on the "hb" bus
 	//
 
-	assign	hb_hbarb_err= 1'b0;
+	// info: @ERROR.WIRE for hbarb matches the buses error name, hb_hbarb_err
 	assign	hb_zip_err= 1'b0;
 	//
 	// Connect the hb bus components together using the wbxbar()
@@ -1090,7 +1090,6 @@ module	main(i_clk, i_reset,
 			//
 			w_console_tx_stb, w_console_tx_data, w_console_busy,
 			w_console_rx_stb, w_console_rx_data);
-	assign	hb_hb_sel = 4'hf;
 	assign	hb_hb_addr= hb_tmp_addr[(24-1):0];
 `else	// WBUBUS_MASTER
 `endif	// WBUBUS_MASTER

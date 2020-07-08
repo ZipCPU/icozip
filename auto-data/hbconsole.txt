@@ -119,7 +119,6 @@
 			//
 			w_console_tx_stb, w_console_tx_data, w_console_busy,
 			w_console_rx_stb, w_console_rx_data);
-	assign	@$(MASTER.PREFIX)_sel = 4'hf;
 	assign	@$(MASTER.PREFIX)_addr= @$(PREFIX)_tmp_addr[(@$BUS_ADDRESS_WIDTH-1):0];
 @REGDEFS.H.DEFNS=
 #define	R_ZIPCTRL	@$.ZIP_ADDRESS
@@ -205,6 +204,7 @@ typedef struct  CONSOLE_S {
 @MASTER.TYPE=ARBITER
 @SLAVE.BUS=hb
 @SLAVE.TYPE=OTHER
+@ERROR.WIRE=@$(SLAVE.PREFIX)_err
 @MAIN.INSERT=
 	assign	@$(MASTER.PREFIX)_cyc  = @$(SLAVE.PREFIX)_cyc;
 	assign	@$(MASTER.PREFIX)_stb  = @$(SLAVE.PREFIX)_stb;

@@ -107,13 +107,13 @@ module	spixpress(i_clk, i_reset,
 	input	wire [AW-1:0]	i_wb_addr;
 	input	wire [DW-1:0]	i_wb_data;
 	input	wire [DW/8-1:0]	i_wb_sel;
-	output	reg		o_wb_stall, o_wb_ack;
+	output	wire		o_wb_stall, o_wb_ack;
 	output	reg [DW-1:0]	o_wb_data;
 	//
 	input	wire		i_cfg_cyc, i_cfg_stb, i_cfg_we;
 	input	wire [DW-1:0]	i_cfg_data;
 	input	wire [DW/8-1:0]	i_cfg_sel;
-	output	reg		o_cfg_stall, o_cfg_ack;
+	output	wire		o_cfg_stall, o_cfg_ack;
 	output	wire [DW-1:0]	o_cfg_data;
 	//
 	output	reg		o_spi_cs_n, o_spi_sck, o_spi_mosi;
@@ -273,7 +273,7 @@ module	spixpress(i_clk, i_reset,
 	//
 	// WB-ACK
 	//
-	initial	o_wb_ack = 0;
+	initial	bus_ack = 0;
 	always @(posedge i_clk)
 	if (i_reset)
 		// Clear any acknowledgment on reset

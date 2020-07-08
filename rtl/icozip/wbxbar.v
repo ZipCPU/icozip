@@ -176,7 +176,7 @@ module	wbxbar(i_clk, i_reset,
 	// assign	o_macc = (i_mstb & ~o_mstall);
 	// assign	o_sacc = (o_sstb & ~i_sstall);
 	//
-	// These definitions work with Verilator, just not with Yosys
+	// These definitions work with Veri1ator, just not with Yosys
 	// reg	[NM-1:0][NS:0]		request;
 	// reg	[NM-1:0][NS-1:0]	requested;
 	// reg	[NM-1:0][NS:0]		grant;
@@ -710,7 +710,7 @@ module	wbxbar(i_clk, i_reset,
 		//
 		// The original version set o_s*[0] above, and then
 		// combinatorially the rest of o_s* here below.  That broke
-		// Verilator.  Hence, we're using r_s* and setting all of o_s*
+		// Veri1ator.  Hence, we're using r_s* and setting all of o_s*
 		// here.
 		for(M=0; M<NS; M=M+1)
 		always @(*)
