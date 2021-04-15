@@ -547,9 +547,9 @@ module	spixpress(i_clk, i_reset,
 	always @(*)
 		assert(ack_delay <= 7'd65);
 
-	always @(*)
-	if (cfg_user_mode)
-		assert(ack_delay <= 7'd9);
+//	always @(*)
+//	if (cfg_user_mode)
+//		assert(ack_delay <= 7'd9);
 
 	always @(*)
 		assert(o_spi_cs_n != ((cfg_user_mode)||(ack_delay > 0)));
