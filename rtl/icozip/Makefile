@@ -12,7 +12,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2015-2020, Gisselquist Technology, LLC
+## Copyright (C) 2015-2021, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -46,7 +46,7 @@ VOBJ := obj-$(ARCH)
 include auto.mk
 PCFFILE := icozip.pcf
 VERILATOR := verilator
-VFLAGS := -O3 -Mdir $(VDIRFB) -Wno-TIMESCALEMOD -trace -cc $(AUTOVDIRS)
+VFLAGS := -O3 -MMD -Mdir $(VDIRFB) -Wall -Wno-TIMESCALEMOD -trace -cc $(AUTOVDIRS)
 # VERILATOR := VERILATOR_ROOT=/home/dan/tmp/verilator.git /home/dan/tmp/verilator.git/bin/verilator
 # toplevel.v rxuart.v txuart.v
 # rtcdate.v wbubus.v

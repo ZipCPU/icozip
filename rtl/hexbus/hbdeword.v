@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	hbdeword.v
-//
+// {{{
 // Project:	dbgbus, a collection of 8b channel to WB bus debugging protocols
 //
 // Purpose:	Once a word has come from the bus, hbdeword turns that 34-bit
@@ -14,9 +14,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the hexbus debugging interface.
 //
 // The hexbus interface is free software (firmware): you can redistribute it
@@ -40,7 +40,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+`default_nettype none
+// }}}
 module	hbdeword(i_clk, i_reset,
 		i_stb, i_word, o_dw_busy,
 		o_dw_stb, o_dw_bits, i_tx_busy);

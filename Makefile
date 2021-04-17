@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Filename:	Makefile
-##
+## {{{
 ## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	A master project makefile.  It tries to build all targets
@@ -12,9 +12,9 @@
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
-## Copyright (C) 2016-2020, Gisselquist Technology, LLC
-##
+## }}}
+## Copyright (C) 2016-2021, Gisselquist Technology, LLC
+## {{{
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
@@ -29,14 +29,14 @@
 ## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 ## target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/gpl.html
-##
 ##
 ################################################################################
 ##
-##
+## }}}
 .PHONY: all
 all:	check-install archive datestamp autodata rtl sw sim # bench
 #
@@ -87,10 +87,6 @@ check-gpp:
 .PHONY: check-yosys
 check-yosys:
 	$(call checkif-installed,yosys,-h,yosys)
-
-.PHONY: check-arachnepnr
-check-arachnepnr:
-	$(call checkif-installed,arachne-pnr,-v,arachne-pnr)
 
 .PHONY: check-icetime
 check-icetime:
@@ -154,7 +150,7 @@ doc:
 verilated: rtl
 
 .PHONY: rtl
-rtl: check-yosys check-arachnepnr check-icepack check-icetime datestamp autodata
+rtl: check-yosys check-icepack check-icetime datestamp autodata
 	$(SUBMAKE) rtl
 
 #

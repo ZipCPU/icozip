@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	hbconsole.v
-//
+// {{{
 // Project:	FPGA library
 //
 // Purpose:	This is a replacement wrapper to the original hbbus.v debugging
@@ -17,9 +17,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -43,40 +43,37 @@
 //
 //
 `default_nettype	none
-//
-module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
-		o_wb_cyc, o_wb_stb, o_wb_we, o_wb_addr, o_wb_data, o_wb_sel,
-		i_wb_stall, i_wb_ack, i_wb_err, i_wb_data,
-		i_interrupt,
-		o_tx_stb, o_tx_data, i_tx_busy,
-		i_console_stb, i_console_data, o_console_busy,
-		o_console_stb, o_console_data);
-	parameter	LGWATCHDOG=19,
-			LGINPUT_FIFO=6,
-			LGOUTPUT_FIFO=10;
-	input	wire		i_clk;
-	input	wire		i_rx_stb;
-	input	wire	[7:0]	i_rx_byte;
-	output	wire		o_wb_cyc, o_wb_stb, o_wb_we;
-	output	wire	[29:0]	o_wb_addr;
-	output	wire	[31:0]	o_wb_data;
-	output	wire	[3:0]	o_wb_sel;
-	input	wire		i_wb_stall, i_wb_ack, i_wb_err;
-	input	wire	[31:0]	i_wb_data;
-	input	wire		i_interrupt;
-	output	wire		o_tx_stb;
-	output	wire	[7:0]	o_tx_data;
-	input	wire		i_tx_busy;
-	//
-	input	wire		i_console_stb;
-	input	wire	[6:0]	i_console_data;
-	output	wire		o_console_busy;
-	//
-	output	reg		o_console_stb;
-	output	reg	[6:0]	o_console_data;
-	//
+// }}}
+module	hbconsole (
+		// {{{
+		input	wire		i_clk,
+		input	wire		i_rx_stb,
+		input	wire	[7:0]	i_rx_byte,
+		// Wishbone
+		// {{{
+		output	wire		o_wb_cyc, o_wb_stb, o_wb_we,
+		output	wire	[29:0]	o_wb_addr,
+		output	wire	[31:0]	o_wb_data,
+		output	wire	[3:0]	o_wb_sel,
+		input	wire		i_wb_stall, i_wb_ack, i_wb_err,
+		input	wire	[31:0]	i_wb_data,
+		// }}}
+		input	wire		i_interrupt,
+		output	wire		o_tx_stb,
+		output	wire	[7:0]	o_tx_data,
+		input	wire		i_tx_busy,
+		//
+		input	wire		i_console_stb,
+		input	wire	[6:0]	i_console_data,
+		output	wire		o_console_busy,
+		//
+		output	reg		o_console_stb,
+		output	reg	[6:0]	o_console_data
+		// }}}
+	);
 
-
+	// Local declarations
+	// {{{
 	wire		w_reset;
 	wire		dec_stb;
 	wire	[4:0]	dec_bits;
@@ -102,6 +99,7 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 	wire	[6:0]	fnl_byte;
 	reg		ps_full;
 	reg	[7:0]	ps_data;
+	// }}}
 
 	always @(posedge i_clk)
 		o_console_stb <= (i_rx_stb)&&(i_rx_byte[7] == 1'b0);
@@ -115,54 +113,94 @@ module	hbconsole(i_clk, i_rx_stb, i_rx_byte,
 	//
 	//
 	// First step, convert the incoming bytes into bits
-	hbdechex dechxi(i_clk,
+	hbdechex
+	dechxi(
+		// {{{
+		i_clk,
 		i_rx_stb, i_rx_byte,
-		dec_stb, w_reset, dec_bits);
+		dec_stb, w_reset, dec_bits
+		// }}}
+	);
 
 
 	// ... that can then be transformed into bus command words
-	hbpack	packxi(i_clk, w_reset,
-		dec_stb, dec_bits, iw_stb, iw_word);
+	hbpack
+	packxi(
+		// {{{
+		i_clk, w_reset,
+		dec_stb, dec_bits, iw_stb, iw_word
+		// }}}
+	);
 
 
 	//
 	// We'll use these bus command words to drive a wishbone bus
 	//
-	hbexec	wbexec(i_clk, w_reset, iw_stb, iw_word, wb_busy,
-			ow_stb, ow_word,
-			o_wb_cyc, o_wb_stb, o_wb_we, o_wb_addr, o_wb_data,
-				o_wb_sel, i_wb_ack, i_wb_stall, i_wb_err,
-				i_wb_data);
+	hbexec
+	wbexec(
+		// {{{
+		i_clk, w_reset, iw_stb, iw_word, wb_busy,
+		ow_stb, ow_word,
+		o_wb_cyc, o_wb_stb, o_wb_we, o_wb_addr, o_wb_data,
+			o_wb_sel, i_wb_stall, i_wb_ack, i_wb_err,
+			i_wb_data
+		// }}}
+	);
 
 	// We'll then take the responses from the bus, and add an interrupt
 	// flag to the output any time things are idle.  This also acts
 	// as a one-stage FIFO
-	hbints	addints(i_clk, w_reset, i_interrupt,
-			ow_stb,  ow_word,  int_busy,
-			int_stb, int_word, idl_busy);
+	hbints
+	addints(
+		// {{{
+		i_clk, w_reset, i_interrupt,
+		ow_stb,  ow_word,  int_busy,
+		int_stb, int_word, idl_busy
+		// }}}
+	);
 
 	// 
 	// 
 	// 
-	hbidle	addidles(i_clk, w_reset,
+	hbidle
+	addidles(
+		// {{{
+		i_clk, w_reset,
 			int_stb, int_word, idl_busy,
-			idl_stb, idl_word, hb_busy);
+			idl_stb, idl_word, hb_busy
+		// }}}
+	);
 
 	// We'll then take that ouput from that stage, and disassemble the
 	// response word into smaller (5-bit) sized units ...
-	hbdeword unpackx(i_clk, w_reset,
+	hbdeword
+	unpackx(
+		// {{{
+		i_clk, w_reset,
 			idl_stb, idl_word, hb_busy,
-			hb_stb, hb_bits, hx_busy);
+			hb_stb, hb_bits, hx_busy
+		// }}}
+	);
 
 	// ... that can then be transmitted back down the channel
-	hbgenhex genhex(i_clk, w_reset, hb_stb, hb_bits, hx_busy,
-			hx_stb, hx_byte, nl_busy);
+	hbgenhex
+	genhex(
+		// {{{
+		i_clk, w_reset, hb_stb, hb_bits, hx_busy,
+			hx_stb, hx_byte, nl_busy
+		// }}}
+	);
 
 	//
 	// We'll also add carriage return newline pairs any time the channel
 	// goes idle
-	hbnewline addnl(i_clk, w_reset, hx_stb, hx_byte, nl_busy,
-			fnl_stb, fnl_byte, (i_tx_busy)&&(ps_full));
+	hbnewline
+	addnl(
+		// {{{
+		i_clk, w_reset, hx_stb, hx_byte, nl_busy,
+		fnl_stb, fnl_byte, (i_tx_busy)&&(ps_full)
+		// }}}
+	);
 
 	//
 	//

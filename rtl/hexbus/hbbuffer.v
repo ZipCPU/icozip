@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	hbbuffer.v
-//
+// {{{
 // Project:	dbgbus, a collection of 8b channel to WB bus debugging protocols
 //
 // Purpose:	
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2018-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the hexbus debugging interface.
 //
 // The hexbus interface is free software (firmware): you can redistribute it
@@ -29,33 +29,41 @@
 // along with this program.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-//
-module	hbbuffer(i_clk, i_reset, i_stb, i_word, o_busy,
-			o_stb, o_word, i_busy);
-	parameter	W=8;
-	input	wire		i_clk, i_reset;
-	//
-	input	wire		i_stb;
-	input	wire	[W-1:0]	i_word;
-	output	wire		o_busy;
-	//
-	output	reg		o_stb;
-	output	reg	[W-1:0]	o_word;
-	input	wire		i_busy;
+// }}}
+module	hbbuffer #(
+		// {{{
+		parameter	W=8
+		// }}}
+	) (
+		// {{{
+		input	wire		i_clk, i_reset,
+		//
+		input	wire		i_stb,
+		input	wire	[W-1:0]	i_word,
+		output	wire		o_busy,
+		//
+		output	reg		o_stb,
+		output	reg	[W-1:0]	o_word,
+		input	wire		i_busy
+		// }}}
+	);
 
+	// Local declarations
+	// {{{
 	reg		r_stb;
 	reg	[W-1:0]	r_word;
+	// }}}
 
+	// r_stb, r_word, o_stb, o_word
+	// {{{
 	initial	r_stb = 1'b0;
 	initial	o_stb = 1'b0;
 	always @(posedge i_clk)
@@ -83,8 +91,18 @@ module	hbbuffer(i_clk, i_reset, i_stb, i_word, o_busy,
 			r_stb <= 1'b0;
 		end
 	end
+	// }}}
 
 	assign	o_busy = r_stb;
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 `ifdef	HBBUFFER
 `define	ASSUME	assume
@@ -147,5 +165,6 @@ module	hbbuffer(i_clk, i_reset, i_stb, i_word, o_busy,
 	end
 
 `endif
+// }}}
 endmodule
 

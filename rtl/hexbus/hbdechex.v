@@ -15,9 +15,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the hexbus debugging interface.
 //
 // The hexbus interface is free software (firmware): you can redistribute it
@@ -41,7 +41,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+`default_nettype none
+// }}}
 module	hbdechex(i_clk, i_stb, i_byte, o_dh_stb, o_reset, o_dh_bits);
 	input	wire		i_clk, i_stb;
 	input	wire	[7:0]	i_byte;

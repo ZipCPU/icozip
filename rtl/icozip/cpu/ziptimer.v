@@ -186,8 +186,8 @@ module	ziptimer(i_clk, i_reset, i_ce,
 
 	// Make verilator happy
 	// verilator lint_off UNUSED
-	wire	[32:0]	unused;
-	assign	unused = { i_wb_cyc, i_wb_data };
+	wire	unused;
+	assign	unused = &{ 1'b0, i_wb_cyc, i_wb_data, i_wb_sel };
 	// verilator lint_on  UNUSED
 
 `ifdef	FORMAL

@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Filename: 	wbuconsole.txt
-##
+## {{{
 ## Project:	AutoFPGA, a utility for composing FPGA designs from peripherals
 ##
 ## Purpose:	Provide access to both a debugging bus and a console port for
@@ -15,9 +15,9 @@
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
-## Copyright (C) 2017-2020, Gisselquist Technology, LLC
-##
+## }}}
+## Copyright (C) 2017-2021, Gisselquist Technology, LLC
+## {{{
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
@@ -32,14 +32,14 @@
 ## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 ## target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/gpl.html
-##
 ##
 ################################################################################
 ##
-##
+## }}}
 @REGISTER.BUS=wbu
 @PREFIX=wbu
 @ACCESS=WBUBUS_MASTER
@@ -110,15 +110,22 @@
 	wire	w_bus_int;
 	assign	w_bus_int = 1'b0;
 `endif
-	wbuconsole genbus(@$(CLOCK.WIRE), pp_rx_stb, pp_rx_data,
-			@$(MASTER.PREFIX)_cyc, @$(MASTER.PREFIX)_stb, @$(MASTER.PREFIX)_we, @$(MASTER.PREFIX)_tmp_addr, @$(MASTER.PREFIX)_data,
-			@$(MASTER.PREFIX)_stall, @$(MASTER.PREFIX)_ack,
+	wbuconsole
+	genbus(
+		// {{{
+		@$(CLOCK.WIRE), pp_rx_stb, pp_rx_data,
+		@$(MASTER.PREFIX)_cyc, @$(MASTER.PREFIX)_stb,
+			@$(MASTER.PREFIX)_we, @$(MASTER.PREFIX)_tmp_addr,
+			@$(MASTER.PREFIX)_data,
+		@$(MASTER.PREFIX)_stall, @$(MASTER.PREFIX)_ack,
 			@$(MASTER.PREFIX)_idata, @$(MASTER.PREFIX)_err,
-			w_bus_int,
-			pp_tx_stb, pp_tx_data, pp_tx_busy,
-			//
-			w_console_tx_stb, w_console_tx_data, w_console_busy,
-			w_console_rx_stb, w_console_rx_data);
+		w_bus_int,
+		pp_tx_stb, pp_tx_data, pp_tx_busy,
+		//
+		w_console_tx_stb, w_console_tx_data, w_console_busy,
+		w_console_rx_stb, w_console_rx_data
+		// }}}
+	);
 	assign	@$(MASTER.PREFIX)_sel = 4'hf;
 	assign	@$(MASTER.PREFIX)_addr = @$(MASTER.PREFIX)_tmp_addr[(@$BUS_ADDRESS_WIDTH-1):0];
 @REGDEFS.H.DEFNS=
@@ -164,11 +171,16 @@
 	wire		w_console_rx_stb, w_console_tx_stb, w_console_busy;
 	wire	[6:0]	w_console_rx_data, w_console_tx_data;
 @MAIN.INSERT=
-	wbconsole @$(PREFIX)i(@$(SLAVE.BUS.CLOCK.WIRE), 1'b0,
-			@$(SLAVE.PORTLIST),
-			w_console_tx_stb, w_console_tx_data, w_console_busy,
-			w_console_rx_stb, w_console_rx_data,
-			uartrx_int, uarttx_int, uartrxf_int, uarttxf_int);
+	wbconsole
+	@$(PREFIX)i(
+		// {{{
+		@$(SLAVE.BUS.CLOCK.WIRE), 1'b0,
+		@$(SLAVE.PORTLIST),
+		w_console_tx_stb, w_console_tx_data, w_console_busy,
+		w_console_rx_stb, w_console_rx_data,
+		uartrx_int, uarttx_int, uartrxf_int, uarttxf_int
+		// }}}
+	);
 @MAIN.ALT=
 	assign	w_console_tx_stb  = 1'b0;
 	assign	w_console_tx_data = 7'h7f;

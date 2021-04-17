@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	hbbus.v
-//
+// {{{
 // Project:	dbgbus, a collection of 8b channel to WB bus debugging protocols
 //
 // Purpose:	This is the top level of the debug bus itself, converting
@@ -12,9 +12,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the hexbus debugging interface.
 //
 // The hexbus interface is free software (firmware): you can redistribute it
@@ -31,39 +31,41 @@
 // along with this program.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-module	hbbus(i_clk,
-		i_rx_stb, i_rx_byte,
-		o_wb_cyc, o_wb_stb, o_wb_we, o_wb_addr, o_wb_data, o_wb_sel,
-		  i_wb_ack, i_wb_stall, i_wb_err, i_wb_data,
-		i_interrupt,
-		o_tx_stb, o_tx_byte, i_tx_busy);
-	parameter	AW=30;
-	localparam	DW=32;
-	input	wire		i_clk;
-	input	wire		i_rx_stb;
-	input	wire	[7:0]	i_rx_byte;
-	output	wire		o_wb_cyc, o_wb_stb, o_wb_we;
-	output	wire	[(AW-1):0]	o_wb_addr;
-	output	wire	[(DW-1):0]	o_wb_data;
-	output	wire	[(DW/8-1):0]	o_wb_sel;
-	input	wire			i_wb_ack, i_wb_stall, i_wb_err;
-	input	wire	[(DW-1):0]	i_wb_data;
-	input	wire			i_interrupt;
-	output	wire			o_tx_stb;
-	output	wire	[7:0]		o_tx_byte;
-	input	wire			i_tx_busy;
+// }}}
+module	hbbus #(
+		// {{{
+		parameter	AW=30,
+		localparam	DW=32
+		// }}}
+	) (
+		// {{{
+		input	wire		i_clk,
+		input	wire		i_rx_stb,
+		input	wire	[7:0]	i_rx_byte,
+		output	wire		o_wb_cyc, o_wb_stb, o_wb_we,
+		output	wire	[(AW-1):0]	o_wb_addr,
+		output	wire	[(DW-1):0]	o_wb_data,
+		output	wire	[(DW/8-1):0]	o_wb_sel,
+		input	wire			i_wb_stall, i_wb_ack,
+		input	wire	[(DW-1):0]	i_wb_data,
+		input	wire			i_wb_err,
+		input	wire			i_interrupt,
+		output	wire			o_tx_stb,
+		output	wire	[7:0]		o_tx_byte,
+		input	wire			i_tx_busy
+		// }}}
+	);
 
-
+	// Local declarations
+	// {{{
 	wire		w_reset;
 	wire		dec_stb;
 	wire	[4:0]	dec_bits;
@@ -83,6 +85,7 @@ module	hbbus(i_clk,
 	wire		wb_busy;
 	wire		int_busy;
 	// verilator lint_on UNUSED
+	// }}}
 
 	//
 	//

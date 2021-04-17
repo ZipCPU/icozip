@@ -144,8 +144,10 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	// Parameters
 	//{{{
 	parameter [31:0] RESET_ADDRESS=32'h0100000;
+	// Verilator lint_off UNUSED
 	parameter	ADDRESS_WIDTH=30,
 			LGICACHE=8;
+	// Verilator lint_on  UNUSED
 `ifdef	OPT_MULTIPLY
 	parameter	IMPLEMENT_MPY = `OPT_MULTIPLY;
 `else
@@ -186,20 +188,26 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 `else
 	localparam	[0:0]	OPT_PIPELINED_BUS_ACCESS = 1'b0;
 `endif
+	// Verilator lint_off UNUSED
 	localparam	[0:0]	OPT_MEMPIPE = OPT_PIPELINED_BUS_ACCESS;
+	// Verilator lint_on  UNUSED
 	parameter	[0:0]	IMPLEMENT_LOCK=1;
 	localparam	[0:0]	OPT_LOCK=(IMPLEMENT_LOCK)&&(OPT_PIPELINED);
+	// Verilator lint_off UNUSED
 `ifdef	OPT_DCACHE
 	parameter		OPT_LGDCACHE = 10;
 `else
 	parameter		OPT_LGDCACHE = 0;
 `endif
+	// Verilator lint_on  UNUSED
 	localparam	[0:0]	OPT_DCACHE = (OPT_LGDCACHE > 0);
 
 	parameter [0:0]	WITH_LOCAL_BUS = 1'b1;
 	localparam	AW=ADDRESS_WIDTH;
 	localparam	[(AW-1):0]	RESET_BUS_ADDRESS = RESET_ADDRESS[(AW+1):2];
+	// Verilator lint_off UNUSED
 	parameter	F_LGDEPTH=8;
+	// Verilator lint_on  UNUSED
 
 	//}}}
 	// I/O declarations
@@ -2739,19 +2747,19 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 
 	always @(posedge i_clk)
 	begin
-		dbgsrc = 0;
+		dbgsrc <= 0;
 		if ((i_halt)||(!master_ce)||(debug_trigger)||(o_break))
-			dbgsrc = 3'b000;
+			dbgsrc <= 3'b000;
 		else if ((mem_valid)||((!clear_pipeline)&&(!alu_illegal)
 					&&(((alu_wR)&&(alu_valid))
 						||(div_valid)||(fpu_valid))))
-			dbgsrc = 3'b001;
+			dbgsrc <= 3'b001;
 		else if (clear_pipeline)
-			dbgsrc = 3'b010;
+			dbgsrc <= 3'b010;
 		else if ((o_wb_gbl_stb)|(o_wb_lcl_stb))
-			dbgsrc = 3'b011;
+			dbgsrc <= 3'b011;
 		else
-			dbgsrc = 3'b100;
+			dbgsrc <= 3'b100;
 	end
 
 	always @(posedge i_clk)
@@ -2771,13 +2779,14 @@ module	zipcpu(i_clk, i_reset, i_interrupt,
 	// Make verilator happy
 	//{{{
 	// verilator lint_off UNUSED
-	wire	[56:0]	unused;
-	assign	unused = { pf_new_pc,
+	wire	unused;
+	assign	unused = &{ 1'b0, pf_new_pc,
 		fpu_ce, pf_data, wr_spreg_vl[1:0],
 		ipc[1:0], upc[1:0], pf_pc[1:0],
 		dcd_rA, dcd_pipe, dcd_zI,
 		dcd_A_stall, dcd_B_stall, dcd_F_stall,
 		op_Rcc, op_pipe, op_lock, mem_pipe_stalled, prelock_stall,
+		w_clear_dcache,
 		dcd_F };
 	generate if (AW+2 < 32)
 	begin

@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	spixpress.v
-//
+// {{{
 // Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	This module is intended to be a low logic flash controller.
@@ -48,9 +48,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2018-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -65,16 +65,16 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
+// }}}
 module	spixpress(i_clk, i_reset,
 		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data, i_wb_sel,
 			o_wb_stall, o_wb_ack, o_wb_data,
@@ -137,9 +137,16 @@ module	spixpress(i_clk, i_reset,
 		//
 		// Memory vs Configuration bus arbiter
 		//
-		wbarbiter #(.DW(DW), .AW(AW+1), .SCHEME("PRIORITY"),
-			.F_MAX_STALL(0), .F_MAX_ACK_DELAY(0))
-		arbiter(i_clk, i_reset,
+		wbarbiter #(
+			// {{{
+			.DW(DW), .AW(AW+1), .SCHEME("PRIORITY"),
+`ifdef	FORMAL
+			.F_MAX_STALL(0), .F_MAX_ACK_DELAY(0)
+`endif
+			// }}}
+		) arbiter(
+			// {{{
+			i_clk, i_reset,
 			i_wb_cyc, i_wb_stb, i_wb_we, { 1'b0, i_wb_addr },
 				i_wb_data, i_wb_sel,
 				o_wb_stall, o_wb_ack, ign_wb_err,
@@ -147,7 +154,9 @@ module	spixpress(i_clk, i_reset,
 				i_cfg_data, i_cfg_sel,
 				o_cfg_stall, o_cfg_ack, ign_cfg_err,
 			bus_cyc, bus_stb, bus_we, { cfg_bus_grant, bus_addr },
-				bus_data, bus_sel, bus_stall, bus_ack, 1'b0);
+				bus_data, bus_sel, bus_stall, bus_ack, 1'b0
+			// }}}
+		);
 
 		assign	cfg_bus_stb = bus_stb &&  cfg_bus_grant;
 		assign	mem_bus_stb = bus_stb && !cfg_bus_grant;
@@ -432,7 +441,7 @@ module	spixpress(i_clk, i_reset,
 
 	// verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = &{ 1'b0, bus_data[DW-1:9] };
+	assign	unused = &{ 1'b0, bus_data[DW-1:9], bus_sel };
 	// verilator lint_on  UNUSED
 
 ////////////////////////////////////////////////////////////////////////////////

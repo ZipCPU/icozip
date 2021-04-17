@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	sramdev.v
-//
+// {{{
 // Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -27,45 +27,48 @@
 // with this program.  (It's in the $(ROOT)/doc directory, run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
-			i_wb_sel,
-		o_wb_stall, o_wb_ack, o_wb_data,
-		o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr, o_ram_data,
-		o_ram_sel, i_ram_data);
-	parameter	WBADDR = 15;
-	input	wire		i_clk;
-	// Wishbone
-	//  inputs
-	input	wire			i_wb_cyc, i_wb_stb, i_wb_we;
-	input	wire	[(WBADDR-1):0]	i_wb_addr;
-	input	wire	[31:0]		i_wb_data;
-	input	wire	[3:0]		i_wb_sel;
-	//  and outputs
-	output	reg			o_wb_stall, o_wb_ack;
-	output	reg	[31:0]		o_wb_data;
-	// RAM control wires
-	output	reg			o_ram_ce_n, o_ram_oe_n, o_ram_we_n;
-	output	reg	[(WBADDR):0]	o_ram_addr;
-	output	reg	[15:0]		o_ram_data;
-	output	reg	[1:0]		o_ram_sel;
-	input	wire	[15:0]		i_ram_data;
+// }}}
+module sramdev #(
+		// {{{
+		parameter	WBADDR = 15
+		// }}}
+	) (
+		// {{{
+		input	wire			i_clk,
+		// Wishbone
+		//  inputs
+		input	wire			i_wb_cyc, i_wb_stb, i_wb_we,
+		input	wire	[(WBADDR-1):0]	i_wb_addr,
+		input	wire	[31:0]		i_wb_data,
+		input	wire	[3:0]		i_wb_sel,
+		//  and outputs
+		output	reg			o_wb_stall, o_wb_ack,
+		output	reg	[31:0]		o_wb_data,
+		// RAM control wires
+		output	reg			o_ram_ce_n, o_ram_oe_n, o_ram_we_n,
+		output	reg	[(WBADDR):0]	o_ram_addr,
+		output	reg	[15:0]		o_ram_data,
+		output	reg	[1:0]		o_ram_sel,
+		input	wire	[15:0]		i_ram_data
+		// }}}
+	);
 
-	
+	// Local declarations
+	// {{{
 	reg	[2:0]	ram_state;
 	reg	[31:0]	data;
 	reg		next_ack;
 	reg		write;
 	reg	[3:0]	sel;
+	// }}}
 
 	initial	ram_state  = 3'b0;
 	initial	sel        = 4'hf;
@@ -183,6 +186,10 @@ module sramdev(i_clk, i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data,
 		endcase
 	end
 
+	// Verilator lint_off UNUSED
+	wire	unused;
+	assign	unused = &{ 1'b0, data[31:16] };
+	// Verilator lint_on  UNUSED
 `ifdef	FORMAL
 	reg	f_past_valid, f_reset;
 	initial	f_past_valid = 1'b0;

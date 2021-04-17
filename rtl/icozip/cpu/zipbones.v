@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2020, Gisselquist Technology, LLC
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -64,24 +64,7 @@ module	zipbones(i_clk, i_reset,
 	parameter	RESET_ADDRESS=32'h0100000, ADDRESS_WIDTH=30,
 			LGICACHE=8;
 	parameter [0:0]	START_HALTED=0;
-	parameter	EXTERNAL_INTERRUPTS=1,
-`ifdef	OPT_MULTIPLY
-			IMPLEMENT_MPY = `OPT_MULTIPLY;
-`else
-			IMPLEMENT_MPY = 0;
-`endif
-	parameter [0:0]
-`ifdef	OPT_DIVIDE
-			IMPLEMENT_DIVIDE=1,
-`else
-			IMPLEMENT_DIVIDE=0,
-`endif
-`ifdef	OPT_IMPLEMENT_FPU
-			IMPLEMENT_FPU=1,
-`else
-			IMPLEMENT_FPU=0,
-`endif
-			IMPLEMENT_LOCK=1;
+	// Verilator lint_off UNUSED
 	localparam	// Derived parameters
 			PHYSICAL_ADDRESS_WIDTH=ADDRESS_WIDTH,
 			PAW=ADDRESS_WIDTH,
@@ -92,8 +75,8 @@ module	zipbones(i_clk, i_reset,
 `endif
 			LGTLBSZ = 6,
 			VAW=VIRTUAL_ADDRESS_WIDTH;
+	// Verilator lint_on  UNUSED
 
-	localparam	AW=ADDRESS_WIDTH;
 	input	wire	i_clk, i_reset;
 	// Wishbone master
 	output	wire		o_wb_cyc, o_wb_stb, o_wb_we;
