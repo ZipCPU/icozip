@@ -37,18 +37,27 @@
 //
 `default_nettype	none
 // }}}
-module	oclkddr(i_clk, i_ddr, o_pin);
-	input	wire		i_clk;
-	input	wire	[1:0]	i_ddr;
-	output	wire		o_pin;
+module	oclkddr (
+		// {{{
+		input	wire		i_clk,
+		input	wire	[1:0]	i_ddr,
+		output	wire		o_pin
+		// }}}
+	);
 
-	SB_IO	#(.PIN_TYPE(6'b0100_01)
-	   ) oddr(
+	SB_IO	#(
+		// {{{
+		.PIN_TYPE(6'b0100_01)
+		// }}}
+	) oddr(
+		// {{{
 		.OUTPUT_CLK(i_clk),
 		.CLOCK_ENABLE(1'b1),
 		.D_OUT_0(i_ddr[1]),
 		.D_OUT_1(i_ddr[0]),
-		.OUTPUT_ENABLE(1),
-		.PACKAGE_PIN(o_pin));
+		.OUTPUT_ENABLE(1'b1),
+		.PACKAGE_PIN(o_pin)
+		// }}}
+	);
 
 endmodule
