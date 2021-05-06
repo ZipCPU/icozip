@@ -46,9 +46,9 @@ module	ppio #(
 		// }}}
 	) (
 		// {{{
-		input			i_dir;
-		inout	[(W-1):0]	io_data;
-		input	[(W-1):0]	i_data;
+		input			i_dir,
+		inout	[(W-1):0]	io_data,
+		input	[(W-1):0]	i_data,
 		output	[(W-1):0]	o_data
 		// }}}
 	);
