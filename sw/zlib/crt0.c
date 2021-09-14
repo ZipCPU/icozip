@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	crt0.c
-//
+// {{{
 // Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	To start a program from flash, loading its various components
@@ -90,11 +90,11 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -102,23 +102,20 @@
 // ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
 // FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 // for more details.
-//
-// You should have received a copy of the GNU General Public License along
-// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
-// target there if the PDF file isn't present.)  If not, see
-// <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #include "zipcpu.h"
 #include "board.h"		// Our current board support file
 #include "bootloader.h"
 
+// USE_DMA
+// {{{
 // A bootloader is about nothing more than copying memory from a couple
 // particular locations (Flash/ROM) to other locations in memory (BLKRAM
 // and SRAM).  Our DMA is a hardware accelerator that does nothing but
@@ -131,13 +128,16 @@
 // however: 1) It obscures for any readers of this code what is actually
 // happening, and 2) it makes the code dependent upon yet another piece of the
 // hardware design working.  For these reasons, we allow you to turn it off.
+// }}}
 #ifdef _HAVE_ZIPSYS_DMA
 #define	USE_DMA
 #endif
 
 //
-// _start:
-//
+// _start: (Assembly routine)
+// {{{
+// Notes:
+// {{{
 // Every computer needs to start processing from somewhere on reboot, and every
 // program needs some entry point.  For the ZipCPU, that starting place is the
 // routine with the _start symbol.  It is important that this start symbol be
@@ -155,7 +155,7 @@
 // the kernel entry function.  It also sets up a return address for the kernel
 // entry function so that, should the kernel ever exit, it wouldn't exit on 
 // any error but rather it would exit by halting the CPU.
-//
+// }}}
 asm("\t.section\t.start,\"ax\",@progbits\n"
 	"\t.global\t_start\n"
 "_start:"	"\t; Here's the global ZipCPU entry point upon reset/reboot\n"
@@ -191,19 +191,21 @@ asm("\t.section\t.start,\"ax\",@progbits\n"
 "_argv:\n"
 	"\t.WORD\t0,0\n"
 	"\t.section\t.text");
+// }}}
 
-//
+// extern _bootloader
+// {{{
 // We need to insist that the bootloader be kept in Flash, else it would depend
 // upon running a routine from memory that ... wasn't in memory yet.  For this
 // purpose, we place the bootloader in a special .boot section.  We'll also tell
 // the linker, via the linker script, that this .boot section needs to be placed
 // into flash.
-//
+// }}}
 extern	void	_bootloader(void) __attribute__ ((section (".boot")));
 
 //
 // bootloader()
-//
+// {{{
 // Here's the actual boot loader itself.  It copies three areas from flash:
 //	1. An area from flash to block RAM
 //	2. A second area from flash to SRAM
@@ -211,68 +213,139 @@ extern	void	_bootloader(void) __attribute__ ((section (".boot")));
 //		zero.  This is sometimes called the BSS segment.
 //
 #ifndef	SKIP_BOOTLOADER
+// NOTNULL(A)
+// {{{
+// Several comparisons below look like: if (_ram != NULL) or even
+// if (_ram == NULL).  The problem is that, in order to optimize linking, we've
+// defined _ram as something like: unsigned _ram[1];  This means that GCC
+// believes space is actually allocated for _ram somewhere (by the linker), but
+// just doesn't know where.  Hence, GCC will optimize these comparisons away,
+// since it knows they cannot be NULL.  The macro below helps to return the
+// comparison back to what it should be--getting GCC out of the way in the
+// process.  It's an ugly hack, but it works.
+#define	NOTNULL(A)	(4 != (unsigned)&A[1])
+// }}}
 void	_bootloader(void) {
-	if (_rom == NULL) {
+	// NSTR("BOOTLOADER");
+	int *ramend = _ram_image_end, *bsend = _bss_image_end;
+
+	if (!NOTNULL(_rom)) {
+		// No ROM present
+		// {{{
+		// In this case, we have the least to do: an external loader
+		// has already been responsible for loading us into memory.
+		// All that's then required is simply to zero out the BSS
+		// segment and start.  This can be done either with (or without)
+		// the DMA.  If you want to understand how this routine
+		// works, check out the non-DMA section
+#ifdef	USE_DMA
+		// NSTR("No-ROM");
+		//
+		// Clear the DMA from anything it might've been doing prior
+		// to the CPU reset that brought us here.
+		//
+		_zip->z_dma.d_ctrl= DMACLEAR;
+		if (bsend != ramend) {
+			volatile int	zero = 0;
+
+			// NSTR("BSS");
+			_zip->z_pic = SYSINT_DMAC;
+			_zip->z_dma.d_len = bsend - ramend;
+			_zip->z_dma.d_rd  = (unsigned *)&zero;
+			_zip->z_dma.d_wr  = ramend;
+			_zip->z_dma.d_ctrl = DMACCOPY|DMA_CONSTSRC;
+
+// _zipscope->s_ctrl = 0x88000040;
+			while((_zip->z_pic & SYSINT_DMAC)==0)
+				;
+		} CLEAR_CACHE;
+#else	// USE_DMA
 		int	*wrp = _ram_image_end;
 		while(wrp < _bss_image_end)
 			*wrp++ = 0;
+#endif	// USE_DMA
 		return;
+		// }}}
 	}
 
-	int *ramend = _ram_image_end, *bsend = _bss_image_end,
-	    *kramdev = (_kram) ? _kram : _ram;
+	int *kramdev = (_kram) ? _kram : _ram;
 
+	// Okay, we have ROM present.  We need to copy our instructions and
+	// data from the ROM to a designated RAM area.  Indeed, we allow two
+	// designated RAM areas: kernel (fast) and normal RAM.  Once done,
+	// we zero out the BSS segment.  This can be done with or without the
+	// DMA
 #ifdef	USE_DMA
+	// {{{
+	// Disable and clear all interrupts
+	_zip->z_pic = CLEARPIC;
+	// NSTR("DMA");
 	_zip->z_dma.d_ctrl= DMACLEAR;
-	_zip->z_dma.d_rd = _kram_start; // Flash memory
-	_zip->z_dma.d_wr  = (_kram) ? _kram : _ram;
-	if (_kram_start != _kram_end) {
-		if (_kram_end != _kram) {
-			// asm("NSTR \"KRAM\n\"\n");
+
+	// Copy to Kernel RAM
+	// {{{
+	if (NOTNULL(_kram)) {
+		_zip->z_dma.d_rd  = _kram_start; // Flash memory ptr
+		_zip->z_dma.d_wr  = (_kram) ? _kram : _ram;
+		if (_kram_start != _kram_end) {
+			_zip->z_pic = SYSINT_DMAC;
 			_zip->z_dma.d_len = _kram_end - _kram;
 			_zip->z_dma.d_wr  = _kram;
 			_zip->z_dma.d_ctrl= DMACCOPY;
 
-			_zip->z_pic = SYSINT_DMAC;
 			while((_zip->z_pic & SYSINT_DMAC)==0)
 				;
 		}
-	}
-
-	// _zip->z_dma.d_rd // Keeps the same value
-	if (NULL != _kram) {
-		// Writing to kram, need to switch to RAM
-		_zip->z_dma.d_wr  = _ram;
-		_zip->z_dma.d_len = _ram_image_end - _ram;
 	} else {
 		// Continue writing to the RAM device from where we left off
-		_zip->z_dma.d_len = _ram_image_end - _kram_end;
+		_zip->z_dma.d_rd = _ram_image_start; // ROM (flash) memory
 	}
+	// }}}
 
+	// Copy to external or regular RAM
+	// {{{
+	_zip->z_dma.d_wr = _ram;
+	_zip->z_dma.d_len = ramend - _ram;
 	if (_zip->z_dma.d_len>0) {
-		// asm("NSTR \"RAM\n\"\n");
+		_zip->z_pic = SYSINT_DMAC;
 		_zip->z_dma.d_ctrl= DMACCOPY;
 
-		_zip->z_pic = SYSINT_DMAC;
 		while((_zip->z_pic & SYSINT_DMAC)==0)
 			;
 	}
+	// }}}
 
-	if (_bss_image_end != _ram_image_end) {
+	// Zero out the BSS segment
+	// {{{
+	if (bsend != ramend) {
 		volatile int	zero = 0;
 
-		_zip->z_dma.d_len = _bss_image_end - _ram_image_end;
+		_zip->z_pic = SYSINT_DMAC;
+		_zip->z_dma.d_len = bsend - ramend;
 		_zip->z_dma.d_rd  = (unsigned *)&zero;
 		// _zip->z_dma.wr // Keeps the same value
 		_zip->z_dma.d_ctrl = DMACCOPY|DMA_CONSTSRC;
 
-		_zip->z_pic = SYSINT_DMAC;
 		while((_zip->z_pic & SYSINT_DMAC)==0)
 			;
 	}
-#else
-	int	*rdp = _kram_start, *wrp = (_kram) ? _kram : _ram;
+	// }}}
 
+	CLEAR_CACHE;
+	// Disable and clear all interrupts
+	_zip->z_pic = CLEARPIC;
+	// }}}
+#else
+	// {{{
+	int	*rdp = _kram_start, *wrp;
+	// NSTR("Not using DMA");
+
+	// Copy to Kernel RAM
+	// {{{
+	if (NOTNULL(_kram))
+		wrp = _kram;
+	else
+		wrp = _ram;
 	//
 	// Load any part of the image into block RAM, but *only* if there's a
 	// block RAM section in the image.  Based upon our LD script, the
@@ -280,34 +353,47 @@ void	_bootloader(void) {
 	// It starts at _kram_start --- our last valid address within
 	// the flash address region.
 	//
-	if (_kram_end != _kram_start) {
+	if (_kram_end != _kram_start) {	// The memory copy
+		// NSTR("KRAM");
 		while(wrp < _kram_end)
 			*wrp++ = *rdp++;
 	}
+	// }}}
 
-	if (NULL != _ram)
+	// If there's a separate RAM section, then we'll switch to writing into
+	// it next.  If not, we'll continue writing from where we left off in
+	// kernel RAM.
+	if (NOTNULL(_ram))
 		wrp  = _ram;
 
-	//
+	// Copy to external or regular RAM
+	// {{{
 	// Now, we move on to the SRAM image.  We'll here load into SRAM
 	// memory up to the end of the SRAM image, _ram_image_end.
 	// As with the last pointer, this one is also created for us by the
 	// linker.
 	// 
 	// while(wrp < sdend)	// Could also be done this way ...
+	// NSTR("RAM");
 	for(int i=0; i< ramend - _ram; i++)
 		*wrp++ = *rdp++;
+	// }}}
 
-	//
+	// Zero out the BSS segment
+	// {{{
 	// Finally, we load BSS.  This is the segment that only needs to be
 	// cleared to zero.  It is available for global variables, but some
 	// initialization is expected within it.  We start writing where
 	// the valid SRAM context, i.e. the non-zero contents, end.
 	//
+	// NSTR("BSS");
 	for(int i=0; i<bsend - ramend; i++)
 		*wrp++ = 0;
-
-#endif
+	// }}}
+	// }}}
+#endif	// USE_DMA
+	// NSTR("Bootloader complete");
 }
-#endif
+#endif	// SKIP_BOOTLOADER
+// }}}
 

@@ -56,7 +56,7 @@ module	hbidle (
 		// }}}
 	);
 
-	// Local declarattions
+	// Local declarations
 	//  {{{
 	// If our bus has been idle for a long time, then set an idle_stb, so
 	// that we can send a message back just to say that we are alive.

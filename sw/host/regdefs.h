@@ -18,7 +18,7 @@
 // Copyright (C) 2017-2021, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -73,8 +73,43 @@
 #define	R_BKRAM         	0x00c00000	// 00c00000, wbregs names: RAM
 #define	R_SRAM          	0x00e00000	// 00e00000, wbregs names: SRAM
 #define	R_FLASH         	0x01000000	// 01000000, wbregs names: FLASH
-#define	R_ZIPCTRL       	0x02000000	// 02000000, wbregs names: CPU
-#define	R_ZIPDATA       	0x02000004	// 02000000, wbregs names: CPUD
+// ZipCPU control/debug registers
+#define	R_ZIPCTRL       	0x02000080	// 02000000, wbregs names: CPU, ZIPCTRL
+#define	R_ZIPREGS       	0x02000000	// 02000000, wbregs names: ZIPREGS
+#define	R_ZIPS0         	0x02000000	// 02000000, wbregs names: SR0
+#define	R_ZIPS1         	0x02000004	// 02000000, wbregs names: SR1
+#define	R_ZIPS2         	0x02000008	// 02000000, wbregs names: SR2
+#define	R_ZIPS3         	0x0200000c	// 02000000, wbregs names: SR3
+#define	R_ZIPS4         	0x02000010	// 02000000, wbregs names: SR4
+#define	R_ZIPS5         	0x02000014	// 02000000, wbregs names: SR5
+#define	R_ZIPS6         	0x02000018	// 02000000, wbregs names: SR6
+#define	R_ZIPS7         	0x0200001c	// 02000000, wbregs names: SR7
+#define	R_ZIPS8         	0x02000020	// 02000000, wbregs names: SR8
+#define	R_ZIPS9         	0x02000024	// 02000000, wbregs names: SR9
+#define	R_ZIPS10        	0x02000028	// 02000000, wbregs names: SR10
+#define	R_ZIPS11        	0x0200002c	// 02000000, wbregs names: SR11
+#define	R_ZIPS12        	0x02000030	// 02000000, wbregs names: SR12
+#define	R_ZIPSSP        	0x02000034	// 02000000, wbregs names: SSP, SR13
+#define	R_ZIPCC         	0x02000038	// 02000000, wbregs names: ZIPCC, CC, SCC, SR14
+#define	R_ZIPPC         	0x0200003c	// 02000000, wbregs names: ZIPPC, PC, SPC, SR15
+#define	R_ZIPUSER       	0x02000040	// 02000000, wbregs names: ZIPUSER
+#define	R_ZIPU0         	0x02000040	// 02000000, wbregs names: UR0
+#define	R_ZIPU1         	0x02000044	// 02000000, wbregs names: UR1
+#define	R_ZIPU2         	0x02000048	// 02000000, wbregs names: UR2
+#define	R_ZIPU3         	0x0200004c	// 02000000, wbregs names: UR3
+#define	R_ZIPU4         	0x02000050	// 02000000, wbregs names: UR4
+#define	R_ZIPU5         	0x02000054	// 02000000, wbregs names: UR5
+#define	R_ZIPU6         	0x02000058	// 02000000, wbregs names: UR6
+#define	R_ZIPU7         	0x0200005c	// 02000000, wbregs names: UR7
+#define	R_ZIPU8         	0x02000060	// 02000000, wbregs names: UR8
+#define	R_ZIPU9         	0x02000064	// 02000000, wbregs names: UR9
+#define	R_ZIPU10        	0x02000068	// 02000000, wbregs names: SR10
+#define	R_ZIPU11        	0x0200006c	// 02000000, wbregs names: SR11
+#define	R_ZIPU12        	0x02000070	// 02000000, wbregs names: SR12
+#define	R_ZIPUSP        	0x02000074	// 02000000, wbregs names: USP, UR13
+#define	R_ZIPUCC        	0x02000078	// 02000000, wbregs names: ZIPUCC, UCC
+#define	R_ZIPUPC        	0x0200007c	// 02000000, wbregs names: ZIPUPC, UPC
+#define	R_ZIPSYSTEM     	0x02000100	// 02000000, wbregs names: ZIPSYSTEM, ZIPSYS
 
 
 //
@@ -82,8 +117,6 @@
 //
 // @REGDEFS.H.DEFNS for masters
 #define	CLKFREQHZ	50000000
-#define	R_ZIPCTRL	0x02000000
-#define	R_ZIPDATA	0x02000004
 #define	RESET_ADDRESS	0x01020000
 // @REGDEFS.H.DEFNS for peripherals
 #define	FLASHBASE	0x01000000

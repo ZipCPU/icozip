@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	zipelf.cpp
-//
+// {{{
 // Project:	ZBasic, a generic toplevel impl using the full ZipCPU
 //
 // Purpose:	
@@ -11,11 +11,11 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -28,14 +28,14 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -119,6 +119,7 @@ void	elfread(const char *fname, unsigned &entry, ELFSECTION **&sections)
 	}
 
 	if (dbg) {
+	printf("ELF File header\n");
 	printf("    %-20s 0x%jx\n", "e_type", (uintmax_t)ehdr.e_type);
 	printf("    %-20s 0x%jx\n", "e_machine", (uintmax_t)ehdr.e_machine);
 	printf("    %-20s 0x%jx\n", "e_version", (uintmax_t)ehdr.e_version);
@@ -161,6 +162,7 @@ assert(n != 0);
 		}
 
 		if (dbg) {
+		printf("  Section %d:\n", i);
 		printf("    %-20s 0x%x\n", "p_type",   phdr.p_type);
 		printf("    %-20s 0x%jx\n", "p_offset", phdr.p_offset);
 		printf("    %-20s 0x%jx\n", "p_vaddr",  phdr.p_vaddr);
@@ -195,6 +197,7 @@ assert(n != 0);
 		}
 
 		if (dbg) {
+		printf("  Section %d:\n", i);
 		printf("    %-20s 0x%jx\n", "p_offset", phdr.p_offset);
 		printf("    %-20s 0x%jx\n", "p_vaddr",  phdr.p_vaddr);
 		printf("    %-20s 0x%jx\n", "p_paddr",  phdr.p_paddr);
@@ -210,6 +213,11 @@ assert(n != 0);
 		printf("    %-20s 0x%jx\n", "p_align", phdr.p_align);
 		}
 
+		if (phdr.p_filesz == 0)
+			continue;
+
+		// Only create non-zero sized sections
+		// A zero sized section is the mark of the end of the file.
 		current_section++;
 
 		r[i]->m_start = phdr.p_paddr;

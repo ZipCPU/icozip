@@ -19,7 +19,7 @@
 ## Copyright (C) 2017-2021, Gisselquist Technology, LLC
 ## {{{
 ## This program is free software (firmware): you can redistribute it and/or
-## modify it under the terms of  the GNU General Public License as published
+## modify it under the terms of the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
 ## your option) any later version.
 ##
@@ -93,11 +93,11 @@
 	// with the ZipCPU or not.
 	wire		pp_rx_stb,  pp_tx_stb,  pp_tx_busy;
 	wire	[7:0]	pp_rx_data, pp_tx_data;
-@$ZIP_ADDRESS_BIT=@$BUS_ADDRESS_WIDTH-1
-@$ZIP_ADDRESS=(1<<(@$.ZIP_ADDRESS_BIT+2))
-@ZIP_ADDRESS.FORMAT= 0x%08x
-@$ZIP_DBGDATA=4+@$.ZIP_ADDRESS
-@ZIP_DBGDATA.FORMAT= 0x%08x
+## @$ZIP_ADDRESS_BIT=@$BUS_ADDRESS_WIDTH-1
+## @$ZIP_ADDRESS=(1<<(@$.ZIP_ADDRESS_BIT+2))
+## @ZIP_ADDRESS.FORMAT= 0x%08x
+## @$ZIP_DBGDATA=4+@$.ZIP_ADDRESS
+## @ZIP_DBGDATA.FORMAT= 0x%08x
 @MAIN.INSERT=
 	// Parallel port logic
 	pport
@@ -117,18 +117,23 @@
 	// Verilator lint_off UNUSED
 	wire	[29:0]	@$(PREFIX)_tmp_addr;
 	// Verilator lint_on  UNUSED
-	hbconsole genbus(@$(CLOCK.WIRE), pp_rx_stb, pp_rx_data,
-			@$(MASTER.PREFIX)_cyc, @$(MASTER.PREFIX)_stb, @$(MASTER.PREFIX)_we, @$(PREFIX)_tmp_addr, @$(MASTER.PREFIX)_data, @$(MASTER.PREFIX)_sel,
-			@$(MASTER.PREFIX)_stall, @$(MASTER.PREFIX)_ack, @$(MASTER.PREFIX)_err, @$(MASTER.PREFIX)_idata,
-			w_bus_int,
-			pp_tx_stb, pp_tx_data, pp_tx_busy,
-			//
-			w_console_tx_stb, w_console_tx_data, w_console_busy,
-			w_console_rx_stb, w_console_rx_data);
+	hbconsole
+	genbus(
+		// {{{
+		@$(CLOCK.WIRE), pp_rx_stb, pp_rx_data,
+		@$(MASTER.PREFIX)_cyc, @$(MASTER.PREFIX)_stb, @$(MASTER.PREFIX)_we, @$(PREFIX)_tmp_addr, @$(MASTER.PREFIX)_data, @$(MASTER.PREFIX)_sel,
+		@$(MASTER.PREFIX)_stall, @$(MASTER.PREFIX)_ack, @$(MASTER.PREFIX)_err, @$(MASTER.PREFIX)_idata,
+		w_bus_int,
+		pp_tx_stb, pp_tx_data, pp_tx_busy,
+		//
+		w_console_tx_stb, w_console_tx_data, w_console_busy,
+		w_console_rx_stb, w_console_rx_data
+		// }}}
+	);
 	assign	@$(MASTER.PREFIX)_addr= @$(PREFIX)_tmp_addr[(@$BUS_ADDRESS_WIDTH-1):0];
 @REGDEFS.H.DEFNS=
-#define	R_ZIPCTRL	@$.ZIP_ADDRESS
-#define	R_ZIPDATA	@$.ZIP_DBGDATA
+## #define	R_ZIPCTRL	@$.ZIP_ADDRESS
+## #define	R_ZIPDATA	@$.ZIP_DBGDATA
 #define	RESET_ADDRESS	@$[0x%08x](RESET_ADDRESS)
 @SIM.INCLUDE=
 #include "port.h"

@@ -18,7 +18,7 @@
 ## Copyright (C) 2017-2021, Gisselquist Technology, LLC
 ## {{{
 ## This program is free software (firmware): you can redistribute it and/or
-## modify it under the terms of  the GNU General Public License as published
+## modify it under the terms of the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
 ## your option) any later version.
 ##
@@ -40,7 +40,7 @@
 ##
 ## }}}
 ZIPCPUD := cpu
-ZIPCPU  := $(addprefix $(ZIPCPUD)/,zipcpu.v cpuops.v dblfetch.v prefetch.v memops.v idecode.v ziptimer.v wbpriarbiter.v zipbones.v busdelay.v cpudefs.v icontrol.v div.v mpyop.v slowmpy.v wbdblpriarb.v)
+ZIPCPU  := $(addprefix $(ZIPCPUD)/,zipwb.v zipcore.v cpuops.v dblfetch.v prefetch.v memops.v idecode.v ziptimer.v pfcache.v wbpriarbiter.v zipbones.v busdelay.v cpudefs.v icontrol.v div.v mpyop.v slowmpy.v wbdblpriarb.v)
 FLASH := spixpress.v oclkddr.v cpu/wbarbiter.v
 
 PPORTD := ../pport

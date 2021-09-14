@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	devbus.h
-//
+// {{{
 // Project:	VideoZip, a ZipCPU SoC supporting video functionality
 //
 // Purpose:	The purpose of this file is to document an interface which
@@ -21,11 +21,11 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -38,14 +38,14 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #ifndef	DEVBUS_H
 #define	DEVBUS_H
 
@@ -91,7 +91,7 @@ public:
 	// only it's faster in our implementation.
 	virtual	void	readi(const BUSW a, const int len, BUSW *buf) = 0;
 
-	// Read a series of values from the same address in memory.  This 
+	// Read a series of values from the same address in memory.  This
 	// call is identical to readi, save that the address is not incremented
 	// from one read to the next.  It is equivalent to:
 	//	for(int i=0; i<len; i++)

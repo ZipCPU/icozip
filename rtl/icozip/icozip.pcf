@@ -77,15 +77,15 @@ set_io o_pp_clkfb    D5   # set_io io_pp_data[8] D5
 #set_io o_dbgwires[1] A10		#
 #set_io o_dbgwires[0] A11		#
 
-set_io o_dbgwires[7] A5 # TOP,edg,24	# 203( B8), 200 (D8) ---- These appear to be P2
-set_io o_dbgwires[6] A2		# 194( A9), 199 (B9)	-- ports, as per
-set_io o_dbgwires[5] C3		# 186(A10), 183 (B10)	-- schematic
-set_io o_dbgwires[4] B4		# 187(A11), 184 (B11)
+# set_io o_dbgwires[7] A5 # TOP,edg,24	# 203( B8), 200 (D8) ---- These appear to be P2
+# set_io o_dbgwires[6] A2		# 194( A9), 199 (B9)	-- ports, as per
+# set_io o_dbgwires[5] C3		# 186(A10), 183 (B10)	-- schematic
+# set_io o_dbgwires[4] B4		# 187(A11), 184 (B11)
 
-set_io o_dbgwires[3] B7 # BOT,edg	# 28
-set_io o_dbgwires[2] B6		#
-set_io o_dbgwires[1] B3		#
-set_io o_dbgwires[0] B5		#
+# set_io o_dbgwires[3] B7 # BOT,edg	# 28
+# set_io o_dbgwires[2] B6		#
+# set_io o_dbgwires[1] B3		#
+# set_io o_dbgwires[0] B5		#
 
 #
 # PMOD #2

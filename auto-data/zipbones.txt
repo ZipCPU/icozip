@@ -17,7 +17,7 @@
 ## Copyright (C) 2017-2021, Gisselquist Technology, LLC
 ## {{{
 ## This program is free software (firmware): you can redistribute it and/or
-## modify it under the terms of  the GNU General Public License as published
+## modify it under the terms of the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
 ## your option) any later version.
 ##
@@ -49,7 +49,7 @@
 @SLAVE.TYPE=OTHER
 @SLAVE.BUS=hb
 @SLAVE.ORDER=1000000
-@NADDR=2
+@NADDR=64
 @BUS.NAME=wb
 @BUS.WIDTH=32
 @BUS.CLOCK=clk
@@ -58,7 +58,9 @@
 @SCOPE.DATA=zip_debug
 @INT.ZIP.WIRE=zip_cpu_int
 @INT.ZIP.BUS=
-@SPREFIX=zip_dbg
+@CACHABLE.FILE=iscachable.v
+@LGICACHE=0
+@LGDCACHE=0
 @MAIN.PARAM=
 	//
 	//
@@ -83,16 +85,19 @@
 	wire		zip_trigger;
 	wire		zip_halted;
 @MAIN.INSERT=
-	//
+	////////////////////////////////////////////////////////////////////////
 	//
 	// The ZipCPU/ZipSystem BUS master
+	// {{{
 	//
 	//
 	zipbones #(
 		// {{{
 		.RESET_ADDRESS(RESET_ADDRESS),
 		.ADDRESS_WIDTH(ZIP_ADDRESS_WIDTH),
-		.START_HALTED(ZIP_START_HALTED)
+		.LGICACHE(@$(LGICACHE)),.LGDCACHE(@$(LGDCACHE)),
+		.START_HALTED(ZIP_START_HALTED),
+		.RESET_DURATION(20)
 		// }}}
 	) swic(
 		// {{{
@@ -108,9 +113,7 @@
 		// }}}
 	);
 	assign	zip_trigger = zip_debug[31];
-@REGS.N=2
-@REGS.0=0 R_ZIPCTRL  CPU
-@REGS.1=1 R_ZIPDATA CPUD
+	// }}}
 @BDEF.INCLUDE=
 #include <design.h>
 #include <cpudefs.h>
@@ -143,14 +146,19 @@
 
 @SIM.DEFINES=
 #ifndef	VVAR
-#ifdef	NEW_VERILATOR
+#ifdef	ROOT_VERILATOR
+
+#include "Vmain___024root.h"
+#define	VVAR(A)	rootp->main__DOT_ ## A
+
+#elif	defined(NEW_VERILATOR)
 #define	VVAR(A)	main__DOT_ ## A
 #else
 #define	VVAR(A)	v__DOT_ ## A
 #endif
 #endif
 
-#define	CPUVAR(A)	VVAR(_swic__DOT__thecpu__DOT_ ## A)
+#define	CPUVAR(A)	VVAR(_swic__DOT__thecpu__DOT__core__DOT_ ## A)
 
 #define	cpu_reset	VVAR(_swic__DOT__cmd_reset)
 #define	cpu_break 	VVAR(_swic__DOT__cpu_break)
@@ -161,7 +169,11 @@
 #define	cpu_gie		CPUVAR(_SET_GIE__DOT__r_gie)
 #define	cpu_iflags	CPUVAR(_w_iflags)
 #define	cpu_uflags	CPUVAR(_w_uflags)
+#ifdef	ROOT_VERILATOR
+#define	cpu_regs	CPUVAR(_regset.m_storage)
+#else
 #define	cpu_regs	CPUVAR(_regset)
+#endif
 #define	cpu_cmd_addr	VVAR(_swic__DOT__cmd_addr)
 #define	cpu_bus_err	CPUVAR(_bus_err)
 #define	cpu_ibus_err	CPUVAR(_ibus_err_flag)
@@ -190,6 +202,8 @@
 
 @SIM.METHODS=
 #ifdef	@$(ACCESS)
+	// ZipCPU Access functions
+	// {{{
 	void	loadelf(const char *elfname) {
 		ELFSECTION	**secpp, *secp;
 		uint32_t	entry;
@@ -286,31 +300,31 @@
 		if ((imm & 0x0fffff)==0x00100) {
 			// SIM Exit(0)
 			close();
-			exit(0);
+			// exit(0);
+			m_done = true;
 		} else if ((imm & 0x0ffff0)==0x00310) {
 			// SIM Exit(User-Reg)
-			int	rcode, rnum;
-			rnum  = (imm&0x0f)+16;
-			rcode = regp[rnum] & 0x0ff;
-			if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
-				rcode = m_core->cpu_wr_gpreg;
+			// int	rnum;
+			// rnum  = (imm&0x0f)+16;
+			// rcode = regp[rnum] & 0x0ff;
+			// if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
+			//	rcode = m_core->cpu_wr_gpreg;
 			close();
-			exit(rcode);
+			// exit(rcode);
 		} else if ((imm & 0x0ffff0)==0x00300) {
 			// SIM Exit(Reg)
-			int	rcode, rnum;
-			rnum  = (imm&0x0f)+rbase;
-			rcode = regp[rnum] & 0x0ff;
-			if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
-				rcode = m_core->cpu_wr_gpreg;
+			// int	rnum;
+			// rnum  = (imm&0x0f)+rbase;
+			// rcode = regp[rnum] & 0x0ff;
+			// if ((m_core->cpu_wr_ce)&&(m_core->cpu_wr_reg_id==rnum))
+			//	rcode = m_core->cpu_wr_gpreg;
 			close();
-			exit(rcode);
+			// exit(rcode);
 		} else if ((imm & 0x0fff00)==0x00100) {
 			// SIM Exit(Imm)
-			int	rcode;
-			rcode = imm & 0x0ff;
+			// rcode = imm & 0x0ff;
 			close();
-			exit(rcode);
+			// exit(rcode);
 		} else if ((imm & 0x0fffff)==0x002ff) {
 			// Full/unconditional dump
 			printf("SIM-DUMP\n");
@@ -362,11 +376,13 @@
 				m_core->cpu_upc);
 		} fflush(stdout);
 	}
+	// }}}
 #endif // @$(ACCESS)
 @SIM.CLOCK=clk
 @SIM.TICK=
 #ifdef	@$(ACCESS)
 		// ZipCPU Sim instruction support
+		// {{{
 		if ((m_core->cpu_sim)
 			&&(!m_core->cpu_new_pc)) {
 			//
@@ -381,18 +397,60 @@
 			m_cpu_bombed++;
 			dump(m_core->cpu_regs);
 		}
+		// }}}
 #endif	// @$(ACCESS)
 
 ##
 ##
 ##
 @RTL.MAKE.GROUP=ZIPCPU
-@RTL.MAKE.FILES= zipcpu.v cpuops.v dblfetch.v prefetch.v memops.v
-		idecode.v ziptimer.v 
+@RTL.MAKE.FILES= zipwb.v zipcore.v cpuops.v dblfetch.v prefetch.v memops.v
+		idecode.v ziptimer.v pfcache.v
 		wbpriarbiter.v zipbones.v busdelay.v cpudefs.v icontrol.v
 		div.v mpyop.v slowmpy.v wbdblpriarb.v
 @RTL.MAKE.SUBD= cpu
 ##
+@SLAVE.TYPE=OTHER
+@SLAVE.BUS=hb
+@SLAVE.ORDER=1000000
+@REGS.N=36
+@REGS.NOTE=// ZipCPU control/debug registers
+@REGS.0=32   R_ZIPCTRL   CPU ZIPCTRL
+@REGS.1=0    R_ZIPREGS   ZIPREGS
+@REGS.2=0    R_ZIPS0     SR0
+@REGS.3=1    R_ZIPS1     SR1
+@REGS.4=2    R_ZIPS2     SR2
+@REGS.5=3    R_ZIPS3     SR3
+@REGS.6=4    R_ZIPS4     SR4
+@REGS.7=5    R_ZIPS5     SR5
+@REGS.8=6    R_ZIPS6     SR6
+@REGS.9=7    R_ZIPS7     SR7
+@REGS.10=8   R_ZIPS8     SR8
+@REGS.11=9   R_ZIPS9     SR9
+@REGS.12=10  R_ZIPS10    SR10
+@REGS.13=11  R_ZIPS11    SR11
+@REGS.14=12  R_ZIPS12    SR12
+@REGS.15=13  R_ZIPSSP    SSP SR13
+@REGS.16=14  R_ZIPCC     ZIPCC CC SCC SR14
+@REGS.17=15  R_ZIPPC     ZIPPC PC SPC SR15
+@REGS.18=16  R_ZIPUSER   ZIPUSER
+@REGS.19=16  R_ZIPU0     UR0
+@REGS.20=17  R_ZIPU1     UR1
+@REGS.21=18  R_ZIPU2     UR2
+@REGS.22=19  R_ZIPU3     UR3
+@REGS.23=20  R_ZIPU4     UR4
+@REGS.24=21  R_ZIPU5     UR5
+@REGS.25=22  R_ZIPU6     UR6
+@REGS.26=23  R_ZIPU7     UR7
+@REGS.27=24  R_ZIPU8     UR8
+@REGS.28=25  R_ZIPU9     UR9
+@REGS.29=26  R_ZIPU10    SR10
+@REGS.30=27  R_ZIPU11    SR11
+@REGS.31=28  R_ZIPU12    SR12
+@REGS.32=29  R_ZIPUSP    USP UR13
+@REGS.33=30  R_ZIPUCC    ZIPUCC UCC
+@REGS.34=31  R_ZIPUPC    ZIPUPC UPC
+@REGS.35=64  R_ZIPSYSTEM ZIPSYSTEM ZIPSYS
 ##
 ##
 @PREFIX=bustimer

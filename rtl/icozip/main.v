@@ -19,7 +19,7 @@
 // Copyright (C) 2017-2021, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -423,7 +423,7 @@ module	main(i_clk, i_reset,
 	// {{{
 	//
 	// BUS-LOGIC for wb
-	//
+	// {{{
 	//
 	// wb Bus logic to handle SINGLE slaves
 	//
@@ -678,9 +678,11 @@ module	main(i_clk, i_reset,
 		})
 		);
 
+	// End of bus logic for wb
+	// }}}
 	//
 	// BUS-LOGIC for hb
-	//
+	// {{{
 	//
 	// No class SINGLE peripherals on the "hb" bus
 	//
@@ -787,6 +789,8 @@ module	main(i_clk, i_reset,
 		})
 		);
 
+	// End of bus logic for hb
+	// }}}
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -922,16 +926,19 @@ module	main(i_clk, i_reset,
 	assign	wb_version_stall = 1'b0;
 `ifdef	INCLUDE_ZIPCPU
 	// {{{
-	//
+	////////////////////////////////////////////////////////////////////////
 	//
 	// The ZipCPU/ZipSystem BUS master
+	// {{{
 	//
 	//
 	zipbones #(
 		// {{{
 		.RESET_ADDRESS(RESET_ADDRESS),
 		.ADDRESS_WIDTH(ZIP_ADDRESS_WIDTH),
-		.START_HALTED(ZIP_START_HALTED)
+		.LGICACHE(0),.LGDCACHE(0),
+		.START_HALTED(ZIP_START_HALTED),
+		.RESET_DURATION(20)
 		// }}}
 	) swic(
 		// {{{
@@ -947,7 +954,7 @@ module	main(i_clk, i_reset,
 		w_bus_int, zip_cpu_int,
 		// Debug wishbone interface
 		hb_zip_cyc, hb_zip_stb, hb_zip_we,
-			hb_zip_addr[1-1:0],
+			hb_zip_addr[6-1:0],
 			hb_zip_data, // 32 bits wide
 			hb_zip_sel,  // 32/8 bits wide
 		hb_zip_stall, hb_zip_ack, hb_zip_idata,
@@ -955,6 +962,7 @@ module	main(i_clk, i_reset,
 		// }}}
 	);
 	assign	zip_trigger = zip_debug[31];
+	// }}}
 	// }}}
 `else	// INCLUDE_ZIPCPU
 	// {{{
@@ -1254,14 +1262,19 @@ module	main(i_clk, i_reset,
 	// Verilator lint_off UNUSED
 	wire	[29:0]	hb_tmp_addr;
 	// Verilator lint_on  UNUSED
-	hbconsole genbus(i_clk, pp_rx_stb, pp_rx_data,
-			hb_hb_cyc, hb_hb_stb, hb_hb_we, hb_tmp_addr, hb_hb_data, hb_hb_sel,
-			hb_hb_stall, hb_hb_ack, hb_hb_err, hb_hb_idata,
-			w_bus_int,
-			pp_tx_stb, pp_tx_data, pp_tx_busy,
-			//
-			w_console_tx_stb, w_console_tx_data, w_console_busy,
-			w_console_rx_stb, w_console_rx_data);
+	hbconsole
+	genbus(
+		// {{{
+		i_clk, pp_rx_stb, pp_rx_data,
+		hb_hb_cyc, hb_hb_stb, hb_hb_we, hb_tmp_addr, hb_hb_data, hb_hb_sel,
+		hb_hb_stall, hb_hb_ack, hb_hb_err, hb_hb_idata,
+		w_bus_int,
+		pp_tx_stb, pp_tx_data, pp_tx_busy,
+		//
+		w_console_tx_stb, w_console_tx_data, w_console_busy,
+		w_console_rx_stb, w_console_rx_data
+		// }}}
+	);
 	assign	hb_hb_addr= hb_tmp_addr[(24-1):0];
 	// }}}
 `else	// WBUBUS_MASTER

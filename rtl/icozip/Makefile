@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Filename: 	rtl/icozip/Makefile
-##
+## {{{
 ## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	This makefile builds both the final bit file for loading, as
@@ -11,11 +11,11 @@
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
+## }}}
 ## Copyright (C) 2015-2021, Gisselquist Technology, LLC
-##
+## {{{
 ## This program is free software (firmware): you can redistribute it and/or
-## modify it under the terms of  the GNU General Public License as published
+## modify it under the terms of the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
 ## your option) any later version.
 ##
@@ -28,13 +28,14 @@
 ## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 ## target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/gpl.html
 ##
 ################################################################################
 ##
-##
+## }}}
 .PHONY: all
 all: cpudefs.h design.h verilated bin
 CROSS ?=
@@ -104,9 +105,9 @@ $(VDIRFB)/V%__ALL.a: $(VDIRFB)/V%.mk
 bin: icozip.bin
 #
 #
-icozip.json: toplevel.v wbxbar.v addrdecode.v skidbuffer.v $(VFLIST)
+icozip.json: synth.ys toplevel.v wbxbar.v addrdecode.v skidbuffer.v $(VFLIST)
 	@echo yosys -ql yosys.log -p 'synth_ice40 -top toplevel' ...
-	@yosys -ql yosys.log -p 'synth_ice40 -json icozip.json -top toplevel' $^
+	@yosys -ql yosys.log -s 'synth.ys'
 
 .PHONY: yosys
 yosys: icozip.json

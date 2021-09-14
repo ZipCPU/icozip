@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	zipcpu.h
-//
+// {{{
 // Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	Declare the capabilities and memory structure of the ZipSystem
@@ -11,11 +11,11 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -28,14 +28,14 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #ifndef	ZIPCPU_H
 #define	ZIPCPU_H
 
@@ -57,17 +57,24 @@
 #define	CC_FAULT	(CC_ILL|CC_BUSERR|CC_DIVERR|CC_FPUERR)
 #define	CC_EXCEPTION	(CC_BREAK|CC_FAULT|CC_MMUERR)
 
+#define	CLEAR_ICACHE	asm("OR 16384,CC")
+#define	CLEAR_DCACHE	asm("OR 32768,CC")
+#define	CLEAR_CACHE	asm("OR 49152,CC")
+
 // extern void	zip_break(void);
 #define	zip_break()		asm("BREAK\n")
 // #define	BREAK(ID)	asm("BREAK " ##ID "\n")
 #define	GETUREG(A,ID)	asm("MOV " ID ",%0" : "=r"(A))
 #define	SETUREG(A,ID)	asm("MOV %0," ID : : "r"(A))
+#define	NSTR(A)		asm("NSTR \"" A "\\n\"")
+#define	NVAL(V)		do { unsigned tmp = (unsigned)(V); asm volatile("NDUMP %0":"=r"(tmp):"0"(tmp)); } while(0)
+#define	NEXIT(V)	do { unsigned tmp = (unsigned)(V); asm volatile("NEXIT %0":"=r"(tmp)); } while(0)
 extern void	zip_rtu(void);
 extern void	zip_halt(void);
 extern void	zip_idle(void);
 extern void	zip_syscall(void);
-extern void	zip_restore_context(int *);
-extern void	zip_save_context(int *);
+extern void	zip_restore_context(void *);
+extern void	zip_save_context(void *);
 extern int	zip_bitrev(int v);
 extern unsigned	zip_cc(void);
 extern unsigned	zip_ucc(void);

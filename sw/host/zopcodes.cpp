@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	zopcodes.cpp
-//
+// {{{
 // Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	A simple program to handle the disassembly and definition
@@ -15,11 +15,11 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -32,14 +32,14 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #include <stdio.h>
 #include <strings.h>
 #include <string.h>
@@ -257,58 +257,59 @@ static const ZOPCODE	zip_oplist_raw[] = {
 	//
 	//	16-bit instructions, high side
 	//
-	// 
+	//
 	//	1.1111.00010.xcc.0iiii.xxxx.xxxxx.xxxxx
 	//	1111.1000.10xc.c0ii.iixx.xxxx.xxxx.xxxx
 	// Mask, val, result, Ra, Rb, I, condition (no conditions for OP_UNDER_TEST)
 	// BRA: 1.1111.011.0.sssssss
-	{ "BRA", 0xff800000, 0xf9000000, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
+	{ "BRA", 0xff800000, 0xf9000000, ZIP_OPUNUSED,     ZIP_OPUNUSED, ZIP_OPUNUSED,     ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
 	// CLR: 1.rrrr.110.00000000
-	{ "CLR", 0x87ff0000, 0x86000000, ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_OPUNUSED },
+	{ "CLR", 0x87ff0000, 0x86000000, ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_OPUNUSED,     ZIP_OPUNUSED,       ZIP_OPUNUSED },
 	// RTN: 1.1111.111.0.0000.000, MOV R0,Pc
-	{ "RTN", 0xffff0000, 0xff800000, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_OPUNUSED },
+	{ "RTN", 0xffff0000, 0xff800000, ZIP_OPUNUSED,     ZIP_OPUNUSED, ZIP_OPUNUSED,     ZIP_OPUNUSED,       ZIP_OPUNUSED },
 	// JMP: 1.1111.111.0.rrrrsss
-	{ "JMP", 0xff800000, 0xff000000, ZIP_REGFIELD(27),ZIP_OPUNUSED, ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
+	{ "JMP", 0xff800000, 0xff000000, ZIP_REGFIELD(27),ZIP_OPUNUSED,  ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
 	// LJSR: 1.000_0.011_.0.111_1.001 ?.1111.110.1.1111.000
 	// { "LJSR",0xffffffff, 0x83797ef8, ZIP_REGFIELD(27),ZIP_OPUNUSED, ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
 	//
 	// 1.rrrr.000.0.sssssss
 	// 1rrr.r000.0sss.ssss
-	{ "SUB", 0x87800000, 0x80000000, ZIP_REGFIELD(27), ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
+	{ "SUB", 0x87800000, 0x80000000, ZIP_REGFIELD(27), ZIP_REGFIELD(27), ZIP_OPUNUSED,     ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
 	// 1.rrrr.000.1.rrrrsss
 	{ "SUB", 0x87800000, 0x80800000, ZIP_REGFIELD(27), ZIP_REGFIELD(27), ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
 	//
 	// 1.rrrr.001.0.sssssss
 	// 1.rrrr.001.1.rrrrsss
-	{ "AND", 0x87800000, 0x81000000, ZIP_REGFIELD(27), ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
+	{ "AND", 0x87800000, 0x81000000, ZIP_REGFIELD(27), ZIP_REGFIELD(27), ZIP_OPUNUSED,     ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
 	{ "AND", 0x87800000, 0x81800000, ZIP_REGFIELD(27), ZIP_REGFIELD(27), ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
 	//
 	// 1.rrrr.010.0.sssssss
 	// 1.rrrr.010.1.rrrrsss
-	{ "ADD", 0x87800000, 0x82000000, ZIP_REGFIELD(27), ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
+	{ "ADD", 0x87800000, 0x82000000, ZIP_REGFIELD(27), ZIP_REGFIELD(27), ZIP_OPUNUSED,     ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
 	{ "ADD", 0x87800000, 0x82800000, ZIP_REGFIELD(27), ZIP_REGFIELD(27), ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
 	//
 	// 1.rrrr.011.a.rrrrsss
-	{ "CMP", 0x87800000, 0x83000000, ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_REGFIELD(19), ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
-	{ "CMP", 0x87800000, 0x83800000, ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
+	{ "CMP", 0x87800000, 0x83000000, ZIP_REGFIELD(27), ZIP_OPUNUSED,     ZIP_OPUNUSED,     ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
+	{ "CMP", 0x87800000, 0x83800000, ZIP_REGFIELD(27), ZIP_OPUNUSED,     ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
 	//
 	// 1.rrrr.100.0.sssssss
 	// 1.rrrr.100.1.rrrrsss
-	{ "LW", 0x87800000, 0x84000000, ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_SP, ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
-	{ "LW", 0x87800000, 0x84800000, ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
+	{ "LW", 0x87800000, 0x84000000,  ZIP_REGFIELD(27), ZIP_OPUNUSED,     ZIP_SP,            ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
+	{ "LW", 0x87800000, 0x84800000,  ZIP_REGFIELD(27), ZIP_OPUNUSED,     ZIP_REGFIELD(19),  ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
 	// 1.rrrr.101.ssssssss
-	{ "SW", 0x87000000, 0x85000000, ZIP_OPUNUSED, ZIP_REGFIELD(27), ZIP_SP, ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
+	{ "SW", 0x87000000, 0x85000000,  ZIP_OPUNUSED,     ZIP_REGFIELD(27), ZIP_SP,            ZIP_IMMFIELD(7,16), ZIP_OPUNUSED },
 	// 1.rrrr.110.0.sssssss
-	{ "SW", 0x87800000, 0x85800000, ZIP_OPUNUSED, ZIP_REGFIELD(27), ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
+	{ "SW", 0x87800000, 0x85800000,  ZIP_OPUNUSED,     ZIP_REGFIELD(27), ZIP_REGFIELD(19),  ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
 	// 1.rrrr.110.iiiiiiii
-	{ "LDI", 0x87000000, 0x86000000, ZIP_REGFIELD(27), ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_IMMFIELD(8,16), ZIP_OPUNUSED },
+	{ "LDI", 0x87000000, 0x86000000, ZIP_REGFIELD(27), ZIP_OPUNUSED,     ZIP_OPUNUSED,      ZIP_IMMFIELD(8,16), ZIP_OPUNUSED },
 	// 1.rrrr.111.1.sssssss
-	{ "MOV", 0x87800000, 0x87800000, ZIP_OPUNUSED, ZIP_REGFIELD(27), ZIP_REGFIELD(19), ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
+	{ "MOV", 0x87800000, 0x87800000, ZIP_OPUNUSED,     ZIP_REGFIELD(27), ZIP_REGFIELD(19),  ZIP_IMMFIELD(3,16), ZIP_OPUNUSED },
+	//
 	// 1.rrrr.111.1.rrrrsss
 	// Illegal instruction !!
 	{ "ILLV", 0x80000000, 0x80000000, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_IMMFIELD(32,16), ZIP_OPUNUSED },
 	// Global illegal instruction
-	{ "ILL", 0x00000000, 0x00000000, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_IMMFIELD(32,0), ZIP_OPUNUSED }
+	{ "ILL", 0x00000000, 0x00000000,  ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_OPUNUSED, ZIP_IMMFIELD(32,0),  ZIP_OPUNUSED }
 };
 
 static const ZOPCODE	zip_opbottomlist_raw[] = {
@@ -431,12 +432,25 @@ THREEWORD_LJSR(uint32_t iword, uint32_t nxtword) {
 }
 
 static	inline	int
+TWOWORD_CIS_JSR(uint32_t iword) {
+	// MOV 2(PC) | LOD (PC),PC
+	//
+	// 1.0000.111.1.1111.010
+	//			1.1111.100.1.1111.000
+	if (iword == 0x87fafcf8)
+		return 1;
+	return 0;
+}
+
+static	inline	int
 CIS_JSR(uint32_t iword __attribute__((unused)) ) {
-	// MOV 1(PC) | LOD (PC),PC
+	if (TWOWORD_CIS_JSR(iword))
+		return 1;
+	// MOV 1(PC) | MOV Rx,PC
 	//
 	// 1.0000.111.1.1111.001
-	//			1.1111.100.1.1111.000
-	if (iword == 0x87f9fcf8)
+	//			1.1111.111.1.xxxx.000
+	if ((iword&0xffffff87) == 0x87f9ff80)
 		return 1;
 	// There is no code for this without CIS_OP_UNDER_TEST
 	return 0;
@@ -459,7 +473,7 @@ POSSIBLE_TWOWORD_BEGINNING(uint32_t iword) {
 	// Any BREV command could be the beginning of a twoword instruction
 	//
 	// Of course, the point here is to determine whether we should (or need
-	// to) read a second word from our read-memory function.  Reading a 
+	// to) read a second word from our read-memory function.  Reading a
 	// second word, given that the first is a BREV, isn't a problem since a
 	// program can't end on/with a BREV instruction.
 	//
@@ -492,6 +506,7 @@ zip_sbits(const long val, const int bits) {
 		r |= (-1l << bits);
 	return r;
 }
+
 static unsigned long
 zip_ubits(const long val, const int bits) {
 	unsigned long r = val & ((1l<<bits)-1);
@@ -517,14 +532,22 @@ zipi_to_halfstring(const uint32_t addr, const ZIPI ins, char *line, const ZOPCOD
 		int	dv = zip_getbits(ins, ZIP_REGFIELD(27));
 		int	iv = zip_sbits(ins, 13);
 		uint32_t	ref;
+		char	opcode[128];
 
 		ref = (iv<<2) + addr + 4;
 
-		sprintf(line, "%s%s", "MOV", zip_ccstr[cv]);
-		sprintf(line, "%-11s", line);
-		sprintf(line, "%s0x%08x", line, ref);
-		sprintf(line, "%s,%s", line, zip_regstr[dv]);
+		sprintf(opcode, "%s%s", "MOV", zip_ccstr[cv]);
+		sprintf(line, "%-11s", opcode);
+		sprintf(opcode, "%s0x%08x", line, ref);
+		sprintf(line, "%s,%s", opcode, zip_regstr[dv]);
 
+		return;
+	} else if (TWOWORD_CIS_JSR(ins)) {
+		sprintf(line, "%-11s", "LJSR");
+		return;
+	} else if (CIS_JSR(ins)) {
+		int ra = zip_getbits(ins, ZIP_REGFIELD(3));
+		sprintf(line, "%-11s%s", "JSR", zip_regstr[ra]);
 		return;
 	}
 
@@ -547,11 +570,12 @@ zipi_to_halfstring(const uint32_t addr, const ZIPI ins, char *line, const ZOPCOD
 			// zip_oplist[i].s_mask, zip_oplist[i].s_val);
 		if ((ins & listp[i].s_mask) == listp[i].s_val) {
 			// Write the opcode onto our line
-			sprintf(line, "%s", listp[i].s_opstr);
+			char	opcode[128];
+			sprintf(opcode, "%s", listp[i].s_opstr);
 			if (listp[i].s_cf != ZIP_OPUNUSED) {
 				int bv = zip_getbits(ins, listp[i].s_cf);
-				strcat(line, zip_ccstr[bv]);
-			} sprintf(line, "%-11s", line); // Pad it to 11 chars
+				strcat(opcode, zip_ccstr[bv]);
+			} sprintf(line, "%-11s", opcode); // Pad it to 11 chars
 
 			int	ra = -1, rb = -1, rr = -1, imv = 0;
 
@@ -573,7 +597,7 @@ zipi_to_halfstring(const uint32_t addr, const ZIPI ins, char *line, const ZOPCOD
 				||(strncasecmp("SB",listp[i].s_opstr, 2)==0)) {
 				strcat(line, zip_regstr[ra]);
 				strcat(line, ",");
-					
+
 				if (listp[i].s_i != ZIP_OPUNUSED) {
 					if (listp[i].s_rb == ZIP_OPUNUSED)
 						sprintf(&line[strlen(line)],
@@ -594,7 +618,7 @@ zipi_to_halfstring(const uint32_t addr, const ZIPI ins, char *line, const ZOPCOD
 				&&(strcasecmp(listp[i].s_opstr,"BRK")!=0)
 				&&(addr != 0)) {
 				// Branch instruction: starts with B and isn't
-				// BREV (bit reverse), BRK (break), or 
+				// BREV (bit reverse), BRK (break), or
 				// BUSY
 				uint32_t target = addr;
 
@@ -647,7 +671,7 @@ void
 zipi_to_double_string(const uint32_t addr, const ZIPI ins, char *la, char *lb) {
 	zipi_to_halfstring(addr, ins, la, zip_oplist);
 	if (lb) {
-		if (ins & 0x80000000) {
+		if ((ins & 0x80000000)&&(!CIS_JSR(ins))) {
 			zipi_to_halfstring(addr, ins, lb, zip_opbottomlist);
 		} else lb[0] = '\0';
 	}

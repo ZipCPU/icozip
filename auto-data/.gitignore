@@ -11,6 +11,7 @@ main.v
 regdefs.h
 regdefs.cpp
 rtl.make.inc
+iscachable.v
 toplevel.v
 main_tb.cpp
 testb.h
