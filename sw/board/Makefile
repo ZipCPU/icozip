@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Filename:	sw/board/Makefile
-##
+## {{{
 ## Project:	ICO Zip, iCE40 ZipCPU demonstration project
 ##
 ## Purpose:	
@@ -10,11 +10,11 @@
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
-## Copyright (C) 2015-2020, Gisselquist Technology, LLC
-##
+## }}}
+## Copyright (C) 2015-2021, Gisselquist Technology, LLC
+## {{{
 ## This program is free software (firmware): you can redistribute it and/or
-## modify it under the terms of  the GNU General Public License as published
+## modify it under the terms of the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
 ## your option) any later version.
 ##
@@ -27,16 +27,17 @@
 ## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 ## target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/gpl.html
 ##
 ##
 ################################################################################
 ##
-##
+## }}}
 .PHONY: all
-PROGRAMS := cputest hello
+PROGRAMS := cputest hello hellostep lockcheck
 all:	$(PROGRAMS)
 #
 #
@@ -47,13 +48,13 @@ NM	:=zip-nm
 OBJDIR	:= obj-zip
 RDELF	:= zip-readelf
 OBJDUMP := zip-objdump
-SOURCES := cputest.c hello.c
+SOURCES := cputest.c hello.c hellostep.c lockcheck.c txfns.c
 HEADERS := $(foreach hdr,$(subst .c,.o,$(SOURCES)),$(wildcard $(hdr))) board.h
 LDSCRIPT:= -Tboard.ld
 LFLAGS  := $(LDSCRIPT) -L../zlib
 INCS    := -I../zlib -I../../rtl/icozip -I.
 CFLAGS  := -O3 $(INCS)
-LIBS    := -lc -licozip
+LIBS    := -lc -licozip -lgcc
 INSTALLD:=/home/dan/work/rnd/zipcpu/sw/install
 NLIBD	:=$(INSTALLD)/cross-tools/zip/lib
 ZLIBD	:=../zlib
@@ -100,6 +101,10 @@ $(OBJDIR)/gettysburg.o: gettysburg.c
 
 hello: $(OBJDIR)/hello.o board.ld
 	$(CC) $(CFLAGS) $(LFLAGS) $< $(LIBS) -o $@
+hellostep: $(OBJDIR)/hellostep.o $(OBJDIR)/txfns.o board.ld
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
+lockcheck: $(OBJDIR)/lockcheck.o $(OBJDIR)/txfns.o board.ld
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(OBJDIR)/txfns.o $(LIBS) -o $@
 
 
 define	mk-objdir

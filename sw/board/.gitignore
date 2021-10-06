@@ -1,4 +1,5 @@
 cputest
 hello
-cputest.txt
-hello.txt
+hellostep
+lockcheck
+*.txt

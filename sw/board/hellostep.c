@@ -1,19 +1,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	port.h
+// Filename:	hellostep.c
 // {{{
 // Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
-// Purpose:	Defines the communication parameters necessary for communicating
-//		with the device.
-//
+// Purpose:	The original Helllo World program.  If everything works, this
+//		will print Hello World to the UART, and then halt the CPU--if
+//	run with no O/S.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -37,13 +37,51 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // }}}
-#ifndef	PORT_H
-#define	PORT_H
+#include <stdio.h>
+#include "zipcpu.h"
+#include "txfns.h"
 
-#define	FPGAHOST	"localhost"
-// #define	FPGAHOST	"rpi"
-#define	FPGAPORT	8363
+void user_main(void) {
+	printf("Hello, World!\n");
+	zip_syscall();
+}
 
-#define	FPGAOPEN(V) V= new FPGA(new NETCOMMS(FPGAHOST, FPGAPORT))
+int main(int argc, char **argv) {
+	int		done = 0, success = 1;
+	unsigned	user_regs[16];
+	unsigned	user_stack[512];
 
-#endif
+	for(unsigned k=0; k<16; k++)
+		user_regs[k] = 0;
+	user_regs[15] = (unsigned)user_main;
+	user_regs[14] = CC_STEP;
+	user_regs[13] = (unsigned)&user_stack[512];
+	zip_restore_context(user_regs);
+
+	while(!done) {
+		unsigned	ucc;
+
+		zip_rtu();
+
+		ucc = zip_ucc();
+		if (ucc & CC_EXCEPTION) {
+			txstr("\r\nEXCEPTION: CC = ");txhex(ucc); txstr("\r\n");
+			txstr("\r\n");
+			while((_uart->u_fifo & 0x010000) == 0)
+				;
+			done = 1;
+			success = 0;
+		} if (ucc & CC_TRAP)
+			done = 1;
+		else if ((ucc & CC_STEP) == 0) {
+			success = 0;
+			txstr("\r\nCC & STEP == 0 ?? CC = "); txhex(ucc);
+			txstr("\r\n");
+			while((_uart->u_fifo & 0x010000) == 0)
+				;
+		}
+	}
+
+	if (success)
+		txstr("\r\n\r\nSUCCESS!\r\n");
+}

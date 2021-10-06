@@ -1,12 +1,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	port.h
+// Filename:	txfns.h
 // {{{
 // Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
-// Purpose:	Defines the communication parameters necessary for communicating
-//		with the device.
-//
+// Purpose:	These are some *very* simple UART routines, designed to support
+//		a program before the C-library is up and running.  Once the
+//	C-library is running on a device, it is anticipated that these routines
+//	will no longer be needed or used--since they access the raw hardware
+//	device(s).
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -37,13 +39,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // }}}
-#ifndef	PORT_H
-#define	PORT_H
+#ifndef	TXFNS_H
+#define	TXFNS_H
 
-#define	FPGAHOST	"localhost"
-// #define	FPGAHOST	"rpi"
-#define	FPGAPORT	8363
+#include "board.h"
 
-#define	FPGAOPEN(V) V= new FPGA(new NETCOMMS(FPGAHOST, FPGAPORT))
+extern	void	txchr(char ch);
+extern	void	txstr(const char *str);
+extern	void	txhex(unsigned val);
+extern	void	txdecimal(int val);
 
 #endif

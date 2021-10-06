@@ -244,9 +244,11 @@ assert(n != 0);
 			r[i]->m_data[j] = byteswap(r[i]->m_data[j]);
 		*/
 
+/*
 		if (dbg) for(unsigned j=0; j<r[i]->m_len; j++)
 			fprintf(stderr, "ADR[%04x] = %02x\n", r[i]->m_start+j,
 				r[i]->m_data[j] & 0x0ff);
+*/
 	}
 
 	r[i] = (ELFSECTION *)(&d[current_offset]);

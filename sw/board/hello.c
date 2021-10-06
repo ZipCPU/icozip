@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	helloworld.c
+// Filename:	hello.c
 // {{{
-// Project:	ZBasic, a generic toplevel impl using the full ZipCPU
+// Project:	ICO Zip, iCE40 ZipCPU demonstration project
 //
 // Purpose:	The original Helllo World program.  If everything works, this
 //		will print Hello World to the UART, and then halt the CPU--if

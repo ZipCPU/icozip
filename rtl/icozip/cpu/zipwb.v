@@ -76,7 +76,7 @@
 // Copyright (C) 2015-2021, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -167,8 +167,8 @@ module	zipwb #(
 		input	wire	[4:0]	i_dbg_rreg,
 		// Debug interface -- outputs
 		output	wire		o_dbg_stall,
-		output	reg	[31:0]	o_dbg_reg,
-		output	reg	[2:0]	o_dbg_cc,
+		output	wire	[31:0]	o_dbg_reg,
+		output	wire	[2:0]	o_dbg_cc,
 		output	wire		o_break,
 		// CPU interface to the wishbone bus
 		// Wishbone interface -- outputs
@@ -414,7 +414,8 @@ module	zipwb #(
 		) mem(i_clk, i_reset, clear_dcache,
 			/// {{{
 			// CPU interface
-			mem_ce, bus_lock, mem_op, mem_cpu_addr, mem_wdata, mem_reg,
+			mem_ce, bus_lock && OPT_PIPELINED,
+			mem_op, mem_cpu_addr, mem_wdata, mem_reg,
 			mem_busy, mem_rdbusy, mem_pipe_stalled,
 			mem_valid, mem_bus_err, mem_wreg, mem_result,
 			// Wishbone interface
@@ -440,7 +441,8 @@ module	zipwb #(
 		) domem(i_clk, i_reset,
 			/// {{{
 			// CPU interface
-			mem_ce, bus_lock, mem_op, mem_cpu_addr, mem_wdata, mem_reg,
+			mem_ce, bus_lock && OPT_PIPELINED,
+			mem_op, mem_cpu_addr, mem_wdata, mem_reg,
 			mem_busy, mem_rdbusy, mem_pipe_stalled,
 			mem_valid, mem_bus_err, mem_wreg, mem_result,
 			// Wishbone interface
@@ -464,7 +466,8 @@ module	zipwb #(
 		) domem(i_clk, i_reset,
 			/// {{{
 			// CPU interface
-			mem_ce, bus_lock, mem_op, mem_cpu_addr, mem_wdata, mem_reg,
+			mem_ce, bus_lock && OPT_PIPELINED,
+			mem_op, mem_cpu_addr, mem_wdata, mem_reg,
 			mem_busy, mem_rdbusy,
 			mem_valid, mem_bus_err, mem_wreg, mem_result,
 			// Wishbone interface
@@ -509,7 +512,7 @@ module	zipwb #(
 			// (mem_data and mem_sel) can be shared with the memory
 			// in order to ease timing and LUT usage.
 			pf_cyc,1'b0,pf_stb, 1'b0, pf_we,
-				pf_addr, mem_data, mem_sel,
+				pf_addr, mem_data, 4'hf,
 				pf_stall, pf_ack, pf_err,
 			// Common wires, in and out, of the arbiter
 			o_wb_gbl_cyc, o_wb_lcl_cyc, o_wb_gbl_stb, o_wb_lcl_stb,
@@ -527,7 +530,7 @@ module	zipwb #(
 			// Prefetch access to the arbiter, priority position
 			//
 			pf_cyc,1'b0,pf_stb, 1'b0, pf_we,
-				pf_addr, mem_data, mem_sel,
+				pf_addr, mem_data, 4'hf,
 				pf_stall, pf_ack, pf_err,
 			// Memory access to the arbiter
 			mem_cyc_gbl, mem_cyc_lcl, mem_stb_gbl, mem_stb_lcl,

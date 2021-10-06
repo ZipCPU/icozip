@@ -355,17 +355,17 @@ module	zipbones #(
 	// Values:
 	//	0x10000 -> External interrupt is high
 	//
-	//	0x08000 -> cpu_break (CPU is halted on an error)
-	//	0x04000 -> Supervisor bus error
-	//	0x02000 -> cc.gie
-	//	0x01000 -> cc.sleep
-	//	0x00800 -> cmd_clear_cache	(auto clearing)
-	//	0x00400 -> cmd_halt
-	//	0x00200 -> cmd_stall
-	//	0x00100 -> cmd_step	(auto clearing)
-	//	0x00080 -> PIC interrrupt pending
-	//	0x00040 -> reset	(auto clearing)
-	//	0x0003f -> (UNUSED)
+	//	0x0_8000 -> cpu_break (CPU is halted on an error)
+	//	0x0_4000 -> Supervisor bus error
+	//	0x0_2000 -> cc.gie
+	//	0x0_1000 -> cc.sleep
+	//	0x0_0800 -> cmd_clear_cache	(auto clearing)
+	//	0x0_0400 -> cmd_halt
+	//	0x0_0200 -> cmd_stall
+	//	0x0_0100 -> cmd_step	(auto clearing)
+	//	0x0_0080 -> PIC interrrupt pending
+	//	0x0_0040 -> reset	(auto clearing)
+	//	0x0_003f -> [UNUSED -- was cmd_addr mask]
 	assign	cpu_status = { 7'h00, 8'h00, i_ext_int,
 			cpu_break, cpu_dbg_cc,
 			1'b0, cmd_halt, (!cpu_dbg_stall), 1'b0,
