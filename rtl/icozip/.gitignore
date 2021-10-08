@@ -3,5 +3,4 @@ simple.ys
 simplify-log.sh
 yosys.log
 cpu/pipefetch.v
-synth.ys
 icozip.json

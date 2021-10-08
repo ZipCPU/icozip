@@ -1,0 +1,82 @@
+read_verilog toplevel.v
+read_verilog main.v
+read_verilog builddate.v
+
+# CPU sources
+read_verilog cpu/cpudefs.v
+read_verilog cpu/zipbones.v
+#
+read_verilog -DNO_DISTRIBUTED_RAM cpu/zipcore.v
+read_verilog cpu/zipwb.v
+read_verilog cpu/div.v
+read_verilog cpu/prefetch.v
+read_verilog cpu/dblfetch.v
+read_verilog cpu/cpuops.v
+read_verilog cpu/mpyop.v
+read_verilog cpu/idecode.v
+read_verilog cpu/memops.v
+read_verilog cpu/slowmpy.v
+#
+read_verilog cpu/busdelay.v
+read_verilog cpu/icontrol.v
+read_verilog cpu/wbarbiter.v
+read_verilog cpu/wbdblpriarb.v
+read_verilog cpu/wbpriarbiter.v
+read_verilog cpu/wbwatchdog.v	
+# read_verilog cpu/zipcounter.v
+# read_verilog cpu/zipjiffies.v
+read_verilog cpu/ziptimer.v
+
+# Peripherals
+read_verilog wbpwmaudio.v
+read_verilog wbpwmfifo.v
+# read_verilog wbspiflash.v
+read_verilog flashconfig.v
+# read_verilog spio.v
+read_verilog wbgpio.v
+# read_verilog wbscope.v
+read_verilog memdev.v
+read_verilog dacfifo.v
+
+read_verilog ../pport/pport.v
+read_verilog ../pport/ppio.v
+read_verilog ../pport/ufifo.v
+
+read_verilog ../hexbus/console.v
+# read_verilog ../hexbus/hbbus.v
+read_verilog ../hexbus/hbconsole.v
+read_verilog ../hexbus/hbdechex.v
+read_verilog ../hexbus/hbdeword.v
+read_verilog ../hexbus/hbexec.v	
+read_verilog ../hexbus/hbgenhex.v
+read_verilog ../hexbus/hbidle.v	
+read_verilog ../hexbus/hbints.v
+read_verilog ../hexbus/hbnewline.v
+read_verilog ../hexbus/hbpack.v	
+
+read_verilog oclkddr.v
+read_verilog sramdev.v
+read_verilog spixpress.v
+read_verilog wbxbar.v
+read_verilog addrdecode.v
+read_verilog skidbuffer.v
+read_verilog cpu/pfcache.v
+
+# read_verilog wbubus/wbconsole.v
+# read_verilog wbubus/wbubus.v
+# read_verilog wbubus/wbucompactlines.v
+# read_verilog wbubus/wbucompress.v
+# read_verilog wbubus/wbuconsole.v
+# read_verilog wbubus/wbudecompress.v
+# read_verilog wbubus/wbudeword.v
+# read_verilog wbubus/wbuexec.v
+# read_verilog wbubus/wbufifo.v
+# read_verilog wbubus/wbuidleint.v
+# read_verilog wbubus/wbuinput.v
+# read_verilog wbubus/wbuoutput.v
+# read_verilog wbubus/wbureadcw.v
+# read_verilog wbubus/wbusixchar.v
+# read_verilog wbubus/wbutohex.v
+
+synth_ice40 -json icozip.json -top toplevel
+write_json icozip.json
