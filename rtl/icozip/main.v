@@ -109,8 +109,9 @@ module	main(i_clk, i_reset,
 		o_ram_ce_n, o_ram_oe_n, o_ram_we_n, o_ram_addr, o_ram_sel, 
 			o_ram_data, i_ram_data,
 		// Command and Control port
-		i_pp_clk, i_pp_dir, i_pp_data, o_pp_data, o_pp_clkfb, o_pp_dbg	// }}}
-);
+		i_pp_clk, i_pp_dir, i_pp_data, o_pp_data, o_pp_clkfb, o_pp_dbg
+	// }}}
+	);
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Any parameter definitions
@@ -1000,12 +1001,15 @@ module	main(i_clk, i_reset,
 	assign	hb_hbarb_err   = wb_hbarb_err;
 `ifdef	FLASH_ACCESS
 	// {{{
-	spixpress flashi(i_clk, i_reset,
+	spixpress
+		flashi(i_clk, i_reset,
+			// Primary memory reading inputs
 			wb_flash_cyc, wb_flash_stb, wb_flash_we,
 			wb_flash_addr[22-1:0],
 			wb_flash_data, // 32 bits wide
 			wb_flash_sel,  // 32/8 bits wide
 		wb_flash_stall, wb_flash_ack, wb_flash_idata,
+			// Configuration bus ports
 			wb_flashcfg_cyc, wb_flashcfg_stb, wb_flashcfg_we,
 			wb_flashcfg_data, // 32 bits wide
 			wb_flashcfg_sel,  // 32/8 bits wide

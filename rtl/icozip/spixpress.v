@@ -291,15 +291,17 @@ module	spixpress(i_clk, i_reset,
 		// Acknowledge the end of any operation, whether from the
 		// configuration port or from reading the memory
 		bus_ack <= (bus_cyc);
-	else if ((bus_stb)&&(!bus_stall)&&(!bus_request))
+	else if (!bus_stb || bus_stall)
+		bus_ack <= 1'b0;
+	else if (!bus_request && !user_request)
 		// Immediately acknowledge any write to the memory address
 		// space, or any read/write while the configuration port is
 		// active.
 		bus_ack <= 1'b1;
-	else if ((cfg_bus_stb)&&(!bus_stall)&&(!user_request))
-		// Immediately acknowledge any read from the configuration
-		// port.  No action is required.
-		bus_ack <= 1'b1;
+	// else if ((cfg_bus_stb)&&(!user_request))
+	//	// Immediately acknowledge any read from the configuration
+	//	// port.  No action is required.
+	//	bus_ack <= 1'b1;
 	else
 		// In all other cases, leave the acknowledgment line low.
 		bus_ack <= 0;
@@ -338,12 +340,7 @@ module	spixpress(i_clk, i_reset,
 	always @(posedge i_clk)
 	begin
 		if (actual_sck)
-		begin
-			if (cfg_user_mode)
-				o_wb_data <= { 19'h0, 1'b1, 4'h0, o_wb_data[6:0], i_spi_miso };
-			else
-				o_wb_data <= { o_wb_data[30:0], i_spi_miso };
-		end
+			o_wb_data <= { o_wb_data[30:0], i_spi_miso };
 
 		if (cfg_user_mode)
 			o_wb_data[31:8] <= { 19'h0, 1'b1, 4'h0 };
@@ -425,7 +422,7 @@ module	spixpress(i_clk, i_reset,
 		bus_stall <= (ack_delay > 1);
 
 	generate if (OPT_PIPE)
-	begin
+	begin : GEN_OPT_PIPE
 		reg	[AW-1:0]	r_next_addr;
 		always @(posedge i_clk)
 		if (!bus_stall)
@@ -433,7 +430,7 @@ module	spixpress(i_clk, i_reset,
 
 		assign	next_addr = r_next_addr;
 
-	end else begin
+	end else begin : NO_PIPE
 
 		assign next_addr = 0;
 
@@ -564,7 +561,7 @@ module	spixpress(i_clk, i_reset,
 		assert(o_spi_cs_n != ((cfg_user_mode)||(ack_delay > 0)));
 
 	generate if (F_OPT_COVER)
-	begin
+	begin : F_GEN_COVER
 
 		always @(posedge i_clk)
 			cover(bus_ack&&(!$past(bus_request))
@@ -742,7 +739,7 @@ module	spixpress(i_clk, i_reset,
 		|=> (o_wb_ack)&&(o_wb_data == f_data));
 
 	generate if (OPT_CFG)
-	begin
+	begin : F_GEN_CFG
 		// Now for configuration writes
 		assert property (@(posedge i_clk)
 			disable iff ((i_reset)||(!i_wb_cyc))

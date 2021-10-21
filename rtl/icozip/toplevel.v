@@ -56,7 +56,7 @@
 // also appear in this list
 //
 module	toplevel(i_clk,
-		// Top level Dual-SPI I/O ports
+		// Top level SPI I/O ports
 		o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso,
 		// GPIO ports
 		o_ledg, o_ledr, i_btn,
@@ -77,7 +77,7 @@ module	toplevel(i_clk,
 	// We start with any @CLOCK.TOP keys
 	//
 	input	wire		i_clk;
-	// Dual SPI flash
+	// SPI flash
 	output	wire		o_spi_cs_n;
 	output	wire		o_spi_sck, o_spi_mosi;
 	input	wire		i_spi_miso;

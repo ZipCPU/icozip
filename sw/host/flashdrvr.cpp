@@ -61,7 +61,15 @@ static const	int	F_EMPTY = 0,	// (No command)
 			F_WREN = 0x006,	// Write Enable
 			F_SE   = 0x0d8,	// Sector erase
 			F_END  = 0x100; // End cfg access
- 
+
+#define	CFG_USERMODE	(1<<12)
+
+#ifdef	R_FLASHSCOPE // Scope for the flash driver
+# define SETSCOPE m_fpga->writeio(R_FLASHSCOPE, 8180)
+#else
+# define SETSCOPE
+#endif
+
 void	FLASHDRVR::flwait(void) {
 	const	int	WIP = 1;	// Write in progress bit
 	DEVBUS::BUSW	sr;
@@ -71,7 +79,7 @@ void	FLASHDRVR::flwait(void) {
 	do {
 		m_fpga->writeio(R_FLASHCFG, F_EMPTY);
 		sr = m_fpga->readio(R_FLASHCFG);
-	} while(sr&WIP);
+	} while((sr&WIP) != 0);
 	m_fpga->writeio(R_FLASHCFG, F_END);
 }
 
@@ -89,9 +97,9 @@ bool	FLASHDRVR::erase_sector(const unsigned sector, const bool verify_erase) {
 	printf("Erasing sector: %06x\n", flashaddr);
 
 	m_fpga->writeio(R_FLASHCFG, F_SE);
-	m_fpga->writeio(R_FLASHCFG, (flashaddr>>16)&0x0ff);
-	m_fpga->writeio(R_FLASHCFG, (flashaddr>> 8)&0x0ff);
-	m_fpga->writeio(R_FLASHCFG, (flashaddr    )&0x0ff);
+	m_fpga->writeio(R_FLASHCFG, CFG_USERMODE | ((flashaddr>>16)&0x0ff));
+	m_fpga->writeio(R_FLASHCFG, CFG_USERMODE | ((flashaddr>> 8)&0x0ff));
+	m_fpga->writeio(R_FLASHCFG, CFG_USERMODE | ((flashaddr    )&0x0ff));
 	m_fpga->writeio(R_FLASHCFG, F_END);
 
 	// Wait for the erase to complete
@@ -107,7 +115,7 @@ bool	FLASHDRVR::erase_sector(const unsigned sector, const bool verify_erase) {
 			for(int j=0; j<SZPAGEW; j++)
 				if (page[j] != 0xffffffff) {
 					unsigned rdaddr = R_FLASH+flashaddr+i*SZPAGEB;
-					
+
 					if (m_debug)
 						printf("FLASH[%07x] = %08x, not 0xffffffff as desired (%06x + %d)\n",
 							R_FLASH+flashaddr+i*SZPAGEB+(j<<2),
@@ -143,35 +151,44 @@ bool	FLASHDRVR::page_program(const unsigned addr, const unsigned len,
 			empty_page = false;
 	}
 
-	if (!empty_page) {
-		// Write enable
-		m_fpga->writeio(R_FLASHCFG, F_END);
-		m_fpga->writeio(R_FLASHCFG, F_WREN);
-		m_fpga->writeio(R_FLASHCFG, F_END);
-
-		// Write the page
-		m_fpga->writeio(R_FLASHCFG, F_END);
-
-		// Issue the command
-		m_fpga->writeio(R_FLASHCFG, F_PP);
-		// The address
-		m_fpga->writeio(R_FLASHCFG, (flashaddr>>16)&0x0ff);
-		m_fpga->writeio(R_FLASHCFG, (flashaddr>> 8)&0x0ff);
-		m_fpga->writeio(R_FLASHCFG, (flashaddr    )&0x0ff);
-
-		// Write the page data itself
-		for(unsigned i=0; i<len; i++)
-			m_fpga->writeio(R_FLASHCFG, data[i] & 0x0ff);
-		m_fpga->writeio(R_FLASHCFG, F_END);
-
-		printf("Writing page: 0x%08x - 0x%08x", addr, addr+len-1);
-		if ((m_debug)&&(verify_write))
-			fflush(stdout);
-		else
-			printf("\n");
-
-		flwait();
+	if (empty_page) {
+		return true;
 	}
+
+	// Write enable
+	m_fpga->writeio(R_FLASHCFG, F_END);
+	m_fpga->writeio(R_FLASHCFG, F_WREN);
+	m_fpga->writeio(R_FLASHCFG, F_END);
+
+	// Write the page
+	m_fpga->writeio(R_FLASHCFG, F_END);
+
+	// Issue the page program command
+	m_fpga->writeio(R_FLASHCFG, F_PP);
+	// The address of the page to be programmed
+	m_fpga->writeio(R_FLASHCFG, CFG_USERMODE|((flashaddr>>16)&0x0ff));
+	m_fpga->writeio(R_FLASHCFG, CFG_USERMODE|((flashaddr>> 8)&0x0ff));
+	m_fpga->writeio(R_FLASHCFG, CFG_USERMODE|((flashaddr    )&0x0ff));
+
+	//
+	// Write the page data itself
+	//
+	for(unsigned i=0; i<len; i++)
+		m_fpga->writeio(R_FLASHCFG,
+			CFG_USERMODE | (data[i] & 0x0ff));
+	m_fpga->writeio(R_FLASHCFG, F_END);
+	m_fpga->writeio(R_FLASHCFG, F_END);
+	SETSCOPE;
+
+	printf("Writing page: 0x%08x - 0x%08x", addr, addr+len-1);
+	if ((m_debug)&&(verify_write))
+		fflush(stdout);
+	else
+		printf("\n");
+
+	// Wait for the write to complete
+	flwait();
+
 	if (verify_write) {
 		// printf("Attempting to verify page\n");
 		// NOW VERIFY THE PAGE
@@ -179,7 +196,7 @@ bool	FLASHDRVR::page_program(const unsigned addr, const unsigned len,
 		for(unsigned i=0; i<(len>>2); i++) {
 			if (buf[i] != bswapd[i]) {
 				printf("\nVERIFY FAILS[%d]: %08x\n", i, (i<<2)+addr);
-				printf("\t(Flash[%d]) %08x != %08x (Goal[%08x])\n", 
+				printf("\t(Flash[%d]) %08x != %08x (Goal[%08x])\n",
 					(i<<2), buf[i], bswapd[i], (i<<2)+addr);
 				return false;
 			}
@@ -210,10 +227,11 @@ bool	FLASHDRVR::write(const unsigned addr, const unsigned len,
 			byteswapbuf(ln>>2, (uint32_t *)sbuf);
 
 			dp = &data[base-addr];
+			SETSCOPE;
 			for(unsigned i=0; i<ln; i++) {
 				if ((sbuf[i]&dp[i]) != dp[i]) {
 					if (m_debug) {
-						printf("\nNEED-ERASE @0x%08x ... %08x != %08x (Goal)\n", 
+						printf("\nNEED-ERASE @0x%08x ... %08x != %08x (Goal)\n",
 							i+base-addr, sbuf[i], dp[i]);
 					}
 					need_erase = true;

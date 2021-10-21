@@ -14,7 +14,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2020, Gisselquist Technology, LLC
+## Copyright (C) 2017-2021, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -56,7 +56,8 @@ VERILATOR_ROOT ?= $(shell bash -c 'verilator -V|grep VERILATOR_ROOT | head -1 | 
 VROOT	:= $(VERILATOR_ROOT)
 VDEFS   := $(shell ./vversion.sh)
 VINCD   := $(VROOT)/include
-INCS	:= -I$(RTLD) -I$(RTLD)/obj-$(ARCH)/ -I$(VINCD) -I$(VINCD)/vltstd
+SWHOST  := ../../sw/host
+INCS	:= -I$(RTLD) -I$(RTLD)/obj-$(ARCH)/ -I$(SWHOST) -I$(VINCD) -I$(VINCD)/vltstd
 CFLAGS	:= -Og -g -Wall $(INCS)
 # CFLAGS	:= -Og -g -faligned-new -Wall $(INCS)
 #
@@ -78,11 +79,11 @@ all:	$(PROGRAMS)
 
 $(OBJDIR)/%.o: %.cpp
 	$(mk-objdir)
-	$(CXX) $(CFLAGS) $(VDEFS) $(INCS) -c $< -o $@
+	$(CXX) $(CFLAGS) $(VDEFS) -c $< -o $@
 
 $(OBJDIR)/%.o: $(VINCD)/%.cpp
 	$(mk-objdir)
-	$(CXX) $(CFLAGS) $(INCS) -c $< -o $@
+	$(CXX) $(CFLAGS) -c $< -o $@
 
 MAINOBJS := $(OBJDIR)/automaster_tb.o
 
@@ -106,7 +107,7 @@ clean:
 define build-depends
 	$(mk-objdir)
 	@echo "Building dependency file"
-	@$(CXX) $(CFLAGS) $(INCS) -MM $(SOURCES) > $(OBJDIR)/xdepends.txt
+	$(CXX) $(CFLAGS) -MM $(SOURCES) > $(OBJDIR)/xdepends.txt
 	@sed -e 's/^.*.o: /$(OBJDIR)\/&/' < $(OBJDIR)/xdepends.txt > $(OBJDIR)/depends.txt
 	@rm $(OBJDIR)/xdepends.txt
 endef

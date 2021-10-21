@@ -44,12 +44,14 @@
 @NBYTES.FORMAT=0x%08x
 @SLAVE.TYPE=MEMORY
 @SLAVE.BUS=wb
+@NDUMMY=4
+@RDDELAY=0
 @LD.PERM=rx
 @TOP.PORTLIST=
-		// Top level Dual-SPI I/O ports
+		// Top level SPI I/O ports
 		o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso
 @TOP.IODECL=
-	// Dual SPI flash
+	// SPI flash
 	output	wire		o_spi_cs_n;
 	output	wire		o_spi_sck, o_spi_mosi;
 	input	wire		i_spi_miso;
@@ -76,8 +78,11 @@
 	output	wire		o_spi_mosi;
 	input	wire		i_spi_miso;
 @MAIN.INSERT=
-	spixpress @$(PREFIX)i(i_clk, i_reset,
+	spixpress
+		@$(PREFIX)i(i_clk, i_reset,
+			// Primary memory reading inputs
 			@$(SLAVE.PORTLIST),
+			// Configuration bus ports
 			@$(flashcfg.SLAVE.PORTLIST),
 			o_spi_cs_n, o_spi_sck, o_spi_mosi, i_spi_miso);
 @MAIN.ALT=
@@ -91,6 +96,10 @@
 #define	@$(DEVID)BASE	@$[0x%08x](REGBASE)
 #define	@$(DEVID)LEN	@$NBYTES
 #define	@$(DEVID)LGLEN	@$LGFLASHSZ
+//
+#define	FLASH_RDDELAY	@$(RDDELAY)
+#define	FLASH_NDUMMY	@$(NDUMMY)
+//
 @REGS.0= 0 R_@$(DEVID) @$(DEVID)
 @BDEF.OSDEF=_BOARD_HAS_@$(DEVID)
 @BDEF.OSVAL=extern char _@$(PREFIX)[@$NBYTES];
@@ -101,27 +110,19 @@
 @SIM.DEFNS=
 #ifdef	@$(ACCESS)
 	FLASHSIM	*m_@$(MEM.NAME);
-	int		m_@$(MEM.NAME)_last_sck;
 #endif // @$(ACCESS)
 @SIM.INIT=
 #ifdef	@$(ACCESS)
-		m_@$(MEM.NAME) = new FLASHSIM(FLASHLGLEN);
-		m_@$(MEM.NAME)_last_sck = 0;
-#endif
+		m_@$(MEM.NAME) = new FLASHSIM(FLASHLGLEN, false, @$RDDELAY, @$NDUMMY);
+#endif // @$(ACCESS)
 @SIM.CLOCK=clk
 @SIM.TICK=
 #ifdef	@$(ACCESS)
-		if (m_@$(MEM.NAME)_last_sck) {
-			(*m_@$(MEM.NAME))(m_core->o_spi_cs_n, 0,
-						m_core->o_spi_mosi);
-		} m_core->i_spi_miso = ((*m_@$(MEM.NAME))(m_core->o_spi_cs_n, 1,
-						m_core->o_spi_mosi)&2)?1:0;
-		m_@$(MEM.NAME)_last_sck = m_core->o_spi_sck;
+		m_core->i_spi_miso = (2&m_@$(MEM.NAME)->simtick(
+			m_core->o_spi_cs_n, m_core->o_spi_sck, m_core->o_spi_mosi, 0)) ? 1:0;
 #endif // @$(ACCESS)
 @SIM.LOAD=
-#ifdef	@$(ACCESS)
 			m_@$(MEM.NAME)->load(start, &buf[offset], wlen);
-#endif // @$(ACCESS)
 #
 #
 #

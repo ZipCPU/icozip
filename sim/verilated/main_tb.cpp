@@ -131,7 +131,6 @@ public:
 	int	m_cpu_bombed;
 #ifdef	FLASH_ACCESS
 	FLASHSIM	*m_flash;
-	int		m_flash_last_sck;
 #endif // FLASH_ACCESS
 #ifdef	SRAM_ACCESS
 	SRAMSIM		*m_sram;
@@ -148,9 +147,8 @@ public:
 		m_cpu_bombed = 0;
 		// From flash
 #ifdef	FLASH_ACCESS
-		m_flash = new FLASHSIM(FLASHLGLEN);
-		m_flash_last_sck = 0;
-#endif
+		m_flash = new FLASHSIM(FLASHLGLEN, false, 0, 4);
+#endif // FLASH_ACCESS
 		// From sram
 #ifdef	SRAM_ACCESS
 		m_sram = new SRAMSIM(0x00020000);
@@ -224,12 +222,8 @@ public:
 
 		// SIM.TICK from flash
 #ifdef	FLASH_ACCESS
-		if (m_flash_last_sck) {
-			(*m_flash)(m_core->o_spi_cs_n, 0,
-						m_core->o_spi_mosi);
-		} m_core->i_spi_miso = ((*m_flash)(m_core->o_spi_cs_n, 1,
-						m_core->o_spi_mosi)&2)?1:0;
-		m_flash_last_sck = m_core->o_spi_sck;
+		m_core->i_spi_miso = (2&m_flash->simtick(
+			m_core->o_spi_cs_n, m_core->o_spi_sck, m_core->o_spi_mosi, 0)) ? 1:0;
 #endif // FLASH_ACCESS
 		// SIM.TICK from sram
 #ifdef	SRAM_ACCESS
@@ -276,9 +270,7 @@ public:
 				? (adrln - start) : len - offset;
 #ifdef	FLASH_ACCESS
 			// FROM flash.SIM.LOAD
-#ifdef	FLASH_ACCESS
 			m_flash->load(start, &buf[offset], wlen);
-#endif // FLASH_ACCESS
 			// AUTOFPGA::Now clean up anything else
 			// Was there more to write than we wrote?
 			if (addr + len > base + adrln)

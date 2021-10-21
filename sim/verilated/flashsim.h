@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015,2017-2019, Gisselquist Technology, LLC
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -40,6 +40,17 @@
 //
 #ifndef	FLASHSIM_H
 #define	FLASHSIM_H
+
+#include "regdefs.h"
+
+#ifndef	FLASH_NDUMMY
+#define	FLASH_NDUMMY	6
+#endif
+
+#ifndef	FLASH_RDDELAY
+#error read-delay-undefined
+#define	FLASH_RDDELAY	1
+#endif
 
 #define	QSPIF_WIP_FLAG			0x0001
 #define	QSPIF_WEL_FLAG			0x0002
@@ -90,12 +101,14 @@ class	FLASHSIM {
 	int		*m_ckdelay, *m_rddelay;
 
 public:
-	FLASHSIM(const int lglen = 24, bool debug = false);
+	FLASHSIM(const int lglen = 24, bool debug = false,
+		const int rddelay = FLASH_RDDELAY,
+		const int ndummy = FLASH_NDUMMY);
 	void	load(const char *fname) { load(0, fname); }
 	void	load(const unsigned addr, const char *fname);
 	void	load(const uint32_t offset, const char *data, const uint32_t len);
 	bool	write_protect(void) { return ((m_sreg & QSPIF_WEL_FLAG)==0); }
-	bool	write_in_progress(void) { return ((m_sreg | QSPIF_WIP_FLAG)!=0); }
+	bool	write_in_progress(void) { return ((m_sreg & QSPIF_WIP_FLAG)!=0); }
 	bool	xip_mode(void) { return (QSPIF_QUAD_READ_IDLE == m_state); }
 	bool	deep_sleep(bool newval);
 	bool	deep_sleep(void) const;

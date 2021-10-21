@@ -169,6 +169,16 @@ int	main(int argc, char **argv) {
 		tb->tick();
 		tb->m_core->cpu_cmd_halt = 0;
 		tb->m_core->VVAR(_swic__DOT__cmd_reset) = 0;
+		tb->tick();
+		tb->tick();
+		if (tb->m_core->cpu_cmd_halt) {
+			for(int k=0; k<50; k++)
+				tb->tick();
+			tb->m_core->cpu_cmd_halt = 0;
+			tb->tick();
+			tb->m_core->cpu_cmd_halt = 0;
+			tb->tick();
+		}
 #else
 		fprintf(stderr, "ERR: Design has no ZipCPU\n");
 		exit(EXIT_FAILURE);
